@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Conditional Andersen: Path-Aware Pointer Analysis</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            padding: 60px 80px;
+            flex-direction: column;
+            position: relative;
+        }
+        .slide.active { display: flex; }
+
+        /* Title Slide */
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        .title-slide h1 {
+            font-size: 3.2em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #e94560, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+        .title-slide .subtitle {
+            font-size: 1.6em;
+            color: #a0a0c0;
+            margin-bottom: 60px;
+            font-weight: 300;
+        }
+        .title-slide .meta {
+            font-size: 1.1em;
+            color: #8892b0;
+            line-height: 2;
+        }
+
+        /* Content Slides */
+        .content-slide h2 {
+            font-size: 2.2em;
+            color: #e94560;
+            margin-bottom: 40px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #e94560;
+            display: inline-block;
+        }
+        .content-slide h3 {
+            font-size: 1.5em;
+            color: #feca57;
+            margin: 25px 0 15px 0;
+        }
+        .content-slide p, .content-slide li {
+            font-size: 1.25em;
+            line-height: 1.7;
+            color: #ccd6f6;
+            margin-bottom: 12px;
+        }
+        .content-slide ul { margin-left: 30px; }
+        .content-slide li { margin-bottom: 8px; }
+
+        /* Code Blocks */
+        .code-block {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px 25px;
+            font-family: "Fira Code", "Consolas", "Monaco", monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #c9d1d9;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        .code-block .comment { color: #8b949e; font-style: italic; }
+        .code-block .keyword { color: #ff7b72; }
+        .code-block .var { color: #79c0ff; }
+        .code-block .obj { color: #ffa657; }
+        .code-block .cond { color: #d2a8ff; }
+        .code-block .edge { color: #7ee787; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 0.95em;
+        }
+        th {
+            background: #e94560;
+            color: white;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #30363d;
+            color: #ccd6f6;
+        }
+        tr:nth-child(even) { background: #161b22; }
+        tr:hover { background: #1f2937; }
+
+        /* Inference Rules */
+        .rule-box {
+            background: #161b22;
+            border-left: 4px solid #feca57;
+            padding: 18px 24px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 1.1em;
+        }
+        .rule-name {
+            color: #feca57;
+            font-weight: 700;
+            font-size: 1.15em;
+            margin-bottom: 8px;
+        }
+        .rule-content {
+            color: #c9d1d9;
+            font-family: "Georgia", serif;
+            font-style: italic;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: rgba(233, 69, 96, 0.1);
+            border: 2px solid #e94560;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        .highlight-box h4 {
+            color: #e94560;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+
+        /* Two Column */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 20px;
+        }
+        .col h3 { margin-top: 0; }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            bottom: 30px;
+            right: 40px;
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+        .nav button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .nav button:hover { background: #ff6b6b; transform: translateY(-2px); }
+        .slide-num {
+            position: fixed;
+            bottom: 30px;
+            left: 40px;
+            color: #8892b0;
+            font-size: 1em;
+        }
+
+        /* Math */
+        .math {
+            font-family: "Times New Roman", serif;
+            font-style: italic;
+            color: #feca57;
+        }
+
+        /* Result Box */
+        .result {
+            background: rgba(126, 231, 135, 0.1);
+            border-left: 4px solid #7ee787;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .result strong { color: #7ee787; }
+
+        /* Arrow */
+        .arrow { color: #e94560; font-weight: bold; font-size: 1.2em; }
+
+        /* Small text */
+        .small { font-size: 0.85em; color: #8892b0; }
+    </style>
+</head>
+<body>
+
+<!-- Slide 1: Title -->
+<div class="slide title-slide active">
+    <h1>Conditional Andersen</h1>
+    <div class="subtitle">Adding Path-Condition Awareness to Inclusion-Based Pointer Analysis</div>
+    <div class="meta">
+        <p>基于路径约束扩充的Andersen指针分析</p>
+        <p style="margin-top: 30px; font-size: 0.9em;">一种可调的、轻量级的分支敏感技术</p>
+    </div>
+</div>
+
+<!-- Slide 2: Motivation -->
+<div class="slide content-slide">
+    <h2>01. 动机：传统Andersen的痛点</h2>
+    <p>传统Andersen分析是<strong style="color:#e94560;">路径不敏感（Path-Insensitive）</strong>的，所有分支上的赋值被无条件合并。</p>
+
+    <div class="code-block">
+<span class="comment">// 示例代码</span>
+x = <span class="keyword">alloc</span> o1;   <span class="comment">// pts(x) = {o1}</span>
+q = <span class="keyword">alloc</span> o2;   <span class="comment">// pts(q) = {o2}</span>
+t = <span class="keyword">alloc</span> o3;   <span class="comment">// pts(t) = {o3}</span>
+
+<span class="cond">if (cond A)</span> p1 = q;    <span class="comment">// 只在 cond A 下执行</span>
+<span class="cond">else</span>        p2 = t;    <span class="comment">// 只在 !cond A 下执行</span>
+p = <span class="keyword">phi</span>(p1, p2);
+*p = x;                  <span class="comment">// store 操作</span>
+    </div>
+
+    <div class="highlight-box">
+        <h4>传统Andersen求解结果</h4>
+        <p>pts(p) = {o2, o3}  <span class="arrow">→</span>  pts(o2) ⊇ pts(x) = {o1}, pts(o3) ⊇ pts(x) = {o1}</p>
+        <p><strong style="color:#e94560;">结论：o2 和 o3 是别名（都指向 o1）</strong></p>
+        <p class="small">但实际上，o2 只在 cond A 下被写入，o3 只在 !cond A 下被写入，它们永远不会同时指向 o1！</p>
+    </div>
+</div>
+
+<!-- Slide 3: Core Idea -->
+<div class="slide content-slide">
+    <h2>02. 核心 Idea：条件约束边</h2>
+    <p>将路径条件作为<strong>约束边的守卫（Guard）</strong>，每个 points-to 关系携带触发条件。</p>
+
+    <div class="code-block">
+<span class="comment">// 条件约束边表示</span>
+o2 --<span class="edge">(alloc, ⊤)</span>--> q        <span class="comment">// pts(q) = {(⊤, o2)}</span>
+o3 --<span class="edge">(alloc, ⊤)</span>--> t        <span class="comment">// pts(t) = {(⊤, o3)}</span>
+q  --<span class="edge">(copy, cond A)</span>--> p1    <span class="comment">// pts(p1) = {(cond A, o2)}</span>
+t  --<span class="edge">(copy, !cond A)</span>--> p2   <span class="comment">// pts(p2) = {(!cond A, o3)}</span>
+p1 --<span class="edge">(copy, ⊤)</span>--> p         <span class="comment">// cond A: o2 ∈ pts(p)</span>
+p2 --<span class="edge">(copy, ⊤)</span>--> p         <span class="comment">// !cond A: o3 ∈ pts(p)</span>
+<span class="comment">// pts(p) = {(cond A, o2), (!cond A, o3)}</span>
+    </div>
+
+    <div class="result">
+        <strong>Store 派生边（核心创新）：</strong><br>
+        x --<span class="edge">(store, ⊤)</span>--> p  <span class="arrow">⇒</span><br>
+        x --<span class="edge">(copy, cond A)</span>--> o2, &nbsp;&nbsp; x --<span class="edge">(copy, !cond A)</span>--> o3
+    </div>
+
+    <div class="result">
+        <strong>最终结果：</strong> pts(o2) = {(cond A, o1)}, pts(o3) = {(!cond A, o1)}<br>
+        <strong>别名查询：</strong> SAT(cond A ∧ !cond A) = false <span class="arrow">→</span> <strong style="color:#7ee787;">o2 和 o3 不是别名！</strong>
+    </div>
+</div>
+
+<!-- Slide 4: Key Insight -->
+<div class="slide content-slide">
+    <h2>03. 核心 Insight</h2>
+
+    <div class="two-col">
+        <div class="col">
+            <h3>传统思路</h3>
+            <p>路径敏感 = 为<strong>每条完整路径</strong>维护独立的 points-to 状态</p>
+            <p style="color:#e94560;"><strong>问题：路径爆炸，不可扩展</strong></p>
+            <p>例如：SPAS (Sui et al., 2011) 在 full-sparse SSA 上用 BDD 编码路径，开销巨大</p>
+        </div>
+        <div class="col">
+            <h3>我们的思路</h3>
+            <p>路径<strong>条件感知</strong> = 在 points-to <strong>集合元素</strong>上标注条件，而非复制整个状态</p>
+            <p style="color:#7ee787;"><strong>优势：保持 Andersen 的流不敏感性，只增加条件维度</strong></p>
+            <p>类似 ICON 在 Andersen 上加上下文敏感，我们在 Andersen 上加路径条件敏感</p>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 40px;">
+        <h4>类比：Context-Sensitive 中的 K-Limiting</h4>
+        <p>1-callsite-sensitive, 2-callsite-sensitive... <span class="arrow">→</span> 控制上下文深度</p>
+        <p><strong>我们提出：</strong>1-path-sensitive, 2-path-sensitive... <span class="arrow">→</span> 控制路径条件嵌套深度</p>
+        <p class="small">k=0 时退化为传统Andersen；k→∞ 时逼近全路径敏感</p>
+    </div>
+</div>
+
+<!-- Slide 5: Related Work Overview -->
+<div class="slide content-slide">
+    <h2>04. 已有工作现状</h2>
+
+    <table>
+        <tr>
+            <th>工作</th>
+            <th>年份</th>
+            <th>框架</th>
+            <th>路径处理方式</th>
+            <th>与我们的关系</th>
+        </tr>
+        <tr>
+            <td><strong>SPAS</strong> (Sui et al.)</td>
+            <td>2011</td>
+            <td>FSCS + Full-Sparse SSA</td>
+            <td>BDD编码完整程序路径</td>
+            <td>流敏感路径分析；我们是<strong>流不敏感</strong></td>
+        </tr>
+        <tr>
+            <td><strong>ICON</strong> (Sui et al.)</td>
+            <td>2014</td>
+            <td>Andersen + 参数化</td>
+            <td>虚拟变量实现上下文敏感</td>
+            <td><strong>对偶工作</strong>：ICON加callsite敏感，我们加branch敏感</td>
+        </tr>
+        <tr>
+            <td><strong>Gutzmann et al.</strong></td>
+            <td>2007</td>
+            <td>Andersen变体</td>
+            <td>过滤分支后虚假points-to</td>
+            <td>未系统性标注条件；无k-limiting</td>
+        </tr>
+        <tr>
+            <td><strong>Lhoták & Chung</strong></td>
+            <td>2011</td>
+            <td>流敏感</td>
+            <td>明确区分流敏感与路径敏感</td>
+            <td>指出路径敏感分析开销大</td>
+        </tr>
+        <tr>
+            <td><strong>Falcon</strong> (PLDI)</td>
+            <td>2024</td>
+            <td>值流分析</td>
+            <td>逻辑析并精确合并值流守卫</td>
+            <td>全流敏感；更重量级的框架</td>
+        </tr>
+        <tr>
+            <td><strong>Kaleidoscope</strong></td>
+            <td>2024</td>
+            <td>静态+动态</td>
+            <td>Likely invariants + 运行时验证</td>
+            <td>正交：动态验证 vs 静态条件追踪</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Slide 6: Detailed Comparison -->
+<div class="slide content-slide">
+    <h2>05. 与 SPAS (2011) 的本质区别</h2>
+
+    <table>
+        <tr>
+            <th style="width:25%">维度</th>
+            <th style="width:37.5%">SPAS (Sui et al.)</th>
+            <th style="width:37.5%">我们的工作</th>
+        </tr>
+        <tr>
+            <td><strong>基础框架</strong></td>
+            <td>流敏感 + 上下文敏感 (FSCS) on SSA</td>
+            <td><strong style="color:#7ee787;">流不敏感 Andersen</strong></td>
+        </tr>
+        <tr>
+            <td><strong>路径表示</strong></td>
+            <td>BDD编码完整CFG路径，绑定SSA版本</td>
+            <td>约束边上直接标注原子路径条件</td>
+        </tr>
+        <tr>
+            <td><strong>分析对象</strong></td>
+            <td>程序点（SSA版本）级别的points-to</td>
+            <td>变量级别的条件points-to集合</td>
+        </tr>
+        <tr>
+            <td><strong>精度粒度</strong></td>
+            <td>过程内完整路径敏感</td>
+            <td><strong style="color:#7ee787;">可调k-limiting（类似k-CFA）</strong></td>
+        </tr>
+        <tr>
+            <td><strong>Store处理</strong></td>
+            <td>χ/μ操作在SSA上处理MAY/MUST-DEF</td>
+            <td><strong style="color:#7ee787;">派生条件copy边（对象→对象）</strong></td>
+        </tr>
+        <tr>
+            <td><strong>可扩展性</strong></td>
+            <td>SPEC CPU上平均+18%时间开销</td>
+            <td>保持Andersen多项式复杂度</td>
+        </tr>
+    </table>
+
+    <div class="result" style="margin-top: 20px;">
+        <strong>关键差异：</strong>SPAS是"为每条路径维护独立状态"；我们是"在单个状态内用条件区分来源"
+    </div>
+</div>
+
+<!-- Slide 7: Demo Walkthrough -->
+<div class="slide content-slide">
+    <h2>06. Demo 详解：逐步推导</h2>
+
+    <div class="code-block">
+<span class="comment">// 原始代码</span>
+x = <span class="keyword">alloc</span> o1;   q = <span class="keyword">alloc</span> o2;   t = <span class="keyword">alloc</span> o3;
+<span class="cond">if (cond A)</span> p1 = q;  <span class="cond">else</span> p2 = t;
+p = <span class="keyword">phi</span>(p1, p2);
+*p = x;
+    </div>
+
+    <h3>Step-by-Step 条件约束求解</h3>
+    <div class="code-block">
+<span class="comment">// Step 1: Allocations (Rule ALLOC)</span>
+pts(x) = {(⊤, o1)}    pts(q) = {(⊤, o2)}    pts(t) = {(⊤, o3)}
+
+<span class="comment">// Step 2: Copy with conditions (Rule COPY)</span>
+<span class="cond">if (cond A)</span> p1 = q  <span class="arrow">→</span>  pts(p1) ⊇ {(⊤∧cond A, o2)} = {(cond A, o2)}
+<span class="cond">else</span>        p2 = t  <span class="arrow">→</span>  pts(p2) ⊇ {(⊤∧!cond A, o3)} = {(!cond A, o3)}
+
+<span class="comment">// Step 3: Phi merge (Rule PHI)</span>
+p = φ(p1, p2)  <span class="arrow">→</span>  pts(p) = {(cond A, o2), (!cond A, o3)}
+
+<span class="comment">// Step 4: Store generates derived edges (Rule DERIVED-COPY)</span>
+*p = x  <span class="arrow">→</span>  ∀(π₁,o)∈pts(p), ∀(π₂,o')∈pts(x): o ⊇_{π₁∧π₂} o'
+        <span class="arrow">→</span>  o2 ⊇_{cond A∧⊤} o1  <span class="arrow">→</span>  pts(o2) = {(cond A, o1)}
+        <span class="arrow">→</span>  o3 ⊇_{!cond A∧⊤} o1  <span class="arrow">→</span>  pts(o3) = {(!cond A, o1)}
+    </div>
+</div>
+
+<!-- Slide 8: Inference Rules 1 -->
+<div class="slide content-slide">
+    <h2>07. Inference Rules (1/2)：基础规则</h2>
+
+    <div class="rule-box">
+        <div class="rule-name">[ALLOC] 分配</div>
+        <div class="rule-content">
+            alloc(o, x) <span class="arrow">⇒</span> pts(x) ⊇ {(⊤, o)}
+        </div>
+        <div class="small">分配创建无条件指向关系</div>
+    </div>
+
+    <div class="rule-box">
+        <div class="rule-name">[COPY] 条件复制</div>
+        <div class="rule-content">
+            (π', o) ∈ pts(x) &nbsp;&nbsp; copy(x, y, π) <span class="arrow">⇒</span> pts(y) ⊇ {(π' ∧ π, o)}
+        </div>
+        <div class="small">如果x在π'下指向o，且y=x在π下成立，则y在π'∧π下指向o</div>
+    </div>
+
+    <div class="rule-box">
+        <div class="rule-name">[LOAD] 条件加载</div>
+        <div class="rule-content">
+            (π₁, o) ∈ pts(x), (π₂, o') ∈ pts(o), load(x, y, π) <span class="arrow">⇒</span> pts(y) ⊇ {(π₁ ∧ π₂ ∧ π, o')}
+        </div>
+        <div class="small">需要x指向o（π₁）、o指向o'（π₂）、加载在π下执行，三者同时满足</div>
+    </div>
+
+    <div class="rule-box">
+        <div class="rule-name">[STORE] 条件存储</div>
+        <div class="rule-content">
+            (π₁, o) ∈ pts(x), (π₂, o') ∈ pts(y), store(x, y, π) <span class="arrow">⇒</span> pts(o) ⊇ {(π₁ ∧ π₂ ∧ π, o')}
+        </div>
+        <div class="small">将y的值（在π₂下指向o'）写入x指向的对象o（在π₁下），在π下执行</div>
+    </div>
+</div>
+
+<!-- Slide 9: Inference Rules 2 -->
+<div class="slide content-slide">
+    <h2>08. Inference Rules (2/2)：派生边与简化</h2>
+
+    <div class="rule-box">
+        <div class="rule-name">[DERIVED-COPY] Store分解（核心创新）</div>
+        <div class="rule-content">
+            store(x, y, π), (π₁, o) ∈ pts(x), (π₂, o') ∈ pts(y) <span class="arrow">⇒</span> o <span class="math">→</span><sub>(copy, π₁∧π₂∧π)</sub> o'
+        </div>
+        <div class="small">将间接赋值分解为对象到对象的条件copy边</div>
+    </div>
+
+    <div class="rule-box">
+        <div class="rule-name">[PHI] 条件合并</div>
+        <div class="rule-content">
+            phi(x₁,...,xₙ, y, [π₁,...,πₙ]), (π', o) ∈ pts(xᵢ) <span class="arrow">⇒</span> pts(y) ⊇ {(π' ∧ πᵢ, o)}
+        </div>
+        <div class="small">每个分支携带其路径条件与原始条件的合取</div>
+    </div>
+
+    <div class="rule-box">
+        <div class="rule-name">[CONTRADICTION] 矛盾消除</div>
+        <div class="rule-content">
+            (π, o) ∈ pts(x), π ≡ ⊥ <span class="arrow">⇒</span> 从 pts(x) 中移除 (π, o)
+        </div>
+        <div class="small">不可能路径上的指向关系被剪枝</div>
+    </div>
+
+    <div class="rule-box">
+        <div class="rule-name">[ALIAS] 条件别名判断</div>
+        <div class="rule-content">
+            may-alias(o₁, o₂) ⟺ ∃π₁,π₂: (π₁,o₁)∈pts(p) ∧ (π₂,o₂)∈pts(p) ∧ SAT(π₁ ∧ π₂)
+        </div>
+        <div class="small">仅当存在可满足的共同条件时才判定为别名</div>
+    </div>
+</div>
+
+<!-- Slide 10: K-Path-Sensitive -->
+<div class="slide content-slide">
+    <h2>09. K-Path-Sensitive：可调精度机制</h2>
+
+    <p>类似上下文敏感中的 <strong>k-CFA</strong>，我们引入 <strong>k-Path-Sensitive</strong> 控制路径条件嵌套深度。</p>
+
+    <div class="code-block">
+<span class="comment">// 条件深度定义</span>
+depth(⊤) = 0
+depth(c) = 1          <span class="comment">// 原子条件</span>
+depth(¬π) = depth(π)
+depth(π₁ ∧ π₂) = depth(π₁) + depth(π₂)
+depth(π₁ ∨ π₂) = max(depth(π₁), depth(π₂))
+
+<span class="comment">// K-Limit 规则</span>
+(π, o) ∈ pts(x), depth(π) > k  <span class="arrow">⇒</span>  (abstract(π, k), o) ∈ pts(x)
+    </div>
+
+    <table style="margin-top: 30px;">
+        <tr>
+            <th>k值</th>
+            <th>行为</th>
+            <th>精度</th>
+            <th>复杂度</th>
+        </tr>
+        <tr>
+            <td><strong>k = 0</strong></td>
+            <td>所有条件被替换为 ⊤</td>
+            <td>传统Andersen</td>
+            <td>O(n³)</td>
+        </tr>
+        <tr>
+            <td><strong>k = 1</strong></td>
+            <td>只保留最近1个分支条件</td>
+            <td>单层分支敏感</td>
+            <td>O(n³ · m)</td>
+        </tr>
+        <tr>
+            <td><strong>k = 2</strong></td>
+            <td>保留嵌套if-else条件</td>
+            <td>嵌套分支敏感</td>
+            <td>O(n³ · m²)</td>
+        </tr>
+        <tr>
+            <td><strong>k → ∞</strong></td>
+            <td>保留完整路径条件</td>
+            <td>逼近全路径敏感</td>
+            <td>可能指数级</td>
+        </tr>
+    </table>
+    <p class="small">n = 变量数, m = 分支条件数</p>
+</div>
+
+<!-- Slide 11: Precision Comparison -->
+<div class="slide content-slide">
+    <h2>10. 精度-开销谱系定位</h2>
+
+    <div style="margin-top: 30px;">
+        <svg width="100%" height="350" viewBox="0 0 900 350">
+            <!-- Axes -->
+            <line x1="80" y1="300" x2="850" y2="300" stroke="#8892b0" stroke-width="2"/>
+            <line x1="80" y1="300" x2="80" y2="50" stroke="#8892b0" stroke-width="2"/>
+
+            <!-- Labels -->
+            <text x="465" y="340" fill="#ccd6f6" font-size="16" text-anchor="middle">可扩展性 (Scalability) →</text>
+            <text x="30" y="180" fill="#ccd6f6" font-size="16" text-anchor="middle" transform="rotate(-90 30 180)">精度 (Precision) →</text>
+
+            <!-- Points -->
+            <!-- Andersen -->
+            <circle cx="750" cy="250" r="8" fill="#e94560"/>
+            <text x="750" y="280" fill="#e94560" font-size="14" text-anchor="middle" font-weight="bold">Andersen</text>
+            <text x="750" y="295" fill="#8892b0" font-size="11" text-anchor="middle">k=0</text>
+
+            <!-- Ours k=1 -->
+            <circle cx="600" cy="200" r="8" fill="#feca57"/>
+            <text x="600" y="170" fill="#feca57" font-size="14" text-anchor="middle" font-weight="bold">Ours (k=1)</text>
+
+            <!-- Ours k=2 -->
+            <circle cx="500" cy="160" r="8" fill="#feca57"/>
+            <text x="500" y="130" fill="#feca57" font-size="14" text-anchor="middle" font-weight="bold">Ours (k=2)</text>
+
+            <!-- ICON -->
+            <circle cx="550" cy="220" r="6" fill="#79c0ff"/>
+            <text x="550" y="245" fill="#79c0ff" font-size="12" text-anchor="middle">ICON</text>
+
+            <!-- SPAS -->
+            <circle cx="250" cy="100" r="8" fill="#7ee787"/>
+            <text x="250" y="70" fill="#7ee787" font-size="14" text-anchor="middle" font-weight="bold">SPAS</text>
+
+            <!-- Full Path Sensitive -->
+            <circle cx="120" cy="80" r="8" fill="#d2a8ff"/>
+            <text x="120" y="50" fill="#d2a8ff" font-size="14" text-anchor="middle" font-weight="bold">Full Path-Sensitive</text>
+
+            <!-- Arrow showing our trajectory -->
+            <path d="M 750 250 Q 650 220 600 200" stroke="#feca57" stroke-width="2" fill="none" stroke-dasharray="5,5"/>
+            <path d="M 600 200 Q 550 180 500 160" stroke="#feca57" stroke-width="2" fill="none" stroke-dasharray="5,5"/>
+
+            <!-- Region labels -->
+            <text x="400" y="320" fill="#8892b0" font-size="12" text-anchor="middle">高可扩展性区域</text>
+            <text x="150" y="320" fill="#8892b0" font-size="12" text-anchor="middle">低可扩展性区域</text>
+        </svg>
+    </div>
+
+    <div class="highlight-box">
+        <h4>核心洞察</h4>
+        <p>我们在 <strong>Andersen 的可扩展性</strong>和<strong>路径敏感的精度</strong>之间开辟了一个新的<strong>连续调节空间</strong>。</p>
+        <p>类似 k-CFA 在上下文敏感中的角色，<strong>k-Path-Sensitive</strong> 允许用户根据客户端需求选择适当的精度级别。</p>
+    </div>
+</div>
+
+<!-- Slide 12: Future Work -->
+<div class="slide content-slide">
+    <h2>11. 未来工作与待解决问题</h2>
+
+    <h3>理论层面</h3>
+    <ul>
+        <li><strong>Soundness 证明：</strong>条件约束求解的单调性与不动点存在性</li>
+        <li><strong>复杂度分析：</strong>k-limiting 下条件空间的上界证明</li>
+        <li><strong>精度边界：</strong>k=0 ↔ 传统Andersen；k→∞ ↔ 全路径敏感</li>
+    </ul>
+
+    <h3>实现层面</h3>
+    <ul>
+        <li><strong>条件压缩：</strong>借鉴 BDD / SMT 压缩条件表达式</li>
+        <li><strong>选择性敏感：</strong>只对指针相关分支（如 null check）启用条件追踪</li>
+        <li><strong>与上下文敏感的联合：</strong>k-path + k-call-site 的交互效应</li>
+    </ul>
+
+    <h3>评估层面</h3>
+    <ul>
+        <li>对比传统Andersen：别名精度提升多少？</li>
+        <li>对比SPAS：性能优势多大？</li>
+        <li>对下游客户端（bug检测、优化）的实际收益</li>
+    </ul>
+</div>
+
+<!-- Slide 13: Summary -->
+<div class="slide content-slide">
+    <h2>12. 总结</h2>
+
+    <div class="highlight-box">
+        <h4>Contribution 1：条件约束边机制</h4>
+        <p>在 Andersen 包含约束上增加路径条件守卫，实现<strong>流不敏感但路径条件感知</strong>的指针分析。</p>
+    </div>
+
+    <div class="highlight-box">
+        <h4>Contribution 2：Store-to-Copy 分解</h4>
+        <p>将间接赋值 <code>*p = q</code> 分解为<strong>带条件的对象到对象 copy 边</strong>，实现跨分支的精细别名判断。</p>
+    </div>
+
+    <div class="highlight-box">
+        <h4>Contribution 3：K-Path-Sensitive 粒度</h4>
+        <p>提出类似 k-CFA 的<strong>可调精度机制</strong>，在 Andersen 可扩展性和路径敏感精度之间提供连续权衡。</p>
+    </div>
+
+    <div class="result" style="margin-top: 40px; text-align: center; font-size: 1.3em;">
+        <strong style="color:#feca57;">Conditional Andersen = Andersen + Path-Condition Awareness + Tunable Precision</strong>
+    </div>
+</div>
+
+<!-- Slide 14: Q&A -->
+<div class="slide title-slide">
+    <h1 style="font-size: 4em;">Q & A</h1>
+    <div class="subtitle" style="margin-top: 40px;">谢谢！欢迎讨论</div>
+    <div class="meta" style="margin-top: 60px;">
+        <p>核心思想：在 Andersen 框架内引入可控的路径条件感知</p>
+        <p style="margin-top: 10px; color: #feca57;">不是全路径敏感，而是 "K-Path-Aware"</p>
+    </div>
+</div>
+
+<!-- Navigation -->
+<div class="slide-num"><span id="current">1</span> / <span id="total">14</span></div>
+<div class="nav">
+    <button onclick="prevSlide()">← Prev</button>
+    <button onclick="nextSlide()">Next →</button>
+</div>
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const total = slides.length;
+    document.getElementById('total').textContent = total;
+
+    function showSlide(n) {
+        slides.forEach(s => s.classList.remove('active'));
+        slides[n].classList.add('active');
+        document.getElementById('current').textContent = n + 1;
+    }
+
+    function nextSlide() {
+        if (currentSlide < total - 1) {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+    }
+
+    function prevSlide() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+        if (e.key === 'ArrowLeft') prevSlide();
+        if (e.key === 'Home') { currentSlide = 0; showSlide(0); }
+        if (e.key === 'End') { currentSlide = total - 1; showSlide(currentSlide); }
+    });
+</script>
+
+</body>
+</html>
