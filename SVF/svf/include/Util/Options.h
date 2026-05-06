@@ -132,6 +132,16 @@ public:
     // PointerAnalysisImpl.cpp
     static const Option<bool> INCDFPTData;
 
+    // ConditionalAndersen.cpp
+    static const Option<u32_t> CondAnderKLimit;
+    static const Option<bool> CondAnderEagerSat;
+    static const Option<bool> CondAnderPWC;
+    static const Option<bool> CondAnderDumpGuards;
+    static const Option<bool> CondAnderFastGuard;
+
+    // SABER
+    static const Option<bool> SaberCondAnder;
+
     // Memory region (MemRegion.cpp)
     static const Option<bool> IgnoreDeadFun;
 

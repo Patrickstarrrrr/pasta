@@ -331,6 +331,43 @@ const Option<bool> Options::INCDFPTData(
     true
 );
 
+// ConditionalAndersen.cpp
+const Option<u32_t> Options::CondAnderKLimit(
+    "cond-ander-k",
+    "k-limit for conditional Andersen path conditions (0 = unlimited, i.e. no truncation)",
+    0
+);
+
+const Option<bool> Options::CondAnderEagerSat(
+    "cond-ander-eager-sat",
+    "enable eager Z3 SAT checking during conditional Andersen propagation",
+    false
+);
+
+const Option<bool> Options::CondAnderPWC(
+    "cond-ander-pwc",
+    "enable PWC (positive weight cycle) detection in conditional Andersen",
+    true
+);
+
+const Option<bool> Options::CondAnderDumpGuards(
+    "cond-ander-dump-guards",
+    "dump conditional Andersen edge guards after analysis",
+    false
+);
+
+const Option<bool> Options::CondAnderFastGuard(
+    "cond-ander-fast-guard",
+    "use FastGuard (DNF-based) instead of Z3 for SAT checks",
+    true
+);
+
+const Option<bool> Options::SaberCondAnder(
+    "saber-cond-ander",
+    "use ConditionalAndersen as the base PTA for SABER",
+    false
+);
+
 const Option<bool> Options::ClusterAnder(
     "cluster-ander",
     "Stage Andersen's with Steensgard's and cluster based on that",

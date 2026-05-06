@@ -33,6 +33,7 @@
 #include "Graphs/SVFGStat.h"
 #include "Util/Options.h"
 #include "WPA/Andersen.h"
+#include "WPA/ConditionalAndersen.h"
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -42,14 +43,22 @@ void SrcSnkDDA::initialize()
 {
     SVFIR* pag = PAG::getPAG();
 
-    AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
+    BVDataPTAImpl* pta = nullptr;
+    if (Options::SaberCondAnder())
+    {
+        pta = ConditionalAndersen::createConditionalAndersen(pag);
+    }
+    else
+    {
+        pta = AndersenWaveDiff::createAndersenWaveDiff(pag);
+    }
     memSSA.setSaberCondAllocator(getSaberCondAllocator());
     if(Options::SABERFULLSVFG())
-        svfg =  memSSA.buildFullSVFG(ander);
+        svfg =  memSSA.buildFullSVFG(pta);
     else
-        svfg =  memSSA.buildPTROnlySVFG(ander);
+        svfg =  memSSA.buildPTROnlySVFG(pta);
     setGraph(memSSA.getSVFG());
-    callgraph = ander->getCallGraph();
+    callgraph = pta->getCallGraph();
     //AndersenWaveDiff::releaseAndersenWaveDiff();
     /// allocate control-flow graph branch conditions
     getSaberCondAllocator()->allocate();
