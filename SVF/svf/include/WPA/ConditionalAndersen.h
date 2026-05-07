@@ -83,6 +83,12 @@ protected:
     u32_t kLimit;
     bool eagerSat;
     bool useFastGuard;
+    bool useDepthLimit;   ///< true = use depth-based k-limit; false = use m/n limits
+    u32_t mLimit;         ///< conjunctive length limit (0 = unlimited)
+    u32_t nLimit;         ///< disjunctive clause limit (0 = unlimited)
+    /// Guards whose conjunctive chain has reached mLimit.
+    /// Any further And-operation with these guards is ignored.
+    mutable Set<const PathCond*> conjCappedGuards;
 
     /// Edge kind for unified edge-guard map
     enum CondEdgeKind { CopyStatic, CopyDerived, Load, Store, Gep };
@@ -154,8 +160,26 @@ protected:
     /// Expand field-insensitive objects in a conditional points-to set
     CondPointsTo expandCondFIObjs(const CondPointsTo& pts) const;
 
-    /// Simple k-limiting: if depth exceeds k, abstract to True
-    const PathCond* applyKLimit(const PathCond* cond) const;
+    /// Apply guard limits. Supports two modes:
+    ///   - depth-based (useDepthLimit=true): if AST depth > kLimit, collapse to True.
+    ///   - m/n-based (useDepthLimit=false): truncate pure And chains to m literals;
+    ///     collapse guards with >n DNF clauses to True.
+    const PathCond* applyLimits(const PathCond* cond) const;
+
+    /// Check if a guard has reached the conjunctive length limit (m).
+    bool isConjCapped(const PathCond* cond) const
+    {
+        return conjCappedGuards.count(cond) > 0;
+    }
+
+    /// Extract leaves of a pure And chain (in-order traversal).
+    std::vector<const PathCond*> extractAndChain(const PathCond* cond) const;
+
+    /// Build a left-associative And chain from a list of literals.
+    const PathCond* buildAndChain(const std::vector<const PathCond*>& literals) const;
+
+    /// Count DNF clauses (using FastGuard conversion).
+    u32_t countClauses(const PathCond* cond) const;
 
     /// OR-merge a guard onto an existing (var,obj) entry in condPtsMap.
     /// Returns true iff the entry was newly inserted or the guard changed.

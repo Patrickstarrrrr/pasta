@@ -138,6 +138,9 @@ public:
     static const Option<bool> CondAnderPWC;
     static const Option<bool> CondAnderDumpGuards;
     static const Option<bool> CondAnderFastGuard;
+    static const Option<bool> CondAnderUseDepthLimit;  // true = use depth-based k-limit
+    static const Option<u32_t> CondAnderMLimit;        // conjunctive length limit
+    static const Option<u32_t> CondAnderNLimit;        // disjunctive clause limit
 
     // SABER
     static const Option<bool> SaberCondAnder;

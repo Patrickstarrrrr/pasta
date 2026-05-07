@@ -362,6 +362,26 @@ const Option<bool> Options::CondAnderFastGuard(
     true
 );
 
+const Option<bool> Options::CondAnderUseDepthLimit(
+    "cond-ander-use-depth-limit",
+    "use depth-based k-limit instead of m/n conjunctive/disjunctive limits",
+    false
+);
+
+const Option<u32_t> Options::CondAnderMLimit(
+    "cond-ander-m",
+    "conjunctive length limit for conditional Andersen (0 = unlimited). "
+    "Pure And chains exceeding m are truncated to the most recent m literals.",
+    0
+);
+
+const Option<u32_t> Options::CondAnderNLimit(
+    "cond-ander-n",
+    "disjunctive clause limit for conditional Andersen (0 = unlimited). "
+    "Guards with more than n DNF clauses are collapsed to True.",
+    0
+);
+
 const Option<bool> Options::SaberCondAnder(
     "saber-cond-ander",
     "use ConditionalAndersen as the base PTA for SABER",

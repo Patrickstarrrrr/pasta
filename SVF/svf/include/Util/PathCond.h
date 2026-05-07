@@ -211,6 +211,25 @@ public:
         return true;
     }
 
+    /// Check if this AST is a pure conjunction chain (all internal nodes are And,
+    /// all leaves are Atom/True/False). Used for m-limit truncation.
+    bool isPureAndChain() const
+    {
+        if (isTrue() || isFalse() || isAtom()) return true;
+        if (!isAnd()) return false;
+        return left->isPureAndChain() && right->isPureAndChain();
+    }
+
+    /// Extract all non-trivial leaves of a pure And chain in in-order traversal.
+    /// True/False leaves are skipped. Precondition: isPureAndChain() == true.
+    void extractAndLeaves(std::vector<const PathCond*>& out) const
+    {
+        if (isTrue() || isFalse()) return;
+        if (isAtom()) { out.push_back(this); return; }
+        left->extractAndLeaves(out);
+        right->extractAndLeaves(out);
+    }
+
     /// AST height (tree depth) of this path condition.
     /// Atom: 1. And/Or: max(children) + 1. True/False: 0.
     /// This measures nesting depth of the condition.

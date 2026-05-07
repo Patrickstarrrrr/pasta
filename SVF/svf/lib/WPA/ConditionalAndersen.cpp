@@ -17,6 +17,9 @@ ConditionalAndersen::ConditionalAndersen(SVFIR* _pag, PTATY type)
       kLimit(Options::CondAnderKLimit()),
       eagerSat(Options::CondAnderEagerSat()),
       useFastGuard(Options::CondAnderFastGuard()),
+      useDepthLimit(Options::CondAnderUseDepthLimit()),
+      mLimit(Options::CondAnderMLimit()),
+      nLimit(Options::CondAnderNLimit()),
       numZ3SatChecks(0),
       numAliasRefined(0),
       numAliasTotal(0),
@@ -276,13 +279,100 @@ const PathCond* ConditionalAndersen::getGepEdgeGuard(NodeID src, NodeID dst) con
 }
 
 /*!
- * Apply k-limiting: if depth > k, collapse to True.
+ * Extract leaves of a pure And chain in in-order traversal.
  */
-const PathCond* ConditionalAndersen::applyKLimit(const PathCond* cond) const
+std::vector<const PathCond*> ConditionalAndersen::extractAndChain(const PathCond* cond) const
 {
-    if (kLimit == 0) return cond;          // 0 = unlimited (no truncation)
-    if (cond->depth() <= kLimit) return cond;
-    return PathCond::getTrue();
+    std::vector<const PathCond*> leaves;
+    if (cond->isPureAndChain())
+        cond->extractAndLeaves(leaves);
+    return leaves;
+}
+
+/*!
+ * Build a left-associative And chain from a list of literals.
+ */
+const PathCond* ConditionalAndersen::buildAndChain(const std::vector<const PathCond*>& literals) const
+{
+    if (literals.empty()) return PathCond::getTrue();
+    const PathCond* result = literals[0];
+    for (size_t i = 1; i < literals.size(); ++i)
+        result = PathCond::getAnd(result, literals[i]);
+    return result;
+}
+
+/*!
+ * Count DNF clauses using FastGuard conversion.
+ */
+u32_t ConditionalAndersen::countClauses(const PathCond* cond) const
+{
+    if (cond->isTrue() || cond->isFalse() || cond->isAtom()) return 1;
+    FastGuard fg = FastGuard::fromPathCond(cond);
+    return fg.getDNF().size();
+}
+
+/*!
+ * Apply guard limits.
+ *
+ * Two modes:
+ *   1. Depth-based (useDepthLimit=true): if AST depth > kLimit, collapse to True.
+ *   2. M/N-based (useDepthLimit=false):
+ *      - Pure And chains exceeding mLimit are truncated to the most recent m literals.
+ *        The truncated guard is marked as conj-capped in conjCappedGuards.
+ *      - Guards with more than nLimit DNF clauses are collapsed to True (disj-capped).
+ */
+const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
+{
+    // Mode 1: depth-based k-limit (legacy)
+    if (useDepthLimit)
+    {
+        if (kLimit == 0) return cond;
+        if (cond->depth() <= kLimit) return cond;
+        return PathCond::getTrue();
+    }
+
+    // Mode 2: m/n-based limits (default)
+    const PathCond* result = cond;
+
+    // Step A: m-limit (conjunctive truncation)
+    if (mLimit > 0 && result->isPureAndChain())
+    {
+        std::vector<const PathCond*> leaves;
+        result->extractAndLeaves(leaves);
+        // Deduplicate while preserving "most recent" order:
+        // scan from right to left, keep first occurrence of each unique literal.
+        // Use (branchId, trueBranch) as key since PathCond atoms may be different
+        // objects with the same logical meaning.
+        std::vector<const PathCond*> dedup;
+        Set<std::pair<NodeID, bool>> seen;
+        for (auto it = leaves.rbegin(); it != leaves.rend(); ++it)
+        {
+            auto key = std::make_pair((*it)->getBranchId(), (*it)->isTrueBranch());
+            if (seen.insert(key).second)
+                dedup.push_back(*it);
+        }
+        std::reverse(dedup.begin(), dedup.end());
+
+        if (dedup.size() > mLimit)
+        {
+            // Truncate: keep the most recent m unique literals
+            std::vector<const PathCond*> trimmed(dedup.end() - mLimit, dedup.end());
+            result = buildAndChain(trimmed);
+            conjCappedGuards.insert(result);
+        }
+    }
+
+    // Step B: n-limit (disjunctive collapse)
+    if (nLimit > 0)
+    {
+        u32_t clauses = countClauses(result);
+        if (clauses > nLimit)
+        {
+            result = PathCond::getTrue();
+        }
+    }
+
+    return result;
 }
 
 /*!
@@ -484,7 +574,17 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
         {
             NodeID obj = pair.first;
             const PathCond* cond = pair.second;
-            const PathCond* newCond = applyKLimit(PathCond::getAnd(cond, guard));
+
+            // If conj-capped, ignore further And operations
+            const PathCond* newCond;
+            if (!useDepthLimit && isConjCapped(cond))
+            {
+                newCond = cond;
+            }
+            else
+            {
+                newCond = applyLimits(PathCond::getAnd(cond, guard));
+            }
 
             if (eagerSat && !z3IsSat(newCond)) continue;
 
@@ -764,7 +864,18 @@ void ConditionalAndersen::finalize()
 
     // Print statistics
     SVFUtil::outs() << "\n========== Conditional Andersen Statistics ==========\n";
-    SVFUtil::outs() << "  kLimit:              " << kLimit << "\n";
+    if (useDepthLimit)
+    {
+        SVFUtil::outs() << "  Limit mode:          depth-based\n";
+        SVFUtil::outs() << "  kLimit:              " << kLimit << "\n";
+    }
+    else
+    {
+        SVFUtil::outs() << "  Limit mode:          m/n-based\n";
+        SVFUtil::outs() << "  mLimit (conj):       " << mLimit << "\n";
+        SVFUtil::outs() << "  nLimit (disj):       " << nLimit << "\n";
+        SVFUtil::outs() << "  Conj-capped guards:  " << conjCappedGuards.size() << "\n";
+    }
     SVFUtil::outs() << "  eagerSat:            " << (eagerSat ? "true" : "false") << "\n";
     SVFUtil::outs() << "  PWC enabled:         " << (Options::CondAnderPWC() ? "true" : "false") << "\n";
     SVFUtil::outs() << "  Z3 SAT checks:       " << numZ3SatChecks << "\n";
