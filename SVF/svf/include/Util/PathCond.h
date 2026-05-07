@@ -46,6 +46,7 @@ private:
     bool trueBranch;   ///< valid when kind == Atom
     const PathCond* left;   ///< valid when kind == And or Or
     const PathCond* right;  ///< valid when kind == And or Or
+    bool capped;            ///< true if this guard was capped (over-approximated to T)
 
     mutable u32_t cachedDepth;
     mutable bool depthValid;
@@ -53,7 +54,7 @@ private:
     PathCond(Kind k, NodeID bid = 0, bool tb = true,
              const PathCond* l = nullptr, const PathCond* r = nullptr)
         : kind(k), branchId(bid), trueBranch(tb), left(l), right(r),
-          cachedDepth(0), depthValid(false)
+          capped(false), cachedDepth(0), depthValid(false)
     {
     }
 
@@ -63,6 +64,14 @@ public:
     {
         static PathCond t(True);
         return &t;
+    }
+
+    /// Return a capped True path (used when n-limit is exceeded)
+    static const PathCond* getCappedTrue()
+    {
+        static PathCond ct(True);
+        ct.setCapped(true);
+        return &ct;
     }
 
     /// Return the unsatisfiable False path
@@ -82,8 +91,16 @@ public:
     static const PathCond* getAnd(const PathCond* a, const PathCond* b)
     {
         if (a->isFalse() || b->isFalse()) return getFalse();
-        if (a->isTrue()) return b;
-        if (b->isTrue()) return a;
+        if (a->isTrue())
+        {
+            if (a->isCapped()) return a;
+            return b;
+        }
+        if (b->isTrue())
+        {
+            if (b->isCapped()) return b;
+            return a;
+        }
         return new PathCond(And, 0, true, a, b);
     }
 
@@ -172,6 +189,14 @@ public:
     inline bool isTrueBranch() const
     {
         return trueBranch;
+    }
+    inline bool isCapped() const
+    {
+        return capped;
+    }
+    inline void setCapped(bool v)
+    {
+        capped = v;
     }
     inline const PathCond* getLeft() const
     {

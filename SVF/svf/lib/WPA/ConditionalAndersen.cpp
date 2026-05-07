@@ -307,6 +307,7 @@ const PathCond* ConditionalAndersen::buildAndChain(const std::vector<const PathC
  */
 u32_t ConditionalAndersen::countClauses(const PathCond* cond) const
 {
+    if (cond->isCapped()) return nLimit + 1; // capped guard is treated as exceeding the limit
     if (cond->isTrue() || cond->isFalse() || cond->isAtom()) return 1;
     FastGuard fg = FastGuard::fromPathCond(cond);
     return fg.getDNF().size();
@@ -369,7 +370,7 @@ const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
         u32_t clauses = countClauses(result);
         if (clauses > nLimit)
         {
-            result = PathCond::getTrue();
+            result = PathCond::getCappedTrue();
         }
     }
 
