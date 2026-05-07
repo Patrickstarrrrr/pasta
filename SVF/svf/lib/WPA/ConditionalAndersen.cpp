@@ -20,6 +20,7 @@ ConditionalAndersen::ConditionalAndersen(SVFIR* _pag, PTATY type)
       useDepthLimit(Options::CondAnderUseDepthLimit()),
       mLimit(Options::CondAnderMLimit()),
       nLimit(Options::CondAnderNLimit()),
+      mergeCondSCC(Options::CondAnderMergeCondSCC()),
       numZ3SatChecks(0),
       numAliasRefined(0),
       numAliasTotal(0),
@@ -463,12 +464,16 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
             ++it;
     }
 
-    // 2. Merge condPtsMap: move all conditional pts from sub to rep (OR-merge)
+    // 2. Merge condPtsMap: move all conditional pts from sub to rep.
+    //    In merge-cond-SCC mode, over-approximate guards to True.
     auto itPts = condPtsMap.find(nodeId);
     if (itPts != condPtsMap.end())
     {
         for (const auto& pair : itPts->second)
-            orMergeCondPts(newRepId, pair.first, pair.second);
+        {
+            const PathCond* guard = mergeCondSCC ? PathCond::getTrue() : pair.second;
+            orMergeCondPts(newRepId, pair.first, guard);
+        }
         condPtsMap.erase(itPts);
     }
 
@@ -492,6 +497,133 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
     }
 
     return pwc;
+}
+
+/*!
+ * Check whether an SCC (represented by its rep node) contains any
+ * constraint edge with a non-trivial conditional guard.
+ */
+bool ConditionalAndersen::sccHasConditionalEdge(NodeID repId) const
+{
+    const NodeBS& subNodes = getSCCDetector()->subNodes(repId);
+    for (NodeBS::iterator it = subNodes.begin(), eit = subNodes.end(); it != eit; ++it)
+    {
+        NodeID nodeId = *it;
+        ConstraintNode* node = consCG->getConstraintNode(nodeId);
+        // Outgoing edges
+        for (ConstraintEdge* edge : node->getOutEdges())
+        {
+            if (edge->getEdgeKind() == ConstraintEdge::Copy)
+            {
+                const PathCond* g = getEdgeGuard(nodeId, edge->getDstID());
+                if (!g->isTrue()) return true;
+            }
+            else if (edge->getEdgeKind() == ConstraintEdge::NormalGep ||
+                     edge->getEdgeKind() == ConstraintEdge::VariantGep)
+            {
+                const PathCond* g = getGepEdgeGuard(nodeId, edge->getDstID());
+                if (!g->isTrue()) return true;
+            }
+        }
+        // Incoming edges (also part of the SCC cycle)
+        for (ConstraintEdge* edge : node->getInEdges())
+        {
+            if (edge->getEdgeKind() == ConstraintEdge::Copy)
+            {
+                const PathCond* g = getEdgeGuard(edge->getSrcID(), nodeId);
+                if (!g->isTrue()) return true;
+            }
+            else if (edge->getEdgeKind() == ConstraintEdge::NormalGep ||
+                     edge->getEdgeKind() == ConstraintEdge::VariantGep)
+            {
+                const PathCond* g = getGepEdgeGuard(edge->getSrcID(), nodeId);
+                if (!g->isTrue()) return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*!
+ * Override SCC detection: optionally skip merging SCCs that contain
+ * conditional edges, preserving per-node conditional precision.
+ */
+NodeStack& ConditionalAndersen::SCCDetect()
+{
+    numOfSCCDetection++;
+
+    double sccStart = stat->getClk();
+    WPAConstraintSolver::SCCDetect();
+    double sccEnd = stat->getClk();
+    timeOfSCCDetection += (sccEnd - sccStart) / TIMEINTERVAL;
+
+    double mergeStart = stat->getClk();
+
+    NodeStack topoOrder = getSCCDetector()->topoNodeStack();
+    while (!topoOrder.empty())
+    {
+        NodeID repNodeId = topoOrder.top();
+        topoOrder.pop();
+        const NodeBS& subNodes = getSCCDetector()->subNodes(repNodeId);
+
+        // If the SCC has only one node, nothing to merge.
+        if (subNodes.count() <= 1)
+            continue;
+
+        // Check if this SCC contains conditional edges.
+        bool hasCond = sccHasConditionalEdge(repNodeId);
+
+        if (hasCond && !mergeCondSCC)
+        {
+            // Skip merge: preserve per-node conditional points-to sets.
+            // The worklist will continue propagating within the cycle,
+            // but And-subset absorption in getOr keeps guards bounded.
+            continue;
+        }
+
+        // Otherwise: merge all sub nodes to rep node (standard Andersen behavior)
+        for (NodeBS::iterator nodeIt = subNodes.begin(); nodeIt != subNodes.end(); ++nodeIt)
+        {
+            NodeID subNodeId = *nodeIt;
+            if (subNodeId != repNodeId)
+                mergeNodeToRep(subNodeId, repNodeId);
+        }
+    }
+
+    double mergeEnd = stat->getClk();
+    timeOfSCCMerges += (mergeEnd - mergeStart) / TIMEINTERVAL;
+
+    return getSCCDetector()->topoNodeStack();
+}
+
+/*!
+ * Override solveWorklist to perform SCC detection on-the-fly.
+ * We follow AndersenWaveDiff's pattern: SCCDetect is called at the
+ * beginning of each solveWorklist invocation, so newly formed cycles
+ * (e.g. from call-graph updates) are also handled.
+ */
+void ConditionalAndersen::solveWorklist()
+{
+    // SCC detection: merge unconditional SCCs, skip conditional SCCs.
+    NodeStack& nodeStack = SCCDetect();
+
+    // Process nodes in reverse topological order.
+    while (!nodeStack.empty())
+    {
+        NodeID nodeId = nodeStack.top();
+        nodeStack.pop();
+        collapsePWCNode(nodeId);
+        processNode(nodeId);
+        collapseFields();
+    }
+
+    // Continue with standard worklist processing.
+    while (!isWorklistEmpty())
+    {
+        NodeID nodeId = popFromWorklist();
+        processNode(nodeId);
+        collapseFields();
+    }
 }
 
 /*!
@@ -927,7 +1059,8 @@ void ConditionalAndersen::finalize()
  */
 const ConditionalAndersen::CondPointsTo& ConditionalAndersen::getCondPts(NodeID id) const
 {
-    auto it = condPtsMap.find(id);
+    NodeID rep = consCG->sccRepNode(id);
+    auto it = condPtsMap.find(rep);
     if (it != condPtsMap.end())
         return it->second;
 

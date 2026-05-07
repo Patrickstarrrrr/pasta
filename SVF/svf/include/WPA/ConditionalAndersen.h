@@ -86,6 +86,7 @@ protected:
     bool useDepthLimit;   ///< true = use depth-based k-limit; false = use m/n limits
     u32_t mLimit;         ///< conjunctive length limit (0 = unlimited)
     u32_t nLimit;         ///< disjunctive clause limit (0 = unlimited)
+    bool mergeCondSCC;    ///< true = merge SCCs even if they contain conditional edges
     /// Guards whose conjunctive chain has reached mLimit.
     /// Any further And-operation with these guards is ignored.
     mutable Set<const PathCond*> conjCappedGuards;
@@ -142,8 +143,19 @@ protected:
         return getPTDataTy()->getPts(rep);
     }
 
+    /// Override solveWorklist to perform SCC detection on-the-fly.
+    /// Unconditional SCCs are merged; conditional SCCs are preserved
+    /// unless -cond-ander-merge-cond-scc is enabled.
+    virtual void solveWorklist() override;
+
     /// Override SCC merge to synchronize conditional points-to and edge guards
     virtual bool mergeSrcToTgt(NodeID srcId, NodeID tgtId) override;
+
+    /// Check if an SCC contains any constraint edge with a conditional guard.
+    bool sccHasConditionalEdge(NodeID repId) const;
+
+    /// Override SCC detection to optionally skip conditional-edge SCCs
+    virtual NodeStack& SCCDetect() override;
 
     /// Override inter-procedural edge connection to attach callsite guards
     virtual void connectCaller2CalleeParams(const CallICFGNode* cs,

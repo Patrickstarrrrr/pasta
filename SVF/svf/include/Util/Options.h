@@ -141,6 +141,7 @@ public:
     static const Option<bool> CondAnderUseDepthLimit;  // true = use depth-based k-limit
     static const Option<u32_t> CondAnderMLimit;        // conjunctive length limit
     static const Option<u32_t> CondAnderNLimit;        // disjunctive clause limit
+    static const Option<bool> CondAnderMergeCondSCC;   // merge SCCs with conditional edges
 
     // SABER
     static const Option<bool> SaberCondAnder;

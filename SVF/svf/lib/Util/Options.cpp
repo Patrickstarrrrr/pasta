@@ -382,6 +382,14 @@ const Option<u32_t> Options::CondAnderNLimit(
     0
 );
 
+const Option<bool> Options::CondAnderMergeCondSCC(
+    "cond-ander-merge-cond-scc",
+    "merge SCCs that contain conditional edges (default: false). "
+    "If false, SCCs with conditional edges are preserved to retain precision. "
+    "Pure unconditional SCCs are still merged for performance.",
+    false
+);
+
 const Option<bool> Options::SaberCondAnder(
     "saber-cond-ander",
     "use ConditionalAndersen as the base PTA for SABER",

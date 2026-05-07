@@ -87,6 +87,25 @@ public:
         return new PathCond(And, 0, true, a, b);
     }
 
+    /// Check whether 'sub' is a pure-And-chain whose literals are a subset
+    /// of 'sup' literals (both must be pure And chains).
+    static bool isAndSubset(const PathCond* sub, const PathCond* sup)
+    {
+        if (!sub->isPureAndChain() || !sup->isPureAndChain()) return false;
+        std::vector<const PathCond*> subL, supL;
+        sub->extractAndLeaves(subL);
+        sup->extractAndLeaves(supL);
+        std::set<std::pair<NodeID, bool>> supSet;
+        for (const PathCond* l : supL)
+            supSet.insert(std::make_pair(l->getBranchId(), l->isTrueBranch()));
+        for (const PathCond* l : subL)
+        {
+            if (supSet.find(std::make_pair(l->getBranchId(), l->isTrueBranch())) == supSet.end())
+                return false;
+        }
+        return true;
+    }
+
     /// Return the disjunction of two path conditions.
     /// Includes simple absorption: if one side is already an OR-tree that
     /// contains the other, return the larger one (avoids AST bloat cycles).
@@ -102,6 +121,9 @@ public:
         // Deeper absorption (bounded depth to keep cost low).
         if (containsInOr(a, b)) return a;
         if (containsInOr(b, a)) return b;
+        // And-subset absorption: if b's literals are subset of a's, b => a, so a|b = a.
+        if (isAndSubset(b, a)) return a;
+        if (isAndSubset(a, b)) return b;
         return new PathCond(Or, 0, true, a, b);
     }
 

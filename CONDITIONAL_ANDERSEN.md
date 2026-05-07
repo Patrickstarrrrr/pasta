@@ -78,9 +78,21 @@ The m/n-limit design is inspired by k-CFA context prefix truncation: it preserve
 - `-cond-ander-pwc` — PWC detection (default: true)
 - `-cond-ander-dump-guards` — dump edge guards
 - `-cond-ander-fast-guard` — use FastGuard (default: true)
+- `-cond-ander-merge-cond-scc` — merge SCCs even if they contain conditional edges (default: false)
 - `-saber-cond-ander` — use ConditionalAndersen for SABER
 
-### 2.7 Statistics
+### 2.7 SCC Handling Modes
+
+CondAnder performs **on-the-fly SCC detection** inside `solveWorklist()` (following `AndersenWaveDiff`'s pattern). Two modes are supported:
+
+| Mode                               | Switch                       | Behavior                                                                                                                   |
+| ---------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Skip conditional SCC** (default) | —                            | Unconditional SCCs are merged for speed. SCCs containing conditional edges are **preserved** to retain per-node precision. |
+| **Merge all SCCs**                 | `-cond-ander-merge-cond-scc` | All SCCs are merged. Conditional guards are **over-approximated to ⊤** during the merge to maintain soundness.             |
+
+**Why skip matters:** In a cycle `p ↔ q` where `p=q` is guarded by `c`, merging `p` and `q` would force both nodes to share the same (OR-merged) conditional points-to set, losing the distinction that `p` only acquires `q`'s objects under `c` while `q` acquires `p`'s objects unconditionally. Skipping the merge lets each node keep its own guard.
+
+### 2.8 Statistics
 
 Printed in `finalize()`:
 
