@@ -938,6 +938,10 @@ ConditionalAndersen::CondPointsTo ConditionalAndersen::expandCondFIObjs(const Co
         const PathCond* guard = pair.second;
         expanded[obj] = guard;
 
+        // Skip objects that have been removed from PAG (e.g., by normalizePointsTo)
+        if (!pag->hasGNode(obj))
+            continue;
+
         NodeID baseObj = pag->getBaseObjVarID(obj);
         if (baseObj == obj || isFieldInsensitive(obj))
         {

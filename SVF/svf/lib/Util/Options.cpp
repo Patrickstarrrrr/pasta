@@ -335,7 +335,7 @@ const Option<bool> Options::INCDFPTData(
 const Option<u32_t> Options::CondAnderKLimit(
     "cond-ander-k",
     "k-limit for conditional Andersen path conditions (0 = unlimited, i.e. no truncation)",
-    0
+    5
 );
 
 const Option<bool> Options::CondAnderEagerSat(
@@ -365,7 +365,7 @@ const Option<bool> Options::CondAnderFastGuard(
 const Option<bool> Options::CondAnderUseDepthLimit(
     "cond-ander-use-depth-limit",
     "use depth-based k-limit instead of m/n conjunctive/disjunctive limits",
-    false
+    true
 );
 
 const Option<u32_t> Options::CondAnderMLimit(
