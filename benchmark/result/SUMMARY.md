@@ -39,6 +39,30 @@ Notes:
 - **Rationale**: Experiments on 23 test cases show only 1 case (`05_phi_assign`) with a 1-MayAlias difference; all others are identical. Phi-BB guard is simpler and matches LLVM SSA IR semantics (phi BB guard is usually `True`).
 - **Fallback**: Original per-operand implementation is kept in comments in `ConditionalAndersen.cpp` for reference.
 
+## Testing Strategy (added run_sample.py / run_sample.sh)
+
+### Demo Regression: `demo/run_sample.sh`
+Instead of running all 22 demo cases, randomly sample k cases (default 5):
+```bash
+cd demo && ./run_sample.sh 5
+```
+
+### Real-Program Regression: `benchmark/run_sample.py`
+Instead of printing all O(n²) alias pairs, randomly sample n pairs and compare:
+```bash
+cd benchmark && python3 run_sample.py /path/to/program.bc -n 1000
+```
+
+Example output on cjson (n=200):
+```
+Andersen MayAlias:  7/200 (3.5%)
+CondAnder MayAlias: 3/200 (1.5%)
+Agreement: 196/200 (98.0%)
+Disagreements (4 pairs):
+  var254 -- var5919:  A=MayAlias  C=NoAlias
+  ...
+```
+
 ## Observations
 
 - k=5 provides sufficient precision; increasing k to 10/20/50/100 shows no additional CondPts entries on cjson (stays at 1865).
