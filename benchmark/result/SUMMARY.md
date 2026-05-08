@@ -39,29 +39,32 @@ Notes:
 - **Rationale**: Experiments on 23 test cases show only 1 case (`05_phi_assign`) with a 1-MayAlias difference; all others are identical. Phi-BB guard is simpler and matches LLVM SSA IR semantics (phi BB guard is usually `True`).
 - **Fallback**: Original per-operand implementation is kept in comments in `ConditionalAndersen.cpp` for reference.
 
-## Testing Strategy (added run_sample.py / run_sample.sh)
+## Testing Strategy
 
 ### Demo Regression: `demo/run_sample.sh`
-Instead of running all 22 demo cases, randomly sample k cases (default 5):
+Randomly sample k cases (default 5) instead of running all 22:
 ```bash
 cd demo && ./run_sample.sh 5
 ```
 
-### Real-Program Regression: `benchmark/run_sample.py`
-Instead of printing all O(n²) alias pairs, randomly sample n pairs and compare:
+### Real-Program Regression: `-sample-aliases=N` (commit 597ac2e)
+Instead of printing all O(n²) alias pairs (>10 min on bzip2/zlib), use reservoir
+sampling inside wpa:
 ```bash
-cd benchmark && python3 run_sample.py /path/to/program.bc -n 1000
+wpa -ander -print-aliases -sample-aliases=20000 program.bc
+wpa -cond-ander -print-aliases -sample-aliases=20000 program.bc
 ```
+This reduces testing time from >10 minutes to ~10 seconds.
 
-Example output on cjson (n=200):
-```
-Andersen MayAlias:  7/200 (3.5%)
-CondAnder MayAlias: 3/200 (1.5%)
-Agreement: 196/200 (98.0%)
-Disagreements (4 pairs):
-  var254 -- var5919:  A=MayAlias  C=NoAlias
-  ...
-```
+### Sampled Results (n=20000)
+
+| Program | A MayAlias | C MayAlias | Disagreements | Time |
+|---------|-----------|-----------|---------------|------|
+| `cjson` | 185 (0.9%) | 69 (0.3%) | **116** | ~1.6s |
+| `bzip2` | 1750 (8.8%) | 1738 (8.7%) | **12** | ~10s |
+| `zlib` | 935 (4.7%) | 929 (4.6%) | **6** | ~17s |
+
+*Disagreements = pairs where Andersen says MayAlias but CondAnder proves NoAlias.*
 
 ## Observations
 
