@@ -331,8 +331,10 @@ u32_t ConditionalAndersen::countClauses(const PathCond* cond) const
 {
     if (cond->isCapped()) return nLimit + 1; // capped guard is treated as exceeding the limit
     if (cond->isTrue() || cond->isFalse() || cond->isAtom()) return 1;
-    FastGuard fg = FastGuard::fromPathCond(cond);
-    return fg.getDNF().size();
+    // Use cached clauseCount from PathCond AST instead of expensive FastGuard DNF conversion.
+    // clauseCount is an upper bound, which is safe for limit checking:
+    // if upper bound > nLimit, the actual count is definitely > nLimit.
+    return cond->clauseCount(nLimit + 1);
 }
 
 /*!
@@ -459,6 +461,11 @@ bool ConditionalAndersen::orMergeCondPts(NodeID var, NodeID obj, const PathCond*
         const PathCond* merged = PathCond::getOr(it->second, guard);
         if (merged == it->second)
             return false; // no change
+        // Apply limits to prevent Or-tree from growing unbounded.
+        // For m/n-limit mode, large guards will be capped here before they
+        // cause exponential blow-up in future operations.
+        if (!useDepthLimit)
+            merged = applyLimits(merged);
         it->second = merged;
         return true;
     }

@@ -50,11 +50,14 @@ private:
 
     mutable u32_t cachedDepth;
     mutable bool depthValid;
+    mutable u32_t cachedClauseCount;
+    mutable bool clauseCountValid;
 
     PathCond(Kind k, NodeID bid = 0, bool tb = true,
              const PathCond* l = nullptr, const PathCond* r = nullptr)
         : kind(k), branchId(bid), trueBranch(tb), left(l), right(r),
-          capped(false), cachedDepth(0), depthValid(false)
+          capped(false), cachedDepth(0), depthValid(false),
+          cachedClauseCount(0), clauseCountValid(false)
     {
     }
 
@@ -101,6 +104,10 @@ public:
             if (b->isCapped()) return b;
             return a;
         }
+        // Safety cap: prevent AST depth from growing without bound
+        // when only m-limit is enabled (n-limit disabled).
+        if (a->depth() > 100 || b->depth() > 100)
+            return getCappedTrue();
         return new PathCond(And, 0, true, a, b);
     }
 
@@ -141,6 +148,10 @@ public:
         // And-subset absorption: if b's literals are subset of a's, b => a, so a|b = a.
         if (isAndSubset(b, a)) return a;
         if (isAndSubset(a, b)) return b;
+        // Safety cap: prevent AST depth from growing without bound
+        // when only m-limit is enabled (n-limit disabled).
+        if (a->depth() > 100 || b->depth() > 100)
+            return getCappedTrue();
         return new PathCond(Or, 0, true, a, b);
     }
 
@@ -300,6 +311,70 @@ public:
         }
         depthValid = true;
         return cachedDepth;
+    }
+
+    /// Number of DNF clauses in this path condition (upper bound).
+    /// - True/False/Atom: 1 clause.
+    /// - Or(a,b): clauseCount(a) + clauseCount(b).
+    /// - And(a,b): clauseCount(a) * clauseCount(b).
+    /// The product for And is exact when both children are already in DNF.
+    /// This is an upper bound because FastGuard may filter unsat clauses
+    /// or merge duplicates during simplification.
+    ///
+    /// Capped at 'cap' to avoid expensive computations on huge formulas.
+    /// Result is cached for performance.
+    u32_t clauseCount(u32_t cap = UINT32_MAX) const
+    {
+        if (clauseCountValid) return cachedClauseCount;
+        if (isTrue() || isFalse() || isAtom())
+        {
+            cachedClauseCount = 1;
+        }
+        else if (isOr())
+        {
+            u32_t lc = left->clauseCount(cap);
+            if (lc >= cap)
+            {
+                cachedClauseCount = cap;
+                clauseCountValid = true;
+                return cap;
+            }
+            u32_t rc = right->clauseCount(cap - lc);
+            if (rc >= cap - lc)
+            {
+                cachedClauseCount = cap;
+                clauseCountValid = true;
+                return cap;
+            }
+            cachedClauseCount = lc + rc;
+        }
+        else // isAnd()
+        {
+            u32_t lc = left->clauseCount(cap);
+            if (lc >= cap)
+            {
+                cachedClauseCount = cap;
+                clauseCountValid = true;
+                return cap;
+            }
+            u32_t rc = right->clauseCount(cap);
+            if (rc >= cap)
+            {
+                cachedClauseCount = cap;
+                clauseCountValid = true;
+                return cap;
+            }
+            // Cap product to avoid overflow
+            if (lc > 0 && rc > cap / lc)
+            {
+                cachedClauseCount = cap;
+                clauseCountValid = true;
+                return cap;
+            }
+            cachedClauseCount = lc * rc;
+        }
+        clauseCountValid = true;
+        return cachedClauseCount;
     }
 
     /// Equality (structural)
