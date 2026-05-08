@@ -750,6 +750,12 @@ const Option<bool> Options::PrintAliases(
     false
 );
 
+const Option<u32_t> Options::SampleAliases(
+    "sample-aliases",
+    "Randomly sample N alias pairs instead of printing all. Use with -print-aliases.",
+    0
+);
+
 OptionMultiple<PointerAnalysis::PTATY> Options::PASelected(
     "Select pointer analysis",
 {

@@ -136,22 +136,79 @@ void WPAPass::runPointerAnalysis(SVFIR* pag, u32_t kind)
 void WPAPass::PrintAliasPairs(PointerAnalysis* pta)
 {
     SVFIR* pag = pta->getPAG();
-    for (SVFIR::iterator lit = pag->begin(), elit = pag->end(); lit != elit; ++lit)
+    u32_t sampleSize = Options::SampleAliases();
+
+    if (sampleSize == 0)
     {
-        PAGNode* node1 = lit->second;
-        PAGNode* node2 = node1;
-        for (SVFIR::iterator rit = lit, erit = pag->end(); rit != erit; ++rit)
+        // Original: print all pairs
+        for (SVFIR::iterator lit = pag->begin(), elit = pag->end(); lit != elit; ++lit)
         {
-            node2 = rit->second;
-            if(node1==node2)
-                continue;
-            const FunObjVar* fun1 = node1->getFunction();
-            const FunObjVar* fun2 = node2->getFunction();
-            AliasResult result = pta->alias(node1->getId(), node2->getId());
-            SVFUtil::outs()	<< (result == AliasResult::NoAlias ? "NoAlias" : "MayAlias")
-                            << " var" << node1->getId() << "[" << node1->getName()
+            PAGNode* node1 = lit->second;
+            PAGNode* node2 = node1;
+            for (SVFIR::iterator rit = lit, erit = pag->end(); rit != erit; ++rit)
+            {
+                node2 = rit->second;
+                if(node1==node2)
+                    continue;
+                const FunObjVar* fun1 = node1->getFunction();
+                const FunObjVar* fun2 = node2->getFunction();
+                AliasResult result = pta->alias(node1->getId(), node2->getId());
+                SVFUtil::outs()	<< (result == AliasResult::NoAlias ? "NoAlias" : "MayAlias")
+                                << " var" << node1->getId() << "[" << node1->getName()
+                                << "@" << (fun1==nullptr?"":fun1->getName()) << "] --"
+                                << " var" << node2->getId() << "[" << node2->getName()
+                                << "@" << (fun2==nullptr?"":fun2->getName()) << "]\n";
+            }
+        }
+    }
+    else
+    {
+        // Reservoir sampling: collect N random pairs without storing all
+        typedef std::pair<NodeID, NodeID> Pair;
+        std::vector<Pair> reservoir;
+        std::vector<std::pair<const FunObjVar*, const FunObjVar*>> funs;
+        u32_t count = 0;
+
+        for (SVFIR::iterator lit = pag->begin(), elit = pag->end(); lit != elit; ++lit)
+        {
+            PAGNode* node1 = lit->second;
+            for (SVFIR::iterator rit = lit, erit = pag->end(); rit != erit; ++rit)
+            {
+                PAGNode* node2 = rit->second;
+                if (node1 == node2)
+                    continue;
+                count++;
+                if (reservoir.size() < sampleSize)
+                {
+                    reservoir.emplace_back(node1->getId(), node2->getId());
+                    funs.emplace_back(node1->getFunction(), node2->getFunction());
+                }
+                else
+                {
+                    u32_t j = rand() % count;
+                    if (j < sampleSize)
+                    {
+                        reservoir[j] = std::make_pair(node1->getId(), node2->getId());
+                        funs[j] = std::make_pair(node1->getFunction(), node2->getFunction());
+                    }
+                }
+            }
+        }
+
+        // Query and print sampled pairs
+        for (size_t i = 0; i < reservoir.size(); ++i)
+        {
+            NodeID id1 = reservoir[i].first;
+            NodeID id2 = reservoir[i].second;
+            const FunObjVar* fun1 = funs[i].first;
+            const FunObjVar* fun2 = funs[i].second;
+            AliasResult result = pta->alias(id1, id2);
+            const SVFVar* n1 = pag->getSVFVar(id1);
+            const SVFVar* n2 = pag->getSVFVar(id2);
+            SVFUtil::outs() << (result == AliasResult::NoAlias ? "NoAlias" : "MayAlias")
+                            << " var" << id1 << "[" << (n1 ? n1->getName() : "?")
                             << "@" << (fun1==nullptr?"":fun1->getName()) << "] --"
-                            << " var" << node2->getId() << "[" << node2->getName()
+                            << " var" << id2 << "[" << (n2 ? n2->getName() : "?")
                             << "@" << (fun2==nullptr?"":fun2->getName()) << "]\n";
         }
     }

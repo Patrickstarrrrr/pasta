@@ -232,6 +232,7 @@ public:
     static const Option<bool> AnderSVFG;
     static const Option<bool> SABERFULLSVFG;
     static const Option<bool> PrintAliases;
+    static const Option<u32_t> SampleAliases;
     static OptionMultiple<PointerAnalysis::PTATY> PASelected;
     static OptionMultiple<u32_t> AliasRule;
 
