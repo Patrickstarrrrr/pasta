@@ -33,6 +33,12 @@ Notes:
    - `expandCondFIObjs()` now checks `pag->hasGNode(obj)` before accessing objects.
    - Fixes abort trap when printing aliases after `normalizePointsTo()` removes GepObjVar nodes.
 
+## PhiStmt Guard Design (commit 4622a00)
+
+- **PhiStmt guard**: Changed from per-operand incoming-block guard to phi-BB guard.
+- **Rationale**: Experiments on 23 test cases show only 1 case (`05_phi_assign`) with a 1-MayAlias difference; all others are identical. Phi-BB guard is simpler and matches LLVM SSA IR semantics (phi BB guard is usually `True`).
+- **Fallback**: Original per-operand implementation is kept in comments in `ConditionalAndersen.cpp` for reference.
+
 ## Observations
 
 - k=5 provides sufficient precision; increasing k to 10/20/50/100 shows no additional CondPts entries on cjson (stays at 1865).
