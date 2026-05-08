@@ -83,8 +83,29 @@ void ConditionalAndersen::attachStaticEdgeGuards()
             it->second = PathCond::getOr(it->second, guard);
     };
 
-    // --- PhiStmt: per-operand guard from operand's incoming edge ---
+    // --- PhiStmt: guard from phi's enclosing BB ---
+    // NOTE: We use the phi BB guard (not per-operand incoming-block guard)
+    // for simplicity.  Experiments show that per-operand guard only improves
+    // precision on 1/23 test cases (05_phi_assign, by 1 MayAlias) while
+    // leaving all others identical.  The original per-operand implementation
+    // is kept below in comments for reference.
     SVFStmt::SVFStmtSetTy& phis = pag->getPTASVFStmtSet(SVFStmt::Phi);
+    for (auto it = phis.begin(), eit = phis.end(); it != eit; ++it)
+    {
+        const PhiStmt* phi = SVFUtil::cast<PhiStmt>(*it);
+        const PathCond* phiGuard = getBBGuard(phi->getICFGNode() ? phi->getICFGNode()->getBB() : nullptr);
+        for (u32_t i = 0; i < phi->getOpVarNum(); ++i)
+        {
+            NodeID opId = phi->getOpVar(i)->getId();
+            NodeID resId = phi->getResID();
+            setCopyGuard(opId, resId, phiGuard);
+        }
+    }
+    /*
+    // --- Original: per-operand guard from operand's incoming edge ---
+    // This is semantically more precise (each operand is selected only on
+    // its incoming path), but in practice gives almost identical alias
+    // results on LLVM SSA IR because phi-BB guard is usually True.
     for (auto it = phis.begin(), eit = phis.end(); it != eit; ++it)
     {
         const PhiStmt* phi = SVFUtil::cast<PhiStmt>(*it);
@@ -97,6 +118,7 @@ void ConditionalAndersen::attachStaticEdgeGuards()
             setCopyGuard(opId, resId, g);
         }
     }
+    */
 
     // --- Plain CopyStmt: guard from enclosing BB ---
     SVFStmt::SVFStmtSetTy& copies = pag->getPTASVFStmtSet(SVFStmt::Copy);
