@@ -191,6 +191,7 @@ AddrCGEdge::AddrCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id)
 {
     // Retarget addr edges may lead s to be a dummy node
     const SVFVar* node = SVFIR::getPAG()->getSVFVar(s->getId());
+    (void)node;
     if (!SVFIR::pagReadFromTXT())
     {
         assert(!SVFUtil::isa<DummyValVar>(node) && "a dummy node??");

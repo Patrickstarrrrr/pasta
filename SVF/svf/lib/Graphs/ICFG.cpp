@@ -313,6 +313,7 @@ ICFGEdge* ICFG::getICFGEdge(const ICFGNode* src, const ICFGNode* dst, ICFGEdge::
 
     ICFGEdge * edge = nullptr;
     u32_t counter = 0;
+    (void)counter;
     for (ICFGEdge::ICFGEdgeSetTy::iterator iter = src->OutEdgeBegin();
             iter != src->OutEdgeEnd(); ++iter)
     {

@@ -1087,6 +1087,7 @@ void AbstractInterpretation::handleSVFStatement(const SVFStmt *stmt)
     {
         const auto& vmap = getAbsState(stmt->getICFGNode()).getVarToVal();
         auto it = vmap.find(IRGraph::NullPtr);
+        (void)it;
         assert(it == vmap.end() ||
                (!it->second.isInterval() && !it->second.isAddr()));
     }

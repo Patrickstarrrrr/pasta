@@ -39,6 +39,7 @@
 #include "WPA/Andersen.h"
 #include "WPA/AndersenPWC.h"
 #include "WPA/ConditionalAndersen.h"
+#include "WPA/ConditionalAndersenWaveDiff.h"
 #include "WPA/FlowSensitive.h"
 #include "WPA/VersionedFlowSensitive.h"
 #include "WPA/TypeAnalysis.h"
@@ -99,6 +100,9 @@ void WPAPass::runPointerAnalysis(SVFIR* pag, u32_t kind)
         break;
     case PointerAnalysis::CondAndersen_WPA:
         _pta = new ConditionalAndersen(pag);
+        break;
+    case PointerAnalysis::CondAndersenWaveDiff_WPA:
+        _pta = new ConditionalAndersenWaveDiff(pag);
         break;
     case PointerAnalysis::Steensgaard_WPA:
         _pta = new Steensgaard(pag);

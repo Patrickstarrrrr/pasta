@@ -140,8 +140,8 @@ public:
         if (b->isFalse()) return a;
         if (a == b) return a;
         // Direct absorption: a | (a & c)  == a,  etc. handled by OR containment.
-        if (a->isOr() && (a->getLeft() == b || a->getRight() == b)) return a;
-        if (b->isOr() && (b->getLeft() == a || b->getRight() == a)) return b;
+        if (a->isOr() && (*a->getLeft() == *b || *a->getRight() == *b)) return a;
+        if (b->isOr() && (*b->getLeft() == *a || *b->getRight() == *a)) return b;
         // Deeper absorption (bounded depth to keep cost low).
         if (containsInOr(a, b)) return a;
         if (containsInOr(b, a)) return b;
@@ -160,7 +160,7 @@ public:
     static bool containsInOr(const PathCond* tree, const PathCond* sub, int maxDepth = 8)
     {
         if (maxDepth <= 0) return false;
-        if (tree == sub) return true;
+        if (*tree == *sub) return true;
         if (tree->isOr())
             return containsInOr(tree->getLeft(), sub, maxDepth - 1) ||
                    containsInOr(tree->getRight(), sub, maxDepth - 1);

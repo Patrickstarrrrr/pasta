@@ -764,6 +764,7 @@ OptionMultiple<PointerAnalysis::PTATY> Options::PASelected(
     {PointerAnalysis::AndersenSFR_WPA, "sfrander", "Stride-based field representation inclusion-based analysis"},
     {PointerAnalysis::AndersenWaveDiff_WPA, "ander", "Diff wave propagation inclusion-based analysis"},
     {PointerAnalysis::CondAndersen_WPA, "cond-ander", "Conditional path-aware inclusion-based analysis"},
+    {PointerAnalysis::CondAndersenWaveDiff_WPA, "cond-ander-wave", "Conditional path-aware inclusion-based analysis with wave-diff"},
     {PointerAnalysis::Steensgaard_WPA, "steens", "Steensgaard's pointer analysis"},
     // Disabled till further work is done.
     {PointerAnalysis::FSSPARSE_WPA, "fspta", "Sparse flow sensitive pointer analysis"},

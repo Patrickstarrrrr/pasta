@@ -1,11 +1,11 @@
-//===- ConditionalAndersen.h -- Path-aware Andersen pointer analysis---------//
+//===- ConditionalAndersenWaveDiff.h -- Path-aware Andersen pointer analysis---------//
 //
 //                     SVF: Static Value-Flow Analysis
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef CONDITIONALANDERSEN_H_
-#define CONDITIONALANDERSEN_H_
+#ifndef CONDITIONALANDERSENWAVEDIFF_H_
+#define CONDITIONALANDERSENWAVEDIFF_H_
 
 #include "WPA/Andersen.h"
 #include "Util/PathCond.h"
@@ -21,31 +21,31 @@ namespace SVF
  * Extends standard Andersen with path-condition guards on copy edges.
  * Each points-to element is a pair (PathCond, NodeID).
  */
-class ConditionalAndersen : public Andersen
+class ConditionalAndersenWaveDiff : public AndersenWaveDiff
 {
 public:
     /// Conditional points-to: object -> guard (at most one guard per object)
     typedef Map<NodeID, const PathCond*> CondPointsTo;
 
     /// Constructor
-    ConditionalAndersen(SVFIR* _pag,
-                        PTATY type = PointerAnalysis::CondAndersen_WPA);
+    ConditionalAndersenWaveDiff(SVFIR* _pag,
+                        PTATY type = PointerAnalysis::CondAndersenWaveDiff_WPA);
 
     /// Destructor
-    virtual ~ConditionalAndersen() {}
+    virtual ~ConditionalAndersenWaveDiff() {}
 
     /// Singleton factory (analogous to AndersenWaveDiff::createAndersenWaveDiff)
-    static ConditionalAndersen* createConditionalAndersen(SVFIR* _pag)
+    static ConditionalAndersenWaveDiff* createConditionalAndersenWaveDiff(SVFIR* _pag)
     {
-        static ConditionalAndersen* instance = nullptr;
+        static ConditionalAndersenWaveDiff* instance = nullptr;
         if (instance == nullptr)
         {
-            instance = new ConditionalAndersen(_pag);
+            instance = new ConditionalAndersenWaveDiff(_pag);
             instance->analyze();
         }
         return instance;
     }
-    static void releaseConditionalAndersen()
+    static void releaseConditionalAndersenWaveDiff()
     {
         // No-op for singleton lifetime; managed externally
     }
@@ -65,18 +65,18 @@ public:
     const CondPointsTo& getCondPts(NodeID id) const;
 
     /// classof
-    static inline bool classof(const ConditionalAndersen*)
+    static inline bool classof(const ConditionalAndersenWaveDiff*)
     {
         return true;
     }
     static inline bool classof(const PointerAnalysis* pta)
     {
-        return pta->getAnalysisTy() == PointerAnalysis::CondAndersen_WPA;
+        return pta->getAnalysisTy() == PointerAnalysis::CondAndersenWaveDiff_WPA;
     }
 
     virtual const std::string PTAName() const override
     {
-        return "ConditionalAndersen";
+        return "ConditionalAndersenWaveDiff";
     }
 
 protected:
@@ -87,6 +87,7 @@ protected:
     u32_t mLimit;         ///< conjunctive length limit (0 = unlimited)
     u32_t nLimit;         ///< disjunctive clause limit (0 = unlimited)
     bool mergeCondSCC;    ///< true = merge SCCs even if they contain conditional edges
+    bool aliasNoSat;      ///< true = skip Z3 SAT in alias queries
     /// Guards whose conjunctive chain has reached mLimit.
     /// Any further And-operation with these guards is ignored.
     mutable Set<const PathCond*> conjCappedGuards;
@@ -117,6 +118,17 @@ protected:
     /// Conditional points-to storage: NodeID -> Map<ObjID, PathCond>
     Map<NodeID, CondPointsTo> condPtsMap;
 
+    /// Conditional diff pts: tracks objects whose guards changed since
+    /// last time their node was processed. Cleared at node-level in solveWorklist.
+    Map<NodeID, Set<NodeID>> condDiffPtsMap;
+
+    /// Current node's diff objects (set by solveWorklist before processNode).
+    mutable NodeID currentDiffNode;
+    mutable std::vector<NodeID> currentDiffObjs;
+
+    /// Rep nodes of SCCs that were preserved (not merged) during SCCDetect.
+    Set<NodeID> preservedSCCReps;
+
     /// Unified edge-guard map: (src, dst, kind) -> PathCond
     std::unordered_map<EdgeGuardKey, const PathCond*, EdgeGuardKeyHash> edgeGuards;
 
@@ -135,18 +147,25 @@ protected:
     virtual bool processLoad(NodeID node, const ConstraintEdge* load) override;
     virtual bool processStore(NodeID node, const ConstraintEdge* store) override;
     virtual bool processGep(NodeID node, const GepCGEdge* edge) override;
+    virtual void handleCopyGep(ConstraintNode* node) override;
 
-    /// Override to disable differential points-to propagation
-    virtual inline const PointsTo& getDiffPts(NodeID id) override
-    {
-        NodeID rep = sccRepNode(id);
-        return getPTDataTy()->getPts(rep);
-    }
+    // Note: we intentionally do NOT override getDiffPts here.
+    // Previously, getDiffPts was overridden to return the full pts set
+    // to ensure processCopy was always invoked for the conditional part.
+    // Now that we have diff-pts optimization (currentDiffObjs), the
+    // conditional part only processes changed objects. The base Andersen
+    // can use normal diff-pts for efficient bitvector propagation.
 
-    /// Override solveWorklist to perform SCC detection on-the-fly.
-    /// Unconditional SCCs are merged; conditional SCCs are preserved
-    /// unless -cond-ander-merge-cond-scc is enabled.
+    /// Override solveWorklist to add fixpoint iteration for preserved SCCs.
     virtual void solveWorklist() override;
+
+    /// Override processNode to set up conditional diff objects before
+    /// AndersenWaveDiff's copy/gep propagation.
+    virtual void processNode(NodeID nodeId) override;
+
+    /// Override postProcessNode to set up conditional diff objects before
+    /// AndersenWaveDiff's load/store propagation.
+    virtual void postProcessNode(NodeID nodeId) override;
 
     /// Override SCC merge to synchronize conditional points-to and edge guards
     virtual bool mergeSrcToTgt(NodeID srcId, NodeID tgtId) override;
@@ -212,8 +231,16 @@ protected:
     mutable u32_t numAliasRefined;
     mutable u32_t numAliasTotal;
     mutable u32_t numCondPtsEntries;
+
+    // Diff-pts performance counters
+    mutable u32_t numDiffPtsHits;      // processCopy/GEP used diff objs
+    mutable u32_t numDiffPtsMisses;    // processCopy/GEP fell back to full scan
+    mutable u32_t numDiffPtsPropagated; // total objects propagated via diff pts
+    mutable u32_t numFullScanPropagated; // total objects propagated via full scan
+
+    /// Simple timing counters for profiling
 };
 
 } // End namespace SVF
 
-#endif // CONDITIONALANDERSEN_H_
+#endif // CONDITIONALANDERSENWAVEDIFF_H_

@@ -4,16 +4,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "WPA/ConditionalAndersen.h"
+#include "WPA/ConditionalAndersenWaveDiff.h"
 #include "SVFIR/SVFStatements.h"
 #include "Util/Options.h"
 #include "Util/SVFUtil.h"
+#include <execinfo.h>
+#include <stdlib.h>
 
 using namespace SVF;
 using namespace SVFUtil;
 
-ConditionalAndersen::ConditionalAndersen(SVFIR* _pag, PTATY type)
-    : Andersen(_pag, type),
+ConditionalAndersenWaveDiff::ConditionalAndersenWaveDiff(SVFIR* _pag, PTATY type)
+    : AndersenWaveDiff(_pag, type),
       kLimit(Options::CondAnderKLimit()),
       eagerSat(Options::CondAnderEagerSat()),
       useFastGuard(Options::CondAnderFastGuard()),
@@ -32,9 +34,9 @@ ConditionalAndersen::ConditionalAndersen(SVFIR* _pag, PTATY type)
  * Initialize analysis.
  * Disable differential points-to to ensure processCopy is always invoked.
  */
-void ConditionalAndersen::initialize()
+void ConditionalAndersenWaveDiff::initialize()
 {
-    Andersen::initialize();
+    AndersenWaveDiff::initialize();
     setDetectPWC(Options::CondAnderPWC());
     attachStaticEdgeGuards();
 }
@@ -47,7 +49,7 @@ void ConditionalAndersen::initialize()
  * (the conjunction of all branch conditions on edges entering the block).
  * If a block has multiple conditional predecessors their guards are OR-merged.
  */
-const PathCond* ConditionalAndersen::getBBGuard(const SVFBasicBlock* bb) const
+const PathCond* ConditionalAndersenWaveDiff::getBBGuard(const SVFBasicBlock* bb) const
 {
     if (!bb) return PathCond::getTrue();
     const PathCond* g = PathCond::getFalse();
@@ -72,7 +74,7 @@ const PathCond* ConditionalAndersen::getBBGuard(const SVFBasicBlock* bb) const
     return hasGuard ? g : PathCond::getTrue();
 }
 
-void ConditionalAndersen::attachStaticEdgeGuards()
+void ConditionalAndersenWaveDiff::attachStaticEdgeGuards()
 {
     auto setCopyGuard = [&](NodeID src, NodeID dst, const PathCond* guard)
     {
@@ -264,7 +266,7 @@ void ConditionalAndersen::attachStaticEdgeGuards()
  * Look up the guard for a copy edge.
  * Priority: static guards > derived guards > True.
  */
-const PathCond* ConditionalAndersen::getEdgeGuard(NodeID src, NodeID dst) const
+const PathCond* ConditionalAndersenWaveDiff::getEdgeGuard(NodeID src, NodeID dst) const
 {
     auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::CopyStatic});
     if (it != edgeGuards.end())
@@ -277,7 +279,7 @@ const PathCond* ConditionalAndersen::getEdgeGuard(NodeID src, NodeID dst) const
     return PathCond::getTrue();
 }
 
-const PathCond* ConditionalAndersen::getLoadEdgeGuard(NodeID src, NodeID dst) const
+const PathCond* ConditionalAndersenWaveDiff::getLoadEdgeGuard(NodeID src, NodeID dst) const
 {
     auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::Load});
     if (it != edgeGuards.end())
@@ -285,7 +287,7 @@ const PathCond* ConditionalAndersen::getLoadEdgeGuard(NodeID src, NodeID dst) co
     return PathCond::getTrue();
 }
 
-const PathCond* ConditionalAndersen::getStoreEdgeGuard(NodeID src, NodeID dst) const
+const PathCond* ConditionalAndersenWaveDiff::getStoreEdgeGuard(NodeID src, NodeID dst) const
 {
     auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::Store});
     if (it != edgeGuards.end())
@@ -293,7 +295,7 @@ const PathCond* ConditionalAndersen::getStoreEdgeGuard(NodeID src, NodeID dst) c
     return PathCond::getTrue();
 }
 
-const PathCond* ConditionalAndersen::getGepEdgeGuard(NodeID src, NodeID dst) const
+const PathCond* ConditionalAndersenWaveDiff::getGepEdgeGuard(NodeID src, NodeID dst) const
 {
     auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::Gep});
     if (it != edgeGuards.end())
@@ -304,7 +306,7 @@ const PathCond* ConditionalAndersen::getGepEdgeGuard(NodeID src, NodeID dst) con
 /*!
  * Extract leaves of a pure And chain in in-order traversal.
  */
-std::vector<const PathCond*> ConditionalAndersen::extractAndChain(const PathCond* cond) const
+std::vector<const PathCond*> ConditionalAndersenWaveDiff::extractAndChain(const PathCond* cond) const
 {
     std::vector<const PathCond*> leaves;
     if (cond->isPureAndChain())
@@ -315,7 +317,7 @@ std::vector<const PathCond*> ConditionalAndersen::extractAndChain(const PathCond
 /*!
  * Build a left-associative And chain from a list of literals.
  */
-const PathCond* ConditionalAndersen::buildAndChain(const std::vector<const PathCond*>& literals) const
+const PathCond* ConditionalAndersenWaveDiff::buildAndChain(const std::vector<const PathCond*>& literals) const
 {
     if (literals.empty()) return PathCond::getTrue();
     const PathCond* result = literals[0];
@@ -327,7 +329,7 @@ const PathCond* ConditionalAndersen::buildAndChain(const std::vector<const PathC
 /*!
  * Count DNF clauses using FastGuard conversion.
  */
-u32_t ConditionalAndersen::countClauses(const PathCond* cond) const
+u32_t ConditionalAndersenWaveDiff::countClauses(const PathCond* cond) const
 {
     if (cond->isCapped()) return nLimit + 1; // capped guard is treated as exceeding the limit
     if (cond->isTrue() || cond->isFalse() || cond->isAtom()) return 1;
@@ -347,7 +349,7 @@ u32_t ConditionalAndersen::countClauses(const PathCond* cond) const
  *        The truncated guard is marked as conj-capped in conjCappedGuards.
  *      - Guards with more than nLimit DNF clauses are collapsed to True (disj-capped).
  */
-const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
+const PathCond* ConditionalAndersenWaveDiff::applyLimits(const PathCond* cond) const
 {
     // Mode 1: depth-based k-limit (legacy)
     if (useDepthLimit)
@@ -404,7 +406,7 @@ const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
 /*!
  * Convert PathCond to Z3Expr for SAT checking.
  */
-Z3Expr ConditionalAndersen::pathCondToZ3(const PathCond* cond) const
+Z3Expr ConditionalAndersenWaveDiff::pathCondToZ3(const PathCond* cond) const
 {
     if (cond->isTrue())  return Z3Expr::getTrueCond();
     if (cond->isFalse()) return Z3Expr::getFalseCond();
@@ -427,7 +429,7 @@ Z3Expr ConditionalAndersen::pathCondToZ3(const PathCond* cond) const
 /*!
  * Z3-based SAT check (with proper push/pop).
  */
-bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
+bool ConditionalAndersenWaveDiff::z3IsSat(const PathCond* cond) const
 {
     numZ3SatChecks++;
     if (cond->isTrue())  return true;
@@ -452,13 +454,15 @@ bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
  * OR-merge a guard onto an existing (var,obj) entry in condPtsMap.
  * Returns true iff the entry was newly inserted or the guard changed.
  */
-bool ConditionalAndersen::orMergeCondPts(NodeID var, NodeID obj, const PathCond* guard)
+bool ConditionalAndersenWaveDiff::orMergeCondPts(NodeID var, NodeID obj, const PathCond* guard)
 {
+    (void)var; (void)obj; // silence unused warnings if no debug
     auto& map = condPtsMap[var];
     auto it = map.find(obj);
     if (it != map.end())
     {
         const PathCond* merged = PathCond::getOr(it->second, guard);
+        /* debug removed */
         if (merged == it->second)
             return false; // no change
         // Apply limits to prevent Or-tree from growing unbounded.
@@ -476,7 +480,7 @@ bool ConditionalAndersen::orMergeCondPts(NodeID var, NodeID obj, const PathCond*
 /*!
  * Override SCC merge: synchronize conditional points-to and edge guards.
  */
-bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
+bool ConditionalAndersenWaveDiff::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 {
     if (nodeId == newRepId)
         return false;
@@ -530,10 +534,144 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 }
 
 /*!
+ * Override processNode to set up conditional diff propagation for Phase 1.
+ */
+void ConditionalAndersenWaveDiff::processNode(NodeID nodeId)
+{
+    if (!consCG->hasGNode(nodeId))
+        return;
+    currentDiffNode = nodeId;
+    currentDiffObjs.clear();
+    auto diffIt = condDiffPtsMap.find(nodeId);
+    if (diffIt != condDiffPtsMap.end())
+    {
+        currentDiffObjs.clear();
+        for (NodeID obj : diffIt->second)
+            currentDiffObjs.push_back(obj);
+        condDiffPtsMap.erase(diffIt);
+    }
+    AndersenWaveDiff::processNode(nodeId);
+
+    // For preserved SCCs, also process sub-nodes because their outgoing
+    // copy/gep edges were not moved to the rep node.
+    if (getSCCDetector()->GNodeSCCInfo().find(nodeId) == getSCCDetector()->GNodeSCCInfo().end())
+        return;
+    const NodeBS& subNodes = getSCCDetector()->subNodes(nodeId);
+    if (subNodes.count() > 1)
+    {
+        for (NodeBS::iterator it = subNodes.begin(); it != subNodes.end(); ++it)
+        {
+            NodeID subId = *it;
+            if (subId != nodeId && consCG->hasGNode(subId))
+            {
+                ConstraintNode* subNode = consCG->getGNode(subId);
+                handleCopyGep(subNode);
+            }
+        }
+    }
+}
+
+/*!
+ * Override postProcessNode to set up conditional diff propagation for Phase 2.
+ *
+ * Unlike standard AndersenWaveDiff, conditional SCCs may be preserved (not merged).
+ * For unmerged SCCs, copy/gep propagation within the cycle cannot be fully handled
+ * in a single topo-order pass, so we also invoke handleCopyGep here to ensure
+ * the SCC reaches a fixpoint.
+ */
+void ConditionalAndersenWaveDiff::postProcessNode(NodeID nodeId)
+{
+    if (!consCG->hasGNode(nodeId))
+        return;
+    currentDiffNode = nodeId;
+    currentDiffObjs.clear();
+    auto diffIt = condDiffPtsMap.find(nodeId);
+    if (diffIt != condDiffPtsMap.end())
+    {
+        currentDiffObjs.clear();
+        for (NodeID obj : diffIt->second)
+            currentDiffObjs.push_back(obj);
+        condDiffPtsMap.erase(diffIt);
+    }
+    AndersenWaveDiff::postProcessNode(nodeId);
+
+    // For preserved SCCs, copy/gep edges may need additional propagation
+    // beyond Phase 1 topo-order.  handleCopyGep uses diffPts, so already-
+    // converged nodes incur negligible overhead.
+    // Also process sub-nodes because their edges were not moved to the rep.
+    if (sccRepNode(nodeId) == nodeId)
+    {
+        ConstraintNode* node = consCG->getConstraintNode(nodeId);
+        handleCopyGep(node);
+
+        if (getSCCDetector()->GNodeSCCInfo().find(nodeId) == getSCCDetector()->GNodeSCCInfo().end())
+            return;
+        const NodeBS& subNodes = getSCCDetector()->subNodes(nodeId);
+        if (subNodes.count() > 1)
+        {
+            for (NodeBS::iterator it = subNodes.begin(); it != subNodes.end(); ++it)
+            {
+                NodeID subId = *it;
+                if (subId != nodeId && consCG->hasGNode(subId))
+                {
+                    ConstraintNode* subNode = consCG->getGNode(subId);
+                    // handle load/store for sub-node (may add new edges)
+                    for (ConstraintEdge* edge : subNode->getOutEdges())
+                    {
+                        if (edge->getEdgeKind() == ConstraintEdge::Load)
+                        {
+                            if (handleLoad(subId, edge))
+                                reanalyze = true;
+                        }
+                    }
+                    for (ConstraintEdge* edge : subNode->getInEdges())
+                    {
+                        if (edge->getEdgeKind() == ConstraintEdge::Store)
+                        {
+                            if (handleStore(subId, edge))
+                                reanalyze = true;
+                        }
+                    }
+                    // handle copy/gep for sub-node
+                    handleCopyGep(subNode);
+                }
+            }
+        }
+    }
+}
+
+/*!
+ * Override handleCopyGep for wave-diff to process all outgoing copy/gep edges
+ * whenever there is either a base diff or conditional points-to entries.
+ *
+ * We use hasCondPts (check condPtsMap) instead of hasCondDiff because
+ * condDiffPtsMap is not populated in this implementation; we rely on the
+ * standard diff-pts mechanism for unconditional propagation and propagate
+ * conditional entries whenever the node has any.
+ */
+void ConditionalAndersenWaveDiff::handleCopyGep(ConstraintNode* node)
+{
+    NodeID nodeId = node->getId();
+    computeDiffPts(nodeId);
+    bool hasBaseDiff = !getDiffPts(nodeId).empty();
+    bool hasCondPts = condPtsMap.find(nodeId) != condPtsMap.end();
+    if (hasBaseDiff || hasCondPts)
+    {
+        for (ConstraintEdge* edge : node->getCopyOutEdges())
+            processCopy(nodeId, edge);
+        for (ConstraintEdge* edge : node->getGepOutEdges())
+        {
+            if (GepCGEdge* gepEdge = SVFUtil::dyn_cast<GepCGEdge>(edge))
+                processGep(nodeId, gepEdge);
+        }
+    }
+}
+
+/*!
  * Check whether an SCC (represented by its rep node) contains any
  * constraint edge with a non-trivial conditional guard.
  */
-bool ConditionalAndersen::sccHasConditionalEdge(NodeID repId) const
+bool ConditionalAndersenWaveDiff::sccHasConditionalEdge(NodeID repId) const
 {
     const NodeBS& subNodes = getSCCDetector()->subNodes(repId);
     for (NodeBS::iterator it = subNodes.begin(), eit = subNodes.end(); it != eit; ++it)
@@ -578,7 +716,7 @@ bool ConditionalAndersen::sccHasConditionalEdge(NodeID repId) const
  * Override SCC detection: optionally skip merging SCCs that contain
  * conditional edges, preserving per-node conditional precision.
  */
-NodeStack& ConditionalAndersen::SCCDetect()
+NodeStack& ConditionalAndersenWaveDiff::SCCDetect()
 {
     numOfSCCDetection++;
 
@@ -625,7 +763,7 @@ NodeStack& ConditionalAndersen::SCCDetect()
 
     return getSCCDetector()->topoNodeStack();
 }
-void ConditionalAndersen::solveWorklist()
+void ConditionalAndersenWaveDiff::solveWorklist()
 {
     // SCC detection: merge unconditional SCCs, skip conditional SCCs.
     NodeStack& nodeStack = SCCDetect();
@@ -644,7 +782,7 @@ void ConditionalAndersen::solveWorklist()
     while (!isWorklistEmpty())
     {
         NodeID nodeId = popFromWorklist();
-        processNode(nodeId);
+        postProcessNode(nodeId);
         collapseFields();
     }
 }
@@ -652,7 +790,7 @@ void ConditionalAndersen::solveWorklist()
 /*!
  * Override inter-procedural edge connection to attach callsite guards.
  */
-void ConditionalAndersen::connectCaller2CalleeParams(const CallICFGNode* cs,
+void ConditionalAndersenWaveDiff::connectCaller2CalleeParams(const CallICFGNode* cs,
         const FunObjVar* F, NodePairSet& cpySrcNodes)
 {
     const PathCond* csGuard = getBBGuard(cs->getBB());
@@ -676,7 +814,7 @@ void ConditionalAndersen::connectCaller2CalleeParams(const CallICFGNode* cs,
 /*!
  * Override inter-procedural fork edge connection to attach callsite guards.
  */
-void ConditionalAndersen::connectCaller2ForkedFunParams(const CallICFGNode* cs,
+void ConditionalAndersenWaveDiff::connectCaller2ForkedFunParams(const CallICFGNode* cs,
         const FunObjVar* F, NodePairSet& cpySrcNodes)
 {
     const PathCond* csGuard = getBBGuard(cs->getBB());
@@ -700,7 +838,7 @@ void ConditionalAndersen::connectCaller2ForkedFunParams(const CallICFGNode* cs,
 /*!
  * Process address edge: add unconditional (True, obj) to condPtsMap.
  */
-void ConditionalAndersen::processAddr(const AddrCGEdge* addr)
+void ConditionalAndersenWaveDiff::processAddr(const AddrCGEdge* addr)
 {
     Andersen::processAddr(addr);
 
@@ -714,12 +852,13 @@ void ConditionalAndersen::processAddr(const AddrCGEdge* addr)
 /*!
  * Process copy edge: propagate conditional points-to with edge guard.
  */
-bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
+bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
 {
     bool parentChanged = Andersen::processCopy(node, edge);
 
     NodeID dst = edge->getDstID();
     const PathCond* guard = getEdgeGuard(node, dst);
+    /* debug removed */
 
     bool condChanged = false;
     auto it = condPtsMap.find(node);
@@ -758,7 +897,7 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
  * Process load edge: create derived copy edge with guard.
  * Guard = load_edge_guard ∧ OR(conditions under which pointer points to node).
  */
-bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
+bool ConditionalAndersenWaveDiff::processLoad(NodeID node, const ConstraintEdge* load)
 {
     bool parentChanged = Andersen::processLoad(node, load);
 
@@ -802,7 +941,7 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
  * Process store edge: create derived copy edge with guard.
  * Guard = store_edge_guard ∧ OR(conditions under which pointer points to node).
  */
-bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
+bool ConditionalAndersenWaveDiff::processStore(NodeID node, const ConstraintEdge* store)
 {
     bool parentChanged = Andersen::processStore(node, store);
 
@@ -845,7 +984,7 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
 /*!
  * Process gep edge: propagate conditional points-to with field translation.
  */
-bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
+bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
 {
     bool parentChanged = Andersen::processGep(edge->getSrcID(), edge);
 
@@ -915,16 +1054,26 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
  * Alias query using conditional points-to.
  * May-alias only if there exists a common object under a satisfiable conjunction.
  */
-AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
+AliasResult ConditionalAndersenWaveDiff::alias(NodeID v1, NodeID v2)
 {
     numAliasTotal++;
     if (v1 == v2) return MustAlias;
 
+    // 1. Check unconditional points-to first.
+    NodeID n1 = consCG->sccRepNode(v1);
+    NodeID n2 = consCG->sccRepNode(v2);
+    if (!BVDataPTAImpl::alias(getPts(n1), getPts(n2)))
+        return AliasResult::NoAlias;
+
+    // 2. Unconditional pts intersect; check conditional guards.
     CondPointsTo pts1 = expandCondFIObjs(getCondPts(v1));
     CondPointsTo pts2 = expandCondFIObjs(getCondPts(v2));
 
+    /* debug removed */
+
+    // If conditional map is incomplete, fall back conservatively.
     if (pts1.empty() || pts2.empty())
-        return NoAlias;
+        return AliasResult::MayAlias;
 
     for (const auto& p1 : pts1)
     {
@@ -941,7 +1090,7 @@ AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
     return AliasResult::NoAlias;
 }
 
-AliasResult ConditionalAndersen::alias(const SVFVar* v1, const SVFVar* v2)
+AliasResult ConditionalAndersenWaveDiff::alias(const SVFVar* v1, const SVFVar* v2)
 {
     if (v1->getId() == v2->getId()) return MustAlias;
     return alias(v1->getId(), v2->getId());
@@ -951,7 +1100,7 @@ AliasResult ConditionalAndersen::alias(const SVFVar* v1, const SVFVar* v2)
  * Expand field-insensitive objects in a conditional points-to set.
  * If an object is a base object or field-insensitive, include all its fields.
  */
-ConditionalAndersen::CondPointsTo ConditionalAndersen::expandCondFIObjs(const CondPointsTo& pts) const
+ConditionalAndersenWaveDiff::CondPointsTo ConditionalAndersenWaveDiff::expandCondFIObjs(const CondPointsTo& pts) const
 {
     CondPointsTo expanded;
     for (const auto& pair : pts)
@@ -984,7 +1133,7 @@ ConditionalAndersen::CondPointsTo ConditionalAndersen::expandCondFIObjs(const Co
 /*!
  * Dump edge guards for debugging.
  */
-void ConditionalAndersen::dumpEdgeGuards() const
+void ConditionalAndersenWaveDiff::dumpEdgeGuards() const
 {
     auto dumpByKind = [&](CondEdgeKind kind, const char* label)
     {
@@ -1012,7 +1161,7 @@ void ConditionalAndersen::dumpEdgeGuards() const
 /*!
  * Finalize: optionally print conditional points-to for debugging (Phase 1).
  */
-void ConditionalAndersen::finalize()
+void ConditionalAndersenWaveDiff::finalize()
 {
     Andersen::finalize();
 
@@ -1084,7 +1233,7 @@ void ConditionalAndersen::finalize()
 /*!
  * Access conditional points-to set.
  */
-const ConditionalAndersen::CondPointsTo& ConditionalAndersen::getCondPts(NodeID id) const
+const ConditionalAndersenWaveDiff::CondPointsTo& ConditionalAndersenWaveDiff::getCondPts(NodeID id) const
 {
     NodeID rep = consCG->sccRepNode(id);
     auto it = condPtsMap.find(rep);
