@@ -168,6 +168,7 @@ void WPAPass::PrintAliasPairs(PointerAnalysis* pta)
     else
     {
         // Reservoir sampling: collect N random pairs without storing all
+        srand(42);  // fixed seed for reproducible sampling across runs
         typedef std::pair<NodeID, NodeID> Pair;
         std::vector<Pair> reservoir;
         std::vector<std::pair<const FunObjVar*, const FunObjVar*>> funs;
