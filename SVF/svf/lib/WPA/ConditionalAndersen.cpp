@@ -719,6 +719,7 @@ void ConditionalAndersen::processAddr(const AddrCGEdge* addr)
  */
 bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
 {
+    if (kLimit == 0) return Andersen::processCopy(node, edge);
     bool parentChanged = Andersen::processCopy(node, edge);
 
     NodeID dst = edge->getDstID();
@@ -763,6 +764,7 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
  */
 bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
 {
+    if (kLimit == 0) return Andersen::processLoad(node, load);
     bool parentChanged = Andersen::processLoad(node, load);
 
     NodeID pointer = load->getSrcID();
@@ -807,6 +809,7 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
  */
 bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
 {
+    if (kLimit == 0) return Andersen::processStore(node, store);
     bool parentChanged = Andersen::processStore(node, store);
 
     NodeID src = store->getSrcID();
@@ -850,6 +853,7 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
  */
 bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
 {
+    if (kLimit == 0) return Andersen::processGep(edge->getSrcID(), edge);
     bool parentChanged = Andersen::processGep(edge->getSrcID(), edge);
 
     NodeID src = edge->getSrcID();
@@ -920,6 +924,7 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
  */
 AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
 {
+    if (kLimit == 0) return Andersen::alias(v1, v2);
     numAliasTotal++;
     if (v1 == v2) return MustAlias;
 

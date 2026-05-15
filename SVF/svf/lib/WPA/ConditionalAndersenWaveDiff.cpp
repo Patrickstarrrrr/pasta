@@ -857,6 +857,7 @@ void ConditionalAndersenWaveDiff::processAddr(const AddrCGEdge* addr)
  */
 bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge* edge)
 {
+    if (kLimit == 0) return Andersen::processCopy(node, edge);
     bool parentChanged = Andersen::processCopy(node, edge);
 
     NodeID dst = edge->getDstID();
@@ -902,6 +903,7 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
  */
 bool ConditionalAndersenWaveDiff::processLoad(NodeID node, const ConstraintEdge* load)
 {
+    if (kLimit == 0) return Andersen::processLoad(node, load);
     bool parentChanged = Andersen::processLoad(node, load);
 
     NodeID pointer = load->getSrcID();
@@ -946,6 +948,7 @@ bool ConditionalAndersenWaveDiff::processLoad(NodeID node, const ConstraintEdge*
  */
 bool ConditionalAndersenWaveDiff::processStore(NodeID node, const ConstraintEdge* store)
 {
+    if (kLimit == 0) return Andersen::processStore(node, store);
     bool parentChanged = Andersen::processStore(node, store);
 
     NodeID src = store->getSrcID();
@@ -989,6 +992,7 @@ bool ConditionalAndersenWaveDiff::processStore(NodeID node, const ConstraintEdge
  */
 bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
 {
+    if (kLimit == 0) return Andersen::processGep(edge->getSrcID(), edge);
     bool parentChanged = Andersen::processGep(edge->getSrcID(), edge);
 
     NodeID src = edge->getSrcID();
