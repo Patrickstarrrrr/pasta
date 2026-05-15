@@ -332,10 +332,10 @@ const Option<bool> Options::INCDFPTData(
 );
 
 // ConditionalAndersen.cpp
-const Option<u32_t> Options::CondAnderKLimit(
+const Option<s32_t> Options::CondAnderKLimit(
     "cond-ander-k",
-    "k-limit for conditional Andersen path conditions (0 = unlimited, i.e. no truncation)",
-    5
+    "k-limit for conditional Andersen path conditions (-1 = unlimited, 0 = truncate all guards to True)",
+    -1
 );
 
 const Option<bool> Options::CondAnderEagerSat(

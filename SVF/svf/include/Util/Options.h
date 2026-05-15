@@ -133,7 +133,7 @@ public:
     static const Option<bool> INCDFPTData;
 
     // ConditionalAndersen.cpp
-    static const Option<u32_t> CondAnderKLimit;
+    static const Option<s32_t> CondAnderKLimit;
     static const Option<bool> CondAnderEagerSat;
     static const Option<bool> CondAnderPWC;
     static const Option<bool> CondAnderDumpGuards;

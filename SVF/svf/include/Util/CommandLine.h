@@ -16,6 +16,7 @@
 #include <sstream>
 
 typedef unsigned u32_t;
+typedef signed   s32_t;
 
 class OptionBase
 {
@@ -395,6 +396,32 @@ private:
         // Out of range according to strtoul, or according to us compared to u32_t.
         if (errno == ERANGE || sv > std::numeric_limits<u32_t>::max()) return false;
         value = sv;
+        return true;
+    }
+
+    // Convert string to s32_t, returning whether we succeeded.
+    static bool fromString(const std::string s, s32_t &value)
+    {
+        // We allow optional leading '-' followed by digits.
+        if (s.empty()) return false;
+        size_t pos = 0;
+        if (s[0] == '-')
+        {
+            if (s.size() == 1) return false;
+            pos = 1;
+        }
+        for (size_t i = pos; i < s.size(); ++i)
+        {
+            if (!(s[i] >= '0' && s[i] <= '9')) return false;
+        }
+
+        // Use strtol because we're not using exceptions.
+        assert(sizeof(long) >= sizeof(s32_t));
+        const long sv = std::strtol(s.c_str(), nullptr, 10);
+
+        // Out of range according to strtol, or according to us compared to s32_t.
+        if (errno == ERANGE || sv < std::numeric_limits<s32_t>::min() || sv > std::numeric_limits<s32_t>::max()) return false;
+        value = static_cast<s32_t>(sv);
         return true;
     }
 

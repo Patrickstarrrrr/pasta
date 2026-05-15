@@ -351,11 +351,14 @@ u32_t ConditionalAndersenWaveDiff::countClauses(const PathCond* cond) const
  */
 const PathCond* ConditionalAndersenWaveDiff::applyLimits(const PathCond* cond) const
 {
+    // kLimit == 0 means truncate all guards to True (unconditional mode).
+    if (kLimit == 0) return PathCond::getTrue();
+
     // Mode 1: depth-based k-limit (legacy)
     if (useDepthLimit)
     {
-        if (kLimit == 0) return cond;
-        if (cond->depth() <= kLimit) return cond;
+        if (kLimit == -1) return cond;
+        if (cond->depth() <= static_cast<u32_t>(kLimit)) return cond;
         return PathCond::getTrue();
     }
 

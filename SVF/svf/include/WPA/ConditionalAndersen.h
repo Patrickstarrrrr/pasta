@@ -80,7 +80,7 @@ public:
     }
 
 protected:
-    u32_t kLimit;
+    s32_t kLimit;
     bool eagerSat;
     bool useFastGuard;
     bool useDepthLimit;   ///< true = use depth-based k-limit; false = use m/n limits
