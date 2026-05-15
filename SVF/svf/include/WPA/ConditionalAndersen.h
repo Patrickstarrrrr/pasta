@@ -212,6 +212,13 @@ protected:
     mutable u32_t numAliasRefined;
     mutable u32_t numAliasTotal;
     mutable u32_t numCondPtsEntries;
+
+    /// Timing counters (ms) for conditional overhead analysis
+    mutable double timeCondProp;      // processCopy/Load/Store/Gep conditional logic
+    mutable double timeCondAlias;     // alias() conditional query
+    mutable double timeCondSCCMerge;  // mergeSrcToTgt conditional pts + edgeGuards
+    mutable double timeGuardLimit;    // applyLimits() calls
+    mutable double timeSATCheck;      // z3IsSat() calls
 };
 
 } // End namespace SVF

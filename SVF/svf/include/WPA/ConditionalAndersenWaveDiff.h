@@ -239,6 +239,11 @@ protected:
     mutable u32_t numFullScanPropagated; // total objects propagated via full scan
 
     /// Simple timing counters for profiling
+    mutable double timeCondProp;      // processCopy/Load/Store/Gep conditional logic
+    mutable double timeCondAlias;     // alias() conditional query
+    mutable double timeCondSCCMerge;  // mergeSrcToTgt conditional pts + edgeGuards
+    mutable double timeGuardLimit;    // applyLimits() calls
+    mutable double timeSATCheck;      // z3IsSat() calls
 };
 
 } // End namespace SVF
