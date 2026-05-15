@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Backup files
+*.orig
+*.bak
+*.swp
+*~
+
+# Compiled bitcode
+demo/bc/
+demo2/bc/
+demo2/*.bc
+benchmark/bc/
+*.bc
+
+# Test results and outputs
+demo/result/
+demo2/result/
+comparison_result/
+results_*/
+
+# Test scripts (keep source code only)
+test_*.sh
+check_*.sh
+compare_*.sh
+analyze_*.sh
+run_*.sh
+dump_*.sh
+diff_*.sh
+parse_*.py
+parse_*.sh
+
+# Temporary files
+*.dot
+*.tmp
+*.log
+
+# Build artifacts (if any in root)
+build/
+cmake-build-*/
