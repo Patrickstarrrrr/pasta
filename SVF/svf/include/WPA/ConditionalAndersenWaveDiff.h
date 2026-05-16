@@ -149,12 +149,19 @@ protected:
     virtual bool processGep(NodeID node, const GepCGEdge* edge) override;
     virtual void handleCopyGep(ConstraintNode* node) override;
 
-    // Note: we intentionally do NOT override getDiffPts here.
-    // Previously, getDiffPts was overridden to return the full pts set
-    // to ensure processCopy was always invoked for the conditional part.
-    // Now that we have diff-pts optimization (currentDiffObjs), the
-    // conditional part only processes changed objects. The base Andersen
-    // can use normal diff-pts for efficient bitvector propagation.
+    /// Override getDiffPts to restore diff-pts behavior.
+    /// The base ConditionalAndersen overrides this to return the full pts set,
+    /// which disables diff propagation and causes massive redundant work in
+    /// the WaveDiff variant.  We restore the original Andersen behavior here
+    /// because our conditional diff is tracked separately (currentDiffObjs).
+    virtual inline const PointsTo& getDiffPts(NodeID id) override
+    {
+        NodeID rep = sccRepNode(id);
+        if (Options::DiffPts())
+            return getDiffPTDataTy()->getDiffPts(rep);
+        else
+            return getPTDataTy()->getPts(rep);
+    }
 
     /// Override solveWorklist to add fixpoint iteration for preserved SCCs.
     virtual void solveWorklist() override;

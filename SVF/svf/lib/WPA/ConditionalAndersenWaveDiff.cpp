@@ -577,6 +577,10 @@ void ConditionalAndersenWaveDiff::processNode(NodeID nodeId)
     }
     AndersenWaveDiff::processNode(nodeId);
 
+    // k=0 (unconditional mode): sub-nodes have already been merged, skip.
+    if (kLimit == 0)
+        return;
+
     // For preserved SCCs, also process sub-nodes because their outgoing
     // copy/gep edges were not moved to the rep node.
     if (getSCCDetector()->GNodeSCCInfo().find(nodeId) == getSCCDetector()->GNodeSCCInfo().end())
@@ -619,6 +623,10 @@ void ConditionalAndersenWaveDiff::postProcessNode(NodeID nodeId)
         condDiffPtsMap.erase(diffIt);
     }
     AndersenWaveDiff::postProcessNode(nodeId);
+
+    // k=0 (unconditional mode): let the base WaveDiff handle everything.
+    if (kLimit == 0)
+        return;
 
     // For preserved SCCs, copy/gep edges may need additional propagation
     // beyond Phase 1 topo-order.  handleCopyGep uses diffPts, so already-
@@ -677,6 +685,14 @@ void ConditionalAndersenWaveDiff::postProcessNode(NodeID nodeId)
 void ConditionalAndersenWaveDiff::handleCopyGep(ConstraintNode* node)
 {
     NodeID nodeId = node->getId();
+    // When k=0 (unconditional mode), use the standard diff-based handleCopyGep
+    // to avoid redundant work caused by hasCondPts always being true for
+    // address-taken nodes.
+    if (kLimit == 0)
+    {
+        Andersen::handleCopyGep(node);
+        return;
+    }
     computeDiffPts(nodeId);
     bool hasBaseDiff = !getDiffPts(nodeId).empty();
     bool hasCondPts = condPtsMap.find(nodeId) != condPtsMap.end();
