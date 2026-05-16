@@ -354,11 +354,11 @@ u32_t ConditionalAndersen::countClauses(const PathCond* cond) const
  */
 const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
 {
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
     // kLimit == 0 means truncate all guards to True (unconditional mode).
     if (kLimit == 0)
     {
-        timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+        timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return PathCond::getTrue();
     }
 
@@ -367,15 +367,15 @@ const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
     {
         if (kLimit == -1)
         {
-            timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+            timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
             return cond;
         }
         if (cond->depth() <= static_cast<u32_t>(kLimit))
         {
-            timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+            timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
             return cond;
         }
-        timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+        timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return PathCond::getTrue();
     }
 
@@ -420,7 +420,7 @@ const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
         }
     }
 
-    timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return result;
 }
 
@@ -452,16 +452,16 @@ Z3Expr ConditionalAndersen::pathCondToZ3(const PathCond* cond) const
  */
 bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
 {
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
     numZ3SatChecks++;
     if (cond->isTrue())
     {
-        timeSATCheck += (stat->getClk() - tStart) / TIMEINTERVAL;
+        timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return true;
     }
     if (cond->isFalse())
     {
-        timeSATCheck += (stat->getClk() - tStart) / TIMEINTERVAL;
+        timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return false;
     }
 
@@ -469,7 +469,7 @@ bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
     {
         FastGuard fg = FastGuard::fromPathCond(cond);
         bool sat = fg.isSat();
-        timeSATCheck += (stat->getClk() - tStart) / TIMEINTERVAL;
+        timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return sat;
     }
 
@@ -479,7 +479,7 @@ bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
     s.add(z3cond.getExpr());
     z3::check_result r = s.check();
     s.pop();
-    timeSATCheck += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return r != z3::unsat;
 }
 
@@ -515,7 +515,7 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 {
     if (nodeId == newRepId)
         return false;
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     // 1. Save edge guards involving nodeId
     std::unordered_map<EdgeGuardKey, const PathCond*, EdgeGuardKeyHash> guardsToMove;
@@ -562,7 +562,7 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
             it->second = PathCond::getOr(it->second, pair.second);
     }
 
-    timeCondSCCMerge += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondSCCMerge += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return pwc;
 }
 
@@ -619,12 +619,12 @@ NodeStack& ConditionalAndersen::SCCDetect()
 {
     numOfSCCDetection++;
 
-    double sccStart = stat->getClk();
+    double sccStart = stat->getClk(true);
     WPAConstraintSolver::SCCDetect();
-    double sccEnd = stat->getClk();
+    double sccEnd = stat->getClk(true);
     timeOfSCCDetection += (sccEnd - sccStart) / TIMEINTERVAL;
 
-    double mergeStart = stat->getClk();
+    double mergeStart = stat->getClk(true);
 
     NodeStack topoOrder = getSCCDetector()->topoNodeStack();
     while (!topoOrder.empty())
@@ -657,7 +657,7 @@ NodeStack& ConditionalAndersen::SCCDetect()
         }
     }
 
-    double mergeEnd = stat->getClk();
+    double mergeEnd = stat->getClk(true);
     timeOfSCCMerges += (mergeEnd - mergeStart) / TIMEINTERVAL;
 
     return getSCCDetector()->topoNodeStack();
@@ -755,7 +755,7 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
 {
     if (kLimit == 0) return Andersen::processCopy(node, edge);
     bool parentChanged = Andersen::processCopy(node, edge);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     NodeID dst = edge->getDstID();
     const PathCond* guard = getEdgeGuard(node, dst);
@@ -790,7 +790,7 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
     if (condChanged)
         pushIntoWorklist(dst);
 
-    timeCondProp += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
 }
 
@@ -802,7 +802,7 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
 {
     if (kLimit == 0) return Andersen::processLoad(node, load);
     bool parentChanged = Andersen::processLoad(node, load);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     NodeID pointer = load->getSrcID();
     NodeID dst = load->getDstID();
@@ -837,7 +837,7 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
     else
         itg->second = PathCond::getOr(itg->second, guard);
 
-    timeCondProp += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged;
 }
 
@@ -849,7 +849,7 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
 {
     if (kLimit == 0) return Andersen::processStore(node, store);
     bool parentChanged = Andersen::processStore(node, store);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     NodeID src = store->getSrcID();
     NodeID pointer = store->getDstID();
@@ -884,7 +884,7 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
     else
         itg->second = PathCond::getOr(itg->second, guard);
 
-    timeCondProp += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged;
 }
 
@@ -895,7 +895,7 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
 {
     if (kLimit == 0) return Andersen::processGep(edge->getSrcID(), edge);
     bool parentChanged = Andersen::processGep(edge->getSrcID(), edge);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     NodeID src = edge->getSrcID();
     NodeID dst = edge->getDstID();
@@ -956,7 +956,7 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
     }
 
     if (condChanged) pushIntoWorklist(dst);
-    timeCondProp += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
 }
 
@@ -967,7 +967,7 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
 AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
 {
     if (kLimit == 0) return Andersen::alias(v1, v2);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
     numAliasTotal++;
     if (v1 == v2) return MustAlias;
 
@@ -985,12 +985,12 @@ AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
         if (z3IsSat(conj))
         {
             numAliasRefined++;
-            timeCondAlias += (stat->getClk() - tStart) / TIMEINTERVAL;
+            timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
             return AliasResult::MayAlias;
         }
     }
 
-    timeCondAlias += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return AliasResult::NoAlias;
 }
 

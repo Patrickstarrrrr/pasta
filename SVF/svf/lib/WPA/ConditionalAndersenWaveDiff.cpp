@@ -356,11 +356,11 @@ u32_t ConditionalAndersenWaveDiff::countClauses(const PathCond* cond) const
  */
 const PathCond* ConditionalAndersenWaveDiff::applyLimits(const PathCond* cond) const
 {
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
     // kLimit == 0 means truncate all guards to True (unconditional mode).
     if (kLimit == 0)
     {
-        timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+        timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return PathCond::getTrue();
     }
 
@@ -369,15 +369,15 @@ const PathCond* ConditionalAndersenWaveDiff::applyLimits(const PathCond* cond) c
     {
         if (kLimit == -1)
         {
-            timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+            timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
             return cond;
         }
         if (cond->depth() <= static_cast<u32_t>(kLimit))
         {
-            timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+            timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
             return cond;
         }
-        timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+        timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return PathCond::getTrue();
     }
 
@@ -422,7 +422,7 @@ const PathCond* ConditionalAndersenWaveDiff::applyLimits(const PathCond* cond) c
         }
     }
 
-    timeGuardLimit += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return result;
 }
 
@@ -507,7 +507,7 @@ bool ConditionalAndersenWaveDiff::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 {
     if (nodeId == newRepId)
         return false;
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     // 1. Save edge guards involving nodeId
     std::unordered_map<EdgeGuardKey, const PathCond*, EdgeGuardKeyHash> guardsToMove;
@@ -554,7 +554,7 @@ bool ConditionalAndersenWaveDiff::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
             it->second = PathCond::getOr(it->second, pair.second);
     }
 
-    timeCondSCCMerge += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondSCCMerge += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return pwc;
 }
 
@@ -745,12 +745,12 @@ NodeStack& ConditionalAndersenWaveDiff::SCCDetect()
 {
     numOfSCCDetection++;
 
-    double sccStart = stat->getClk();
+    double sccStart = stat->getClk(true);
     WPAConstraintSolver::SCCDetect();
-    double sccEnd = stat->getClk();
+    double sccEnd = stat->getClk(true);
     timeOfSCCDetection += (sccEnd - sccStart) / TIMEINTERVAL;
 
-    double mergeStart = stat->getClk();
+    double mergeStart = stat->getClk(true);
 
     NodeStack topoOrder = getSCCDetector()->topoNodeStack();
     while (!topoOrder.empty())
@@ -783,7 +783,7 @@ NodeStack& ConditionalAndersenWaveDiff::SCCDetect()
         }
     }
 
-    double mergeEnd = stat->getClk();
+    double mergeEnd = stat->getClk(true);
     timeOfSCCMerges += (mergeEnd - mergeStart) / TIMEINTERVAL;
 
     return getSCCDetector()->topoNodeStack();
@@ -881,7 +881,7 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
 {
     if (kLimit == 0) return Andersen::processCopy(node, edge);
     bool parentChanged = Andersen::processCopy(node, edge);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     NodeID dst = edge->getDstID();
     const PathCond* guard = getEdgeGuard(node, dst);
@@ -917,7 +917,7 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
     if (condChanged)
         pushIntoWorklist(dst);
 
-    timeCondProp += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
 }
 
@@ -929,7 +929,7 @@ bool ConditionalAndersenWaveDiff::processLoad(NodeID node, const ConstraintEdge*
 {
     if (kLimit == 0) return Andersen::processLoad(node, load);
     bool parentChanged = Andersen::processLoad(node, load);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     NodeID pointer = load->getSrcID();
     NodeID dst = load->getDstID();
@@ -964,7 +964,7 @@ bool ConditionalAndersenWaveDiff::processLoad(NodeID node, const ConstraintEdge*
     else
         itg->second = PathCond::getOr(itg->second, guard);
 
-    timeCondProp += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged;
 }
 
@@ -976,7 +976,7 @@ bool ConditionalAndersenWaveDiff::processStore(NodeID node, const ConstraintEdge
 {
     if (kLimit == 0) return Andersen::processStore(node, store);
     bool parentChanged = Andersen::processStore(node, store);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     NodeID src = store->getSrcID();
     NodeID pointer = store->getDstID();
@@ -1011,7 +1011,7 @@ bool ConditionalAndersenWaveDiff::processStore(NodeID node, const ConstraintEdge
     else
         itg->second = PathCond::getOr(itg->second, guard);
 
-    timeCondProp += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged;
 }
 
@@ -1022,7 +1022,7 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
 {
     if (kLimit == 0) return Andersen::processGep(edge->getSrcID(), edge);
     bool parentChanged = Andersen::processGep(edge->getSrcID(), edge);
-    double tStart = stat->getClk();
+    double tStart = stat->getClk(true);
 
     NodeID src = edge->getSrcID();
     NodeID dst = edge->getDstID();
@@ -1083,7 +1083,7 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
     }
 
     if (condChanged) pushIntoWorklist(dst);
-    timeCondProp += (stat->getClk() - tStart) / TIMEINTERVAL;
+    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
 }
 
