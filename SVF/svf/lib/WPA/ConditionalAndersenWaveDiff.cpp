@@ -509,21 +509,8 @@ bool ConditionalAndersenWaveDiff::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
         return false;
     double tStart = stat->getClk(true);
 
-    // 1. Save edge guards involving nodeId
-    std::unordered_map<EdgeGuardKey, const PathCond*, EdgeGuardKeyHash> guardsToMove;
-    for (auto it = edgeGuards.begin(); it != edgeGuards.end(); )
-    {
-        if (it->first.src == nodeId || it->first.dst == nodeId)
-        {
-            guardsToMove[it->first] = it->second;
-            it = edgeGuards.erase(it);
-        }
-        else
-            ++it;
-    }
-
-    // 2. Merge condPtsMap: move all conditional pts from sub to rep.
-    //    In merge-cond-SCC mode, over-approximate guards to True.
+    // Merge condPtsMap: move all conditional pts from sub to rep.
+    // In merge-cond-SCC mode, over-approximate guards to True.
     auto itPts = condPtsMap.find(nodeId);
     if (itPts != condPtsMap.end())
     {
@@ -535,24 +522,10 @@ bool ConditionalAndersenWaveDiff::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
         condPtsMap.erase(itPts);
     }
 
-    // 3. Delegate to parent for actual edge moving / pts merging / node removal
+    // Delegate to parent for actual edge moving / pts merging / node removal.
+    // Edge-guard relocation is done in bulk after all merges in SCCDetect
+    // to avoid O(N) linear scans inside every merge call.
     bool pwc = Andersen::mergeSrcToTgt(nodeId, newRepId);
-
-    // 4. Restore edge guards with updated keys (nodeId -> newRepId)
-    for (const auto& pair : guardsToMove)
-    {
-        NodeID src = pair.first.src;
-        NodeID dst = pair.first.dst;
-        CondEdgeKind kind = pair.first.kind;
-        if (src == nodeId) src = newRepId;
-        if (dst == nodeId) dst = newRepId;
-        EdgeGuardKey newKey = EdgeGuardKey{src, dst, kind};
-        auto it = edgeGuards.find(newKey);
-        if (it == edgeGuards.end())
-            edgeGuards[newKey] = pair.second;
-        else
-            it->second = PathCond::getOr(it->second, pair.second);
-    }
 
     timeCondSCCMerge += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return pwc;
@@ -577,8 +550,8 @@ void ConditionalAndersenWaveDiff::processNode(NodeID nodeId)
     }
     AndersenWaveDiff::processNode(nodeId);
 
-    // k=0 (unconditional mode): sub-nodes have already been merged, skip.
-    if (kLimit == 0)
+    // When SCCs are merged, sub-node edges have been moved to the rep.
+    if (mergeCondSCC)
         return;
 
     // For preserved SCCs, also process sub-nodes because their outgoing
@@ -624,8 +597,8 @@ void ConditionalAndersenWaveDiff::postProcessNode(NodeID nodeId)
     }
     AndersenWaveDiff::postProcessNode(nodeId);
 
-    // k=0 (unconditional mode): let the base WaveDiff handle everything.
-    if (kLimit == 0)
+    // When SCCs are merged, the base WaveDiff handles everything correctly.
+    if (mergeCondSCC)
         return;
 
     // For preserved SCCs, copy/gep edges may need additional propagation
@@ -695,8 +668,10 @@ void ConditionalAndersenWaveDiff::handleCopyGep(ConstraintNode* node)
     }
     computeDiffPts(nodeId);
     bool hasBaseDiff = !getDiffPts(nodeId).empty();
-    bool hasCondPts = condPtsMap.find(nodeId) != condPtsMap.end();
-    if (hasBaseDiff || hasCondPts)
+    // Only process copy/gep when there is actual diff in the bitvector.
+    // condPtsMap changes alone should not trigger copy/gep propagation,
+    // because they do not affect the underlying bitvector.
+    if (hasBaseDiff)
     {
         for (ConstraintEdge* edge : node->getCopyOutEdges())
             processCopy(nodeId, edge);
@@ -769,6 +744,7 @@ NodeStack& ConditionalAndersenWaveDiff::SCCDetect()
     double mergeStart = stat->getClk(true);
 
     NodeStack topoOrder = getSCCDetector()->topoNodeStack();
+    std::unordered_map<NodeID, NodeID> mergedNodes;
     while (!topoOrder.empty())
     {
         NodeID repNodeId = topoOrder.top();
@@ -795,8 +771,36 @@ NodeStack& ConditionalAndersenWaveDiff::SCCDetect()
         {
             NodeID subNodeId = *nodeIt;
             if (subNodeId != repNodeId)
+            {
                 mergeNodeToRep(subNodeId, repNodeId);
+                mergedNodes[subNodeId] = repNodeId;
+            }
         }
+    }
+
+    // Batch-update edgeGuards in a single pass to avoid O(N*M) linear scans.
+    for (auto it = edgeGuards.begin(); it != edgeGuards.end(); )
+    {
+        const EdgeGuardKey& key = it->first;
+        auto srcIt = mergedNodes.find(key.src);
+        auto dstIt = mergedNodes.find(key.dst);
+        if (srcIt == mergedNodes.end() && dstIt == mergedNodes.end())
+        {
+            ++it;
+            continue;
+        }
+
+        const PathCond* guard = it->second;
+        NodeID newSrc = (srcIt != mergedNodes.end()) ? srcIt->second : key.src;
+        NodeID newDst = (dstIt != mergedNodes.end()) ? dstIt->second : key.dst;
+        EdgeGuardKey newKey{newSrc, newDst, key.kind};
+
+        it = edgeGuards.erase(it);
+        auto it2 = edgeGuards.find(newKey);
+        if (it2 == edgeGuards.end())
+            edgeGuards[newKey] = guard;
+        else
+            it2->second = PathCond::getOr(it2->second, guard);
     }
 
     double mergeEnd = stat->getClk(true);
@@ -930,8 +934,10 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
         }
     }
 
-    if (condChanged)
-        pushIntoWorklist(dst);
+    // Do NOT push worklist on condChanged alone: condPtsMap does not affect
+    // the underlying bitvector (ptD).  Worklist should only advance when the
+    // bitvector changes (parentChanged), otherwise we introduce spurious
+    // propagation that can alter the final fixpoint.
 
     timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
@@ -1098,7 +1104,7 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
         }
     }
 
-    if (condChanged) pushIntoWorklist(dst);
+    // Do NOT push worklist on condChanged alone (see processCopy).
     timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
 }

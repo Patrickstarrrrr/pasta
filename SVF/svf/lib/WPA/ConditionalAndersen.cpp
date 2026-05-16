@@ -517,21 +517,8 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
         return false;
     double tStart = stat->getClk(true);
 
-    // 1. Save edge guards involving nodeId
-    std::unordered_map<EdgeGuardKey, const PathCond*, EdgeGuardKeyHash> guardsToMove;
-    for (auto it = edgeGuards.begin(); it != edgeGuards.end(); )
-    {
-        if (it->first.src == nodeId || it->first.dst == nodeId)
-        {
-            guardsToMove[it->first] = it->second;
-            it = edgeGuards.erase(it);
-        }
-        else
-            ++it;
-    }
-
-    // 2. Merge condPtsMap: move all conditional pts from sub to rep.
-    //    In merge-cond-SCC mode, over-approximate guards to True.
+    // Merge condPtsMap: move all conditional pts from sub to rep.
+    // In merge-cond-SCC mode, over-approximate guards to True.
     auto itPts = condPtsMap.find(nodeId);
     if (itPts != condPtsMap.end())
     {
@@ -543,24 +530,10 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
         condPtsMap.erase(itPts);
     }
 
-    // 3. Delegate to parent for actual edge moving / pts merging / node removal
+    // Delegate to parent for actual edge moving / pts merging / node removal.
+    // Edge-guard relocation is done in bulk after all merges in SCCDetect
+    // to avoid O(N) linear scans inside every merge call.
     bool pwc = Andersen::mergeSrcToTgt(nodeId, newRepId);
-
-    // 4. Restore edge guards with updated keys (nodeId -> newRepId)
-    for (const auto& pair : guardsToMove)
-    {
-        NodeID src = pair.first.src;
-        NodeID dst = pair.first.dst;
-        CondEdgeKind kind = pair.first.kind;
-        if (src == nodeId) src = newRepId;
-        if (dst == nodeId) dst = newRepId;
-        EdgeGuardKey newKey = EdgeGuardKey{src, dst, kind};
-        auto it = edgeGuards.find(newKey);
-        if (it == edgeGuards.end())
-            edgeGuards[newKey] = pair.second;
-        else
-            it->second = PathCond::getOr(it->second, pair.second);
-    }
 
     timeCondSCCMerge += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return pwc;
@@ -627,6 +600,7 @@ NodeStack& ConditionalAndersen::SCCDetect()
     double mergeStart = stat->getClk(true);
 
     NodeStack topoOrder = getSCCDetector()->topoNodeStack();
+    std::unordered_map<NodeID, NodeID> mergedNodes;
     while (!topoOrder.empty())
     {
         NodeID repNodeId = topoOrder.top();
@@ -653,8 +627,36 @@ NodeStack& ConditionalAndersen::SCCDetect()
         {
             NodeID subNodeId = *nodeIt;
             if (subNodeId != repNodeId)
+            {
                 mergeNodeToRep(subNodeId, repNodeId);
+                mergedNodes[subNodeId] = repNodeId;
+            }
         }
+    }
+
+    // Batch-update edgeGuards in a single pass to avoid O(N*M) linear scans.
+    for (auto it = edgeGuards.begin(); it != edgeGuards.end(); )
+    {
+        const EdgeGuardKey& key = it->first;
+        auto srcIt = mergedNodes.find(key.src);
+        auto dstIt = mergedNodes.find(key.dst);
+        if (srcIt == mergedNodes.end() && dstIt == mergedNodes.end())
+        {
+            ++it;
+            continue;
+        }
+
+        const PathCond* guard = it->second;
+        NodeID newSrc = (srcIt != mergedNodes.end()) ? srcIt->second : key.src;
+        NodeID newDst = (dstIt != mergedNodes.end()) ? dstIt->second : key.dst;
+        EdgeGuardKey newKey{newSrc, newDst, key.kind};
+
+        it = edgeGuards.erase(it);
+        auto it2 = edgeGuards.find(newKey);
+        if (it2 == edgeGuards.end())
+            edgeGuards[newKey] = guard;
+        else
+            it2->second = PathCond::getOr(it2->second, guard);
     }
 
     double mergeEnd = stat->getClk(true);
@@ -955,7 +957,10 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
         }
     }
 
-    if (condChanged) pushIntoWorklist(dst);
+    // Do NOT push worklist on condChanged alone: condPtsMap does not affect
+    // the underlying bitvector (ptD).  Worklist should only advance when the
+    // bitvector changes (parentChanged), otherwise we introduce spurious
+    // propagation that can alter the final fixpoint.
     timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
 }
