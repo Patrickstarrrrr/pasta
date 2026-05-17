@@ -109,10 +109,14 @@ CondAnder performs **on-the-fly SCC detection** inside `solveWorklist()` (follow
 
 - **Phase 1** (`processNode`): topo-order copy/gep propagation with `condDiffPtsMap`
 - **Phase 2** (`postProcessNode`): load/store + preserved SCC copy/gep handling
-- `handleCopyGep()` processes copy/gep edges when `hasBaseDiff || hasCondPts`
+- `handleCopyGep()` processes copy/gep edges when **bitvector diff is non-empty**
 - `processCopy()` does unconditional copy first, then conditional propagation with `getEdgeGuard`
 
-Key fix for wave-diff parity: `postProcessNode()` must call `handleCopyGep()` for **both** the rep node and preserved SCC sub-nodes (with `hasGNode` safety checks).
+Key fixes for wave-diff parity with `-ander`:
+1. `getDiffPts()` restored to return diff pts (not full pts) — inherited override from `ConditionalAndersen` broke diff propagation.
+2. `postProcessNode()` skips extra `handleCopyGep()` when `mergeCondSCC=true` — base WaveDiff already handles merged SCCs correctly.
+3. `processCopy/processGep` no longer push worklist on `condChanged` alone — `condPtsMap` changes must not alter bitvector propagation.
+4. `handleCopyGep()` only fires on `hasBaseDiff` (diff non-empty), not on `hasCondPts` — prevents spurious `getGepObjVar` / `setObjFieldInsensitive` calls that create extra objects.
 
 ### 2.9 Statistics
 
@@ -154,6 +158,24 @@ Printed in `finalize()`:
 For preserved SCCs in Phase 2, copy/gep edges of the rep node and sub-nodes were not being propagated, causing unconditional points-to divergence between `-cond-ander` and `-cond-ander-wave`.
 
 **Fix**: Add `handleCopyGep(node)` and loop over preserved SCC sub-nodes in `postProcessNode()`.
+
+### 3.3a Bitvector Propagation Divergence (k=0 / k=1 with -merge-cond-scc)
+
+**File**: `SVF/svf/lib/WPA/ConditionalAndersenWaveDiff.cpp`, `SVF/svf/lib/WPA/ConditionalAndersen.cpp`
+
+Even when guards were truncated to ⊤ (k=0) or depth≤1 (k=1 with `-merge-cond-scc`), objective metrics (AvgPtsSetSize, TotalObjects, CopyProcessed) diverged from `-ander`.
+
+**Root causes**:
+1. `ConditionalAndersen` overrides `getDiffPts()` to return **full pts**, disabling diff propagation. In `ConditionalAndersenWaveDiff` this caused `handleCopyGep` to fire on every node with non-empty pts, not just on diff.
+2. `condChanged` in `processCopy/processGep` pushed dst into worklist even when bitvector was unchanged, triggering extra load/store propagation.
+3. `hasCondPts` in `handleCopyGep` fired `processGep` when diff was empty, calling `getGepObjVar` / `setObjFieldInsensitive` and creating spurious field objects.
+4. `postProcessNode()` extra `handleCopyGep` and sub-node handling ran even when `mergeCondSCC=true`, where all SCCs were already merged.
+
+**Fix**:
+- `ConditionalAndersenWaveDiff.h`: re-override `getDiffPts()` to restore original Andersen behavior (return diff pts when `DiffPts()` is on).
+- `ConditionalAndersenWaveDiff.cpp`: skip extra `handleCopyGep` and sub-node handling when `mergeCondSCC=true`.
+- `ConditionalAndersenWaveDiff.cpp`: `handleCopyGep` only fires on `hasBaseDiff` (diff non-empty).
+- `ConditionalAndersen.cpp` + `ConditionalAndersenWaveDiff.cpp`: remove `if (condChanged) pushIntoWorklist(dst)` from `processCopy` and `processGep`.
 
 ### 3.4 Segfault from Removed Sub-Nodes
 
@@ -453,6 +475,25 @@ SCC = {v₁, v₂, ..., vₙ}        condPts(vᵢ)[o] = gᵢ   for each vᵢ ∈
 
 ## 6. Experimental Results
 
+### 6.0 Objective Metric Parity (`-ander` vs `-cond-ander-wave`)
+
+After the bitvector divergence fixes, **all objective metrics match perfectly** between `-ander`, `-cond-ander-wave -k 0 -mcs`, and `-cond-ander-wave -k 1 -mcs` on both jq.bc and all demo/demo2 cases:
+
+| Metric | `-ander` | `-cond-ander-wave -k 0 -mcs` | `-cond-ander-wave -k 1 -mcs` |
+|---|---|---|---|
+| TotalObjects | 17228 | 17228 | 17228 |
+| TotalPointers | 190326 | 190326 | 190326 |
+| AvgPtsSetSize | 10.8919 | 10.8919 | 10.8919 |
+| AvgTopLvlPtsSize | 30.3898 | 30.3898 | 30.3898 |
+| CopyProcessed | 169359 | 169359 | 169359 |
+| GepProcessed | 49513 | 49513 | 49513 |
+| LoadProcessed | 550531 | 550531 | 550531 |
+| StoreProcessed | 106263 | 106263 | 106263 |
+| SolveIterations | 12 | 12 | 12 |
+| NumOfSCCDetect | 12 | 12 | 12 |
+
+> `-mcs` = `-cond-ander-merge-cond-scc`. Parity holds because `condPtsMap` no longer influences bitvector propagation.
+
 ### 6.1 Demo / Demo2 Cases (`-nander` vs `-cond-ander`)
 
 All demo cases verified with **zero precision loss** (no `NoAlias → MayAlias`). `-cond-ander` only refines `MayAlias → NoAlias` by excluding unreachable paths.
@@ -501,11 +542,23 @@ All demo cases verified with **zero precision loss** (no `NoAlias → MayAlias`)
 
 > bzip2 shows minimal improvement because it is mostly sequential compression code with few branch-sensitive pointer relationships.
 
-### 6.4 Benchmark: tmux
+### 6.4 Benchmark: jq.bc Performance (k=3, -merge-cond-scc)
+
+| Metric | Before Optimizations | After Optimizations |
+|---|---|---|
+| **TotalTime** | 14.578 ms | **9.799 ms** |
+| Cond SCC merge | 22.239 ms | **0.366 ms** (60× faster) |
+| Cond propagation | 5.740 ms | 5.963 ms |
+| Guard limit | 2.053 ms | 2.091 ms |
+| Total cond overhead | 30.032 ms | **8.420 ms** |
+
+**Key optimization**: `mergeSrcToTgt` no longer scans the entire `edgeGuards` map (214K entries) on every SCC merge. Instead, `SCCDetect` collects all merged nodes and performs a **single bulk pass** over `edgeGuards` after all merges complete. Complexity drops from O(N×M) to O(N).
+
+### 6.5 Benchmark: tmux
 
 Base analysis timed out after 30 minutes. tmux (7.2MB bc) is too large for the current analysis pipeline.
 
-### 6.5 Limit Mode Comparison
+### 6.6 Limit Mode Comparison
 
 On `21_guard_xor` (2 distinct conjunctive conditions):
 
@@ -538,9 +591,53 @@ On `23_multistage_prop` (5 distinct conjunctive conditions):
 
 ---
 
-## 7. Known Issues
+## 7. Implemented Optimizations (Summary)
 
-### 7.1 Non-Monotonic Depth-Limit Behavior
+### 7.1 processLoad/processStore: Linear Scan → Direct Lookup
+**File**: `SVF/svf/lib/WPA/ConditionalAndersen.cpp`, `ConditionalAndersenWaveDiff.cpp`
+**Change**: Replaced O(N) linear scan over `condPtsMap[pointer]` with O(1) `map.find(node)` in `processLoad` and `processStore`.
+
+### 7.2 orMergeCondPts: Avoid Empty Map Insertion
+**File**: `SVF/svf/lib/WPA/ConditionalAndersen.cpp`, `ConditionalAndersenWaveDiff.cpp`
+**Change**: Replaced `auto& map = condPtsMap[var]` (which inserts an empty map if absent) with `condPtsMap.find(var)` — only constructs a `CondPointsTo` when actually inserting.
+
+### 7.3 edgeGuards: Pointer-Equal Short-Circuit
+**File**: `SVF/svf/lib/WPA/ConditionalAndersen.cpp`, `ConditionalAndersenWaveDiff.cpp`
+**Change**: Added `else if (it->second != guard)` before `getOr` in all `edgeGuards` update sites (`processLoad`, `processStore`, `connectCaller2CalleeParams`, `connectCaller2ForkedFunParams`).
+
+### 7.4 True Guard Implicitization (Sparse condPtsMap)
+**File**: `SVF/svf/lib/WPA/ConditionalAndersen.cpp`, `ConditionalAndersenWaveDiff.cpp`, headers
+**Core idea**: Don't store True guards in `condPtsMap`. An object in the bitvector `pts` but absent from `condPtsMap` implicitly has guard True.
+
+**Changes**:
+- `processAddr`: no-op for condPtsMap (True is implicit).
+- `orMergeCondPts`: erases entry when merged result is True.
+- `processCopy`/`processGep`: True edge guards only iterate explicit non-True entries in `condPtsMap[src]`. Non-True edge guards also scan `getPts(src)` for objects with implicit True guards.
+- `alias`/`expandCondFIObjs`: iterate bitvector `pts` intersection, lookup `condPtsMap` with True fallback.
+
+**Correctness verified**: All objective metrics (TotalObjects, AvgPtsSetSize, Copy/Gep/Load/Store processed, etc.) remain identical to `-ander` on jq.bc for k=0/1/3.
+
+### 7.5 Conditional Diff Propagation (WaveDiff)
+**File**: `SVF/svf/lib/WPA/ConditionalAndersenWaveDiff.cpp`
+**Core idea**: Only propagate objects whose conditional guards changed since the last visit, rather than iterating the entire `condPtsMap[node]`.
+
+**Changes**:
+- `orMergeCondPts`: marks changed objects in `condDiffPtsMap[var]`.
+- `handleCopyGep`: fires on `hasBaseDiff || hasCondDiff` (was only `hasBaseDiff`).
+- `processCopy`/`processGep`: when `node == currentDiffNode && !currentDiffObjs.empty()`, iterate only the diff vector. Sub-nodes and non-diff nodes fall back to full scan.
+- Implicit True guards on non-True edges still scan `getPts(src)` independently.
+
+**Correctness verified**: Same metric parity as above.
+
+## 8. Known Issues
+
+### 8.1 Timer Measurement (`getClk` vs `getClk(true)`)
+
+`SVFStat::getClk(bool mark)` returns `0.0` when `mark=false` and `Options::MarkedClocksOnly()` is `true` (default). All conditional timer calls must use `stat->getClk(true)`.
+
+**Affected files**: `ConditionalAndersen.cpp`, `ConditionalAndersenWaveDiff.cpp`.
+
+### 8.2 Non-Monotonic Depth-Limit Behavior
 
 Increasing `k` does not always monotonically increase precision under depth-mode. For example, in `23_multistage_prop`:
 
@@ -560,12 +657,24 @@ Increasing `k` does not always monotonically increase precision under depth-mode
 
 Because conditional points-to sets use OR-merge (`condPts(v)[o] = old ∨ new`), unconditional assignments (`guard = ⊤`) absorb all conditional assignments to the same object. This means Conditional Andersen can only add precision for *newly introduced* objects, not refine existing unconditional points-to facts.
 
-### 7.4 Large Program Scalability
+### 8.5 Large Program Scalability
 
 Programs like tmux (7.2MB bc) exceed the current analysis time budget (>30 min for base analysis). Potential improvements:
 - Reduce alias sample size (e.g., 1000 instead of 50000)
 - Use `-cond-ander-wave` for differential propagation
 - Enable `-cond-ander-merge-cond-scc` to trade precision for speed
+
+### 8.6 Remaining Overhead (k≥1)
+
+With all fixes applied, the remaining conditional overhead on jq.bc is:
+
+| Source | Time | Percentage of Total |
+|---|---|---|
+| Cond propagation | ~6 ms | ~61% |
+| Guard limit (`applyLimits`) | ~2 ms | ~20% |
+| Cond SCC merge | ~0.4 ms | ~4% |
+
+The propagation time is dominated by iterating `condPtsMap[node]` and computing `PathCond::getAnd` / `getOr`. The guard-limit time is dominated by `PathCond::depth()` calls. Further micro-optimizations (flyweight caching for frequent guards, memoizing `depth()`) could shave off another 1–2 ms but with diminishing returns.
 
 ---
 

@@ -170,8 +170,9 @@ protected:
     /// Compute path guard for a basic block (OR of incoming conditional edges)
     const PathCond* getBBGuard(const SVFBasicBlock* bb) const;
 
-    /// Expand field-insensitive objects in a conditional points-to set
-    CondPointsTo expandCondFIObjs(const CondPointsTo& pts) const;
+    /// Expand field-insensitive objects in a conditional points-to set.
+    /// True guards are implicit: iterates the bitvector pts of the node.
+    CondPointsTo expandCondFIObjs(NodeID nodeId) const;
 
     /// Apply guard limits. Supports two modes:
     ///   - depth-based (useDepthLimit=true): if AST depth > kLimit, collapse to True.

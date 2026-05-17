@@ -480,23 +480,55 @@ bool ConditionalAndersenWaveDiff::z3IsSat(const PathCond* cond) const
 bool ConditionalAndersenWaveDiff::orMergeCondPts(NodeID var, NodeID obj, const PathCond* guard)
 {
     (void)var; (void)obj; // silence unused warnings if no debug
-    auto& map = condPtsMap[var];
-    auto it = map.find(obj);
-    if (it != map.end())
+    // True guards are implicit: if the merged result is True, erase the entry.
+    if (guard->isTrue())
     {
-        const PathCond* merged = PathCond::getOr(it->second, guard);
-        /* debug removed */
-        if (merged == it->second)
-            return false; // no change
-        // Apply limits to prevent Or-tree from growing unbounded.
-        // For m/n-limit mode, large guards will be capped here before they
-        // cause exponential blow-up in future operations.
-        if (!useDepthLimit)
-            merged = applyLimits(merged);
-        it->second = merged;
+        auto itOuter = condPtsMap.find(var);
+        if (itOuter != condPtsMap.end())
+        {
+            itOuter->second.erase(obj);
+            if (itOuter->second.empty())
+                condPtsMap.erase(itOuter);
+        }
         return true;
     }
-    map[obj] = guard;
+
+    auto itOuter = condPtsMap.find(var);
+    if (itOuter != condPtsMap.end())
+    {
+        auto& map = itOuter->second;
+        auto it = map.find(obj);
+        if (it != map.end())
+        {
+            const PathCond* merged = PathCond::getOr(it->second, guard);
+            /* debug removed */
+            if (merged == it->second)
+                return false; // no change
+            // If the merged result collapses to True, erase the entry.
+            if (merged->isTrue())
+            {
+                map.erase(it);
+                if (map.empty())
+                    condPtsMap.erase(itOuter);
+                return true;
+            }
+            // Apply limits to prevent Or-tree from growing unbounded.
+            // For m/n-limit mode, large guards will be capped here before they
+            // cause exponential blow-up in future operations.
+            if (!useDepthLimit)
+                merged = applyLimits(merged);
+            it->second = merged;
+            condDiffPtsMap[var].insert(obj);
+            return true;
+        }
+        map[obj] = guard;
+        condDiffPtsMap[var].insert(obj);
+        return true;
+    }
+    CondPointsTo newMap;
+    newMap[obj] = guard;
+    condPtsMap[var] = std::move(newMap);
+    condDiffPtsMap[var].insert(obj);
     return true;
 }
 
@@ -668,10 +700,10 @@ void ConditionalAndersenWaveDiff::handleCopyGep(ConstraintNode* node)
     }
     computeDiffPts(nodeId);
     bool hasBaseDiff = !getDiffPts(nodeId).empty();
-    // Only process copy/gep when there is actual diff in the bitvector.
-    // condPtsMap changes alone should not trigger copy/gep propagation,
-    // because they do not affect the underlying bitvector.
-    if (hasBaseDiff)
+    bool hasCondDiff = (nodeId == currentDiffNode) && !currentDiffObjs.empty();
+    // Process copy/gep when there is either bitvector diff or conditional diff.
+    // condDiff tracks objects whose guards changed since the last visit.
+    if (hasBaseDiff || hasCondDiff)
     {
         for (ConstraintEdge* edge : node->getCopyOutEdges())
             processCopy(nodeId, edge);
@@ -849,7 +881,7 @@ void ConditionalAndersenWaveDiff::connectCaller2CalleeParams(const CallICFGNode*
         auto it = edgeGuards.find(key);
         if (it == edgeGuards.end())
             edgeGuards[key] = csGuard;
-        else
+        else if (it->second != csGuard)
             it->second = PathCond::getOr(it->second, csGuard);
     }
 
@@ -873,7 +905,7 @@ void ConditionalAndersenWaveDiff::connectCaller2ForkedFunParams(const CallICFGNo
         auto it = edgeGuards.find(key);
         if (it == edgeGuards.end())
             edgeGuards[key] = csGuard;
-        else
+        else if (it->second != csGuard)
             it->second = PathCond::getOr(it->second, csGuard);
     }
 
@@ -886,12 +918,8 @@ void ConditionalAndersenWaveDiff::connectCaller2ForkedFunParams(const CallICFGNo
 void ConditionalAndersenWaveDiff::processAddr(const AddrCGEdge* addr)
 {
     Andersen::processAddr(addr);
-
-    NodeID dst = addr->getDstID();
-    NodeID src = addr->getSrcID();
-
-    if (orMergeCondPts(dst, src, PathCond::getTrue()))
-        pushIntoWorklist(dst);
+    // True guards are implicit in the bitvector points-to set.
+    // No need to store them in condPtsMap.
 }
 
 /*!
@@ -909,28 +937,64 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
 
     bool condChanged = false;
     auto it = condPtsMap.find(node);
-    if (it != condPtsMap.end())
-    {
-        for (const auto& pair : it->second)
-        {
-            NodeID obj = pair.first;
-            const PathCond* cond = pair.second;
 
-            // If conj-capped, ignore further And operations
+    // Diff-based propagation: only iterate objects whose guards changed.
+    // This applies only when this node is the current diff node and has diffs.
+    if (node == currentDiffNode && !currentDiffObjs.empty() && it != condPtsMap.end())
+    {
+        for (NodeID obj : currentDiffObjs)
+        {
+            auto jt = it->second.find(obj);
+            if (jt == it->second.end()) continue;
+
+            const PathCond* cond = jt->second;
             const PathCond* newCond;
             if (!useDepthLimit && isConjCapped(cond))
-            {
                 newCond = cond;
-            }
             else
-            {
                 newCond = applyLimits(PathCond::getAnd(cond, guard));
-            }
 
             if (eagerSat && !z3IsSat(newCond)) continue;
 
             if (orMergeCondPts(dst, obj, newCond))
                 condChanged = true;
+        }
+    }
+    else if (it != condPtsMap.end())
+    {
+        // Fallback: full scan for non-diff nodes or when no diffs exist.
+        for (const auto& pair : it->second)
+        {
+            NodeID obj = pair.first;
+            const PathCond* cond = pair.second;
+
+            const PathCond* newCond;
+            if (!useDepthLimit && isConjCapped(cond))
+                newCond = cond;
+            else
+                newCond = applyLimits(PathCond::getAnd(cond, guard));
+
+            if (eagerSat && !z3IsSat(newCond)) continue;
+
+            if (orMergeCondPts(dst, obj, newCond))
+                condChanged = true;
+        }
+    }
+
+    // For non-True edge guards, also propagate objects whose source guard is
+    // implicitly True (present in bitvector pts but absent from condPtsMap).
+    if (!guard->isTrue())
+    {
+        const PathCond* limitedGuard = applyLimits(guard);
+        if (!limitedGuard->isFalse() && !(eagerSat && !z3IsSat(limitedGuard)))
+        {
+            const PointsTo& pts = getPts(node);
+            for (NodeID obj : pts)
+            {
+                if (it != condPtsMap.end() && it->second.count(obj)) continue;
+                if (orMergeCondPts(dst, obj, limitedGuard))
+                    condChanged = true;
+            }
         }
     }
 
@@ -960,18 +1024,9 @@ bool ConditionalAndersenWaveDiff::processLoad(NodeID node, const ConstraintEdge*
     auto it = condPtsMap.find(pointer);
     if (it != condPtsMap.end())
     {
-        const PathCond* acc = PathCond::getFalse();
-        bool found = false;
-        for (const auto& pair : it->second)
-        {
-            if (pair.first == node)
-            {
-                acc = PathCond::getOr(acc, pair.second);
-                found = true;
-            }
-        }
-        if (found)
-            ptsG = acc;
+        auto jt = it->second.find(node);
+        if (jt != it->second.end())
+            ptsG = jt->second;
     }
 
     const PathCond* loadG = getLoadEdgeGuard(pointer, dst);
@@ -983,7 +1038,7 @@ bool ConditionalAndersenWaveDiff::processLoad(NodeID node, const ConstraintEdge*
     auto itg = edgeGuards.find(EdgeGuardKey{node, dst, CondEdgeKind::CopyDerived});
     if (itg == edgeGuards.end())
         edgeGuards[EdgeGuardKey{node, dst, CondEdgeKind::CopyDerived}] = guard;
-    else
+    else if (itg->second != guard)
         itg->second = PathCond::getOr(itg->second, guard);
 
     timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
@@ -1007,18 +1062,9 @@ bool ConditionalAndersenWaveDiff::processStore(NodeID node, const ConstraintEdge
     auto it = condPtsMap.find(pointer);
     if (it != condPtsMap.end())
     {
-        const PathCond* acc = PathCond::getFalse();
-        bool found = false;
-        for (const auto& pair : it->second)
-        {
-            if (pair.first == node)
-            {
-                acc = PathCond::getOr(acc, pair.second);
-                found = true;
-            }
-        }
-        if (found)
-            ptsG = acc;
+        auto jt = it->second.find(node);
+        if (jt != it->second.end())
+            ptsG = jt->second;
     }
 
     const PathCond* storeG = getStoreEdgeGuard(src, pointer);
@@ -1030,7 +1076,7 @@ bool ConditionalAndersenWaveDiff::processStore(NodeID node, const ConstraintEdge
     auto itg = edgeGuards.find(EdgeGuardKey{src, node, CondEdgeKind::CopyDerived});
     if (itg == edgeGuards.end())
         edgeGuards[EdgeGuardKey{src, node, CondEdgeKind::CopyDerived}] = guard;
-    else
+    else if (itg->second != guard)
         itg->second = PathCond::getOr(itg->second, guard);
 
     timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
@@ -1057,9 +1103,52 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
         SVFUtil::dyn_cast<NormalGepCGEdge>(edge);
     assert((isVariant || normalGep) && "unknown gep edge kind");
 
-    auto it = condPtsMap.find(src);
-    if (it != condPtsMap.end())
+    auto translateField = [&](NodeID o) -> NodeID
     {
+        if (isVariant)
+        {
+            if (consCG->isBlkObjOrConstantObj(o))
+                return o;
+            if (!isFieldInsensitive(o))
+            {
+                setObjFieldInsensitive(o);
+                consCG->addNodeToBeCollapsed(consCG->getBaseObjVarID(o));
+            }
+            return consCG->getFIObjVar(o);
+        }
+        else
+        {
+            if (consCG->isBlkObjOrConstantObj(o) || isFieldInsensitive(o))
+                return o;
+            return consCG->getGepObjVar(
+                o, normalGep->getAccessPath().getConstantStructFldIdx());
+        }
+    };
+
+    auto it = condPtsMap.find(src);
+
+    // Diff-based propagation: only iterate objects whose guards changed.
+    if (src == currentDiffNode && !currentDiffObjs.empty() && it != condPtsMap.end())
+    {
+        for (NodeID o : currentDiffObjs)
+        {
+            auto jt = it->second.find(o);
+            if (jt == it->second.end()) continue;
+
+            const PathCond* og = jt->second;
+            if (og->isFalse()) continue;
+
+            const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
+            if (eagerSat && !z3IsSat(g)) continue;
+
+            NodeID newField = translateField(o);
+            if (orMergeCondPts(dst, newField, g))
+                condChanged = true;
+        }
+    }
+    else if (it != condPtsMap.end())
+    {
+        // Fallback: full scan for non-diff nodes.
         for (const auto& pair : it->second)
         {
             NodeID o = pair.first;
@@ -1069,38 +1158,27 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
             const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
             if (eagerSat && !z3IsSat(g)) continue;
 
-            NodeID newField;
-            if (isVariant)
-            {
-                if (consCG->isBlkObjOrConstantObj(o))
-                {
-                    newField = o;
-                }
-                else
-                {
-                    if (!isFieldInsensitive(o))
-                    {
-                        setObjFieldInsensitive(o);
-                        consCG->addNodeToBeCollapsed(consCG->getBaseObjVarID(o));
-                    }
-                    newField = consCG->getFIObjVar(o);
-                }
-            }
-            else
-            {
-                if (consCG->isBlkObjOrConstantObj(o) || isFieldInsensitive(o))
-                {
-                    newField = o;
-                }
-                else
-                {
-                    newField = consCG->getGepObjVar(
-                        o, normalGep->getAccessPath().getConstantStructFldIdx());
-                }
-            }
-
+            NodeID newField = translateField(o);
             if (orMergeCondPts(dst, newField, g))
                 condChanged = true;
+        }
+    }
+
+    // For non-True edge guards, also propagate objects whose source guard is
+    // implicitly True (present in bitvector pts but absent from condPtsMap).
+    if (!edgeIsTrue)
+    {
+        const PathCond* limitedEdgeG = applyLimits(edgeG);
+        if (!limitedEdgeG->isFalse() && !(eagerSat && !z3IsSat(limitedEdgeG)))
+        {
+            const PointsTo& pts = getPts(src);
+            for (NodeID o : pts)
+            {
+                if (it != condPtsMap.end() && it->second.count(o)) continue;
+                NodeID newField = translateField(o);
+                if (orMergeCondPts(dst, newField, limitedEdgeG))
+                    condChanged = true;
+            }
         }
     }
 
@@ -1125,12 +1203,15 @@ AliasResult ConditionalAndersenWaveDiff::alias(NodeID v1, NodeID v2)
         return AliasResult::NoAlias;
 
     // 2. Unconditional pts intersect; check conditional guards.
-    CondPointsTo pts1 = expandCondFIObjs(getCondPts(v1));
-    CondPointsTo pts2 = expandCondFIObjs(getCondPts(v2));
+    // True guards are implicit: objects in the bitvector pts but absent from
+    // condPtsMap are treated as having guard True.
+    CondPointsTo pts1 = expandCondFIObjs(v1);
+    CondPointsTo pts2 = expandCondFIObjs(v2);
 
     /* debug removed */
 
-    // If conditional map is incomplete, fall back conservatively.
+    // If either side has no conditional entries, all common objects have
+    // at least one True guard, so the conjunction is satisfiable.
     if (pts1.empty() || pts2.empty())
         return AliasResult::MayAlias;
 
@@ -1157,15 +1238,23 @@ AliasResult ConditionalAndersenWaveDiff::alias(const SVFVar* v1, const SVFVar* v
 
 /*!
  * Expand field-insensitive objects in a conditional points-to set.
- * If an object is a base object or field-insensitive, include all its fields.
+ * True guards are implicit: objects in the bitvector pts but absent from
+ * condPtsMap are treated as having guard True.
  */
-ConditionalAndersenWaveDiff::CondPointsTo ConditionalAndersenWaveDiff::expandCondFIObjs(const CondPointsTo& pts) const
+ConditionalAndersenWaveDiff::CondPointsTo ConditionalAndersenWaveDiff::expandCondFIObjs(NodeID nodeId) const
 {
     CondPointsTo expanded;
-    for (const auto& pair : pts)
+    NodeID rep = consCG->sccRepNode(nodeId);
+    const PointsTo& pts = getPts(rep);
+    const CondPointsTo& condPts = getCondPts(nodeId);
+
+    for (NodeID obj : pts)
     {
-        NodeID obj = pair.first;
-        const PathCond* guard = pair.second;
+        const PathCond* guard = PathCond::getTrue();
+        auto it = condPts.find(obj);
+        if (it != condPts.end())
+            guard = it->second;
+
         expanded[obj] = guard;
 
         // Skip objects that have been removed from PAG (e.g., by normalizePointsTo)
@@ -1178,11 +1267,11 @@ ConditionalAndersenWaveDiff::CondPointsTo ConditionalAndersenWaveDiff::expandCon
             const NodeBS& fields = pag->getAllFieldsObjVars(obj);
             for (const NodeID f : fields)
             {
-                auto it = expanded.find(f);
-                if (it == expanded.end())
+                auto jt = expanded.find(f);
+                if (jt == expanded.end())
                     expanded[f] = guard;
                 else
-                    it->second = PathCond::getOr(it->second, guard);
+                    jt->second = PathCond::getOr(jt->second, guard);
             }
         }
     }

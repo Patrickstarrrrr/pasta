@@ -489,22 +489,51 @@ bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
  */
 bool ConditionalAndersen::orMergeCondPts(NodeID var, NodeID obj, const PathCond* guard)
 {
-    auto& map = condPtsMap[var];
-    auto it = map.find(obj);
-    if (it != map.end())
+    // True guards are implicit: if the merged result is True, erase the entry.
+    if (guard->isTrue())
     {
-        const PathCond* merged = PathCond::getOr(it->second, guard);
-        if (merged == it->second)
-            return false; // no change
-        // Apply limits to prevent Or-tree from growing unbounded.
-        // For m/n-limit mode, large guards will be capped here before they
-        // cause exponential blow-up in future operations.
-        if (!useDepthLimit)
-            merged = applyLimits(merged);
-        it->second = merged;
+        auto itOuter = condPtsMap.find(var);
+        if (itOuter != condPtsMap.end())
+        {
+            itOuter->second.erase(obj);
+            if (itOuter->second.empty())
+                condPtsMap.erase(itOuter);
+        }
         return true;
     }
-    map[obj] = guard;
+
+    auto itOuter = condPtsMap.find(var);
+    if (itOuter != condPtsMap.end())
+    {
+        auto& map = itOuter->second;
+        auto it = map.find(obj);
+        if (it != map.end())
+        {
+            const PathCond* merged = PathCond::getOr(it->second, guard);
+            if (merged == it->second)
+                return false; // no change
+            // If the merged result collapses to True, erase the entry.
+            if (merged->isTrue())
+            {
+                map.erase(it);
+                if (map.empty())
+                    condPtsMap.erase(itOuter);
+                return true;
+            }
+            // Apply limits to prevent Or-tree from growing unbounded.
+            // For m/n-limit mode, large guards will be capped here before they
+            // cause exponential blow-up in future operations.
+            if (!useDepthLimit)
+                merged = applyLimits(merged);
+            it->second = merged;
+            return true;
+        }
+        map[obj] = guard;
+        return true;
+    }
+    CondPointsTo newMap;
+    newMap[obj] = guard;
+    condPtsMap[var] = std::move(newMap);
     return true;
 }
 
@@ -705,7 +734,7 @@ void ConditionalAndersen::connectCaller2CalleeParams(const CallICFGNode* cs,
         auto it = edgeGuards.find(key);
         if (it == edgeGuards.end())
             edgeGuards[key] = csGuard;
-        else
+        else if (it->second != csGuard)
             it->second = PathCond::getOr(it->second, csGuard);
     }
 
@@ -729,7 +758,7 @@ void ConditionalAndersen::connectCaller2ForkedFunParams(const CallICFGNode* cs,
         auto it = edgeGuards.find(key);
         if (it == edgeGuards.end())
             edgeGuards[key] = csGuard;
-        else
+        else if (it->second != csGuard)
             it->second = PathCond::getOr(it->second, csGuard);
     }
 
@@ -742,12 +771,8 @@ void ConditionalAndersen::connectCaller2ForkedFunParams(const CallICFGNode* cs,
 void ConditionalAndersen::processAddr(const AddrCGEdge* addr)
 {
     Andersen::processAddr(addr);
-
-    NodeID dst = addr->getDstID();
-    NodeID src = addr->getSrcID();
-
-    if (orMergeCondPts(dst, src, PathCond::getTrue()))
-        pushIntoWorklist(dst);
+    // True guards are implicit in the bitvector points-to set.
+    // No need to store them in condPtsMap.
 }
 
 /*!
@@ -789,8 +814,22 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
         }
     }
 
-    if (condChanged)
-        pushIntoWorklist(dst);
+    // For non-True edge guards, also propagate objects whose source guard is
+    // implicitly True (present in bitvector pts but absent from condPtsMap).
+    if (!guard->isTrue())
+    {
+        const PathCond* limitedGuard = applyLimits(guard);
+        if (!limitedGuard->isFalse() && !(eagerSat && !z3IsSat(limitedGuard)))
+        {
+            const PointsTo& pts = getPts(node);
+            for (NodeID obj : pts)
+            {
+                if (it != condPtsMap.end() && it->second.count(obj)) continue;
+                if (orMergeCondPts(dst, obj, limitedGuard))
+                    condChanged = true;
+            }
+        }
+    }
 
     timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
@@ -813,18 +852,9 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
     auto it = condPtsMap.find(pointer);
     if (it != condPtsMap.end())
     {
-        const PathCond* acc = PathCond::getFalse();
-        bool found = false;
-        for (const auto& pair : it->second)
-        {
-            if (pair.first == node)
-            {
-                acc = PathCond::getOr(acc, pair.second);
-                found = true;
-            }
-        }
-        if (found)
-            ptsG = acc;
+        auto jt = it->second.find(node);
+        if (jt != it->second.end())
+            ptsG = jt->second;
     }
 
     const PathCond* loadG = getLoadEdgeGuard(pointer, dst);
@@ -836,7 +866,7 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
     auto itg = edgeGuards.find(EdgeGuardKey{node, dst, CondEdgeKind::CopyDerived});
     if (itg == edgeGuards.end())
         edgeGuards[EdgeGuardKey{node, dst, CondEdgeKind::CopyDerived}] = guard;
-    else
+    else if (itg->second != guard)
         itg->second = PathCond::getOr(itg->second, guard);
 
     timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
@@ -860,18 +890,9 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
     auto it = condPtsMap.find(pointer);
     if (it != condPtsMap.end())
     {
-        const PathCond* acc = PathCond::getFalse();
-        bool found = false;
-        for (const auto& pair : it->second)
-        {
-            if (pair.first == node)
-            {
-                acc = PathCond::getOr(acc, pair.second);
-                found = true;
-            }
-        }
-        if (found)
-            ptsG = acc;
+        auto jt = it->second.find(node);
+        if (jt != it->second.end())
+            ptsG = jt->second;
     }
 
     const PathCond* storeG = getStoreEdgeGuard(src, pointer);
@@ -883,7 +904,7 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
     auto itg = edgeGuards.find(EdgeGuardKey{src, node, CondEdgeKind::CopyDerived});
     if (itg == edgeGuards.end())
         edgeGuards[EdgeGuardKey{src, node, CondEdgeKind::CopyDerived}] = guard;
-    else
+    else if (itg->second != guard)
         itg->second = PathCond::getOr(itg->second, guard);
 
     timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
@@ -910,6 +931,28 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
         SVFUtil::dyn_cast<NormalGepCGEdge>(edge);
     assert((isVariant || normalGep) && "unknown gep edge kind");
 
+    auto translateField = [&](NodeID o) -> NodeID
+    {
+        if (isVariant)
+        {
+            if (consCG->isBlkObjOrConstantObj(o))
+                return o;
+            if (!isFieldInsensitive(o))
+            {
+                setObjFieldInsensitive(o);
+                consCG->addNodeToBeCollapsed(consCG->getBaseObjVarID(o));
+            }
+            return consCG->getFIObjVar(o);
+        }
+        else
+        {
+            if (consCG->isBlkObjOrConstantObj(o) || isFieldInsensitive(o))
+                return o;
+            return consCG->getGepObjVar(
+                o, normalGep->getAccessPath().getConstantStructFldIdx());
+        }
+    };
+
     auto it = condPtsMap.find(src);
     if (it != condPtsMap.end())
     {
@@ -922,38 +965,27 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
             const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
             if (eagerSat && !z3IsSat(g)) continue;
 
-            NodeID newField;
-            if (isVariant)
-            {
-                if (consCG->isBlkObjOrConstantObj(o))
-                {
-                    newField = o;
-                }
-                else
-                {
-                    if (!isFieldInsensitive(o))
-                    {
-                        setObjFieldInsensitive(o);
-                        consCG->addNodeToBeCollapsed(consCG->getBaseObjVarID(o));
-                    }
-                    newField = consCG->getFIObjVar(o);
-                }
-            }
-            else
-            {
-                if (consCG->isBlkObjOrConstantObj(o) || isFieldInsensitive(o))
-                {
-                    newField = o;
-                }
-                else
-                {
-                    newField = consCG->getGepObjVar(
-                        o, normalGep->getAccessPath().getConstantStructFldIdx());
-                }
-            }
-
+            NodeID newField = translateField(o);
             if (orMergeCondPts(dst, newField, g))
                 condChanged = true;
+        }
+    }
+
+    // For non-True edge guards, also propagate objects whose source guard is
+    // implicitly True (present in bitvector pts but absent from condPtsMap).
+    if (!edgeIsTrue)
+    {
+        const PathCond* limitedEdgeG = applyLimits(edgeG);
+        if (!limitedEdgeG->isFalse() && !(eagerSat && !z3IsSat(limitedEdgeG)))
+        {
+            const PointsTo& pts = getPts(src);
+            for (NodeID o : pts)
+            {
+                if (it != condPtsMap.end() && it->second.count(o)) continue;
+                NodeID newField = translateField(o);
+                if (orMergeCondPts(dst, newField, limitedEdgeG))
+                    condChanged = true;
+            }
         }
     }
 
@@ -976,11 +1008,24 @@ AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
     numAliasTotal++;
     if (v1 == v2) return MustAlias;
 
-    CondPointsTo pts1 = expandCondFIObjs(getCondPts(v1));
-    CondPointsTo pts2 = expandCondFIObjs(getCondPts(v2));
+    NodeID n1 = consCG->sccRepNode(v1);
+    NodeID n2 = consCG->sccRepNode(v2);
 
+    // Fast path: no unconditional overlap -> NoAlias.
+    if (!BVDataPTAImpl::alias(getPts(n1), getPts(n2)))
+        return AliasResult::NoAlias;
+
+    // Build expanded conditional pts with implicit True guards.
+    CondPointsTo pts1 = expandCondFIObjs(v1);
+    CondPointsTo pts2 = expandCondFIObjs(v2);
+
+    // If either side has no conditional entries at all, all common objects
+    // have at least one True guard, so the conjunction is satisfiable.
     if (pts1.empty() || pts2.empty())
-        return NoAlias;
+    {
+        timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+        return AliasResult::MayAlias;
+    }
 
     for (const auto& p1 : pts1)
     {
@@ -1007,15 +1052,23 @@ AliasResult ConditionalAndersen::alias(const SVFVar* v1, const SVFVar* v2)
 
 /*!
  * Expand field-insensitive objects in a conditional points-to set.
- * If an object is a base object or field-insensitive, include all its fields.
+ * True guards are implicit: objects in the bitvector pts but absent from
+ * condPtsMap are treated as having guard True.
  */
-ConditionalAndersen::CondPointsTo ConditionalAndersen::expandCondFIObjs(const CondPointsTo& pts) const
+ConditionalAndersen::CondPointsTo ConditionalAndersen::expandCondFIObjs(NodeID nodeId) const
 {
     CondPointsTo expanded;
-    for (const auto& pair : pts)
+    NodeID rep = consCG->sccRepNode(nodeId);
+    const PointsTo& pts = getPts(rep);
+    const CondPointsTo& condPts = getCondPts(nodeId);
+
+    for (NodeID obj : pts)
     {
-        NodeID obj = pair.first;
-        const PathCond* guard = pair.second;
+        const PathCond* guard = PathCond::getTrue();
+        auto it = condPts.find(obj);
+        if (it != condPts.end())
+            guard = it->second;
+
         expanded[obj] = guard;
 
         // Skip objects that have been removed from PAG (e.g., by normalizePointsTo)
@@ -1028,11 +1081,11 @@ ConditionalAndersen::CondPointsTo ConditionalAndersen::expandCondFIObjs(const Co
             const NodeBS& fields = pag->getAllFieldsObjVars(obj);
             for (const NodeID f : fields)
             {
-                auto it = expanded.find(f);
-                if (it == expanded.end())
+                auto jt = expanded.find(f);
+                if (jt == expanded.end())
                     expanded[f] = guard;
                 else
-                    it->second = PathCond::getOr(it->second, guard);
+                    jt->second = PathCond::getOr(jt->second, guard);
             }
         }
     }

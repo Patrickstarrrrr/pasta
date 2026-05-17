@@ -240,6 +240,10 @@ public:
     {
         return getPTDataTy()->getPts(sccRepNode(id));
     }
+    virtual inline const PointsTo& getPts(NodeID id) const
+    {
+        return getPTDataTy()->getPts(sccRepNode(id));
+    }
     virtual inline bool unionPts(NodeID id, const PointsTo& target)
     {
         id = sccRepNode(id);
