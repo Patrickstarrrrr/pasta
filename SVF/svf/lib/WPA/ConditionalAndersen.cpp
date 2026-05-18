@@ -12,6 +12,10 @@
 using namespace SVF;
 using namespace SVFUtil;
 
+/// Enable fine-grained conditional profiling via COND_PROFILE env var.
+/// Default off because clock() is expensive on macOS (~290ns/call).
+static bool condProfile = (getenv("COND_PROFILE") != nullptr);
+
 ConditionalAndersen::ConditionalAndersen(SVFIR* _pag, PTATY type)
     : Andersen(_pag, type),
       kLimit(Options::CondAnderKLimit()),
@@ -354,11 +358,11 @@ u32_t ConditionalAndersen::countClauses(const PathCond* cond) const
  */
 const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
 {
-    double tStart = stat->getClk(true);
+    double tStart = condProfile ? stat->getClk(true) : 0.0;
     // kLimit == 0 means truncate all guards to True (unconditional mode).
     if (kLimit == 0)
     {
-        timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+        if (condProfile) timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return PathCond::getTrue();
     }
 
@@ -367,15 +371,15 @@ const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
     {
         if (kLimit == -1)
         {
-            timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+            if (condProfile) timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
             return cond;
         }
         if (cond->depth() <= static_cast<u32_t>(kLimit))
         {
-            timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+            if (condProfile) timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
             return cond;
         }
-        timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+        if (condProfile) timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return PathCond::getTrue();
     }
 
@@ -420,7 +424,7 @@ const PathCond* ConditionalAndersen::applyLimits(const PathCond* cond) const
         }
     }
 
-    timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+    if (condProfile) timeGuardLimit += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return result;
 }
 
@@ -452,16 +456,16 @@ Z3Expr ConditionalAndersen::pathCondToZ3(const PathCond* cond) const
  */
 bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
 {
-    double tStart = stat->getClk(true);
+    double tStart = condProfile ? stat->getClk(true) : 0.0;
     numZ3SatChecks++;
     if (cond->isTrue())
     {
-        timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+        if (condProfile) timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return true;
     }
     if (cond->isFalse())
     {
-        timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+        if (condProfile) timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return false;
     }
 
@@ -469,7 +473,7 @@ bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
     {
         FastGuard fg = FastGuard::fromPathCond(cond);
         bool sat = fg.isSat();
-        timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+        if (condProfile) timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return sat;
     }
 
@@ -479,7 +483,7 @@ bool ConditionalAndersen::z3IsSat(const PathCond* cond) const
     s.add(z3cond.getExpr());
     z3::check_result r = s.check();
     s.pop();
-    timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+    if (condProfile) timeSATCheck += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return r != z3::unsat;
 }
 
@@ -532,6 +536,7 @@ bool ConditionalAndersen::orMergeCondPts(NodeID var, NodeID obj, const PathCond*
         return true;
     }
     CondPointsTo newMap;
+    newMap.reserve(64);
     newMap[obj] = guard;
     condPtsMap[var] = std::move(newMap);
     return true;
@@ -544,7 +549,7 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
 {
     if (nodeId == newRepId)
         return false;
-    double tStart = stat->getClk(true);
+    double tStart = condProfile ? stat->getClk(true) : 0.0;
 
     // Merge condPtsMap: move all conditional pts from sub to rep.
     // In merge-cond-SCC mode, over-approximate guards to True.
@@ -564,7 +569,7 @@ bool ConditionalAndersen::mergeSrcToTgt(NodeID nodeId, NodeID newRepId)
     // to avoid O(N) linear scans inside every merge call.
     bool pwc = Andersen::mergeSrcToTgt(nodeId, newRepId);
 
-    timeCondSCCMerge += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+    if (condProfile) timeCondSCCMerge += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return pwc;
 }
 
@@ -782,7 +787,7 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
 {
     if (kLimit == 0) return Andersen::processCopy(node, edge);
     bool parentChanged = Andersen::processCopy(node, edge);
-    double tStart = stat->getClk(true);
+    double tStart = condProfile ? stat->getClk(true) : 0.0;
 
     NodeID dst = edge->getDstID();
     const PathCond* guard = getEdgeGuard(node, dst);
@@ -831,7 +836,7 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
         }
     }
 
-    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+    if (condProfile) timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
 }
 
@@ -843,7 +848,7 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
 {
     if (kLimit == 0) return Andersen::processLoad(node, load);
     bool parentChanged = Andersen::processLoad(node, load);
-    double tStart = stat->getClk(true);
+    double tStart = condProfile ? stat->getClk(true) : 0.0;
 
     NodeID pointer = load->getSrcID();
     NodeID dst = load->getDstID();
@@ -869,7 +874,7 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
     else if (itg->second != guard)
         itg->second = PathCond::getOr(itg->second, guard);
 
-    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+    if (condProfile) timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged;
 }
 
@@ -881,7 +886,7 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
 {
     if (kLimit == 0) return Andersen::processStore(node, store);
     bool parentChanged = Andersen::processStore(node, store);
-    double tStart = stat->getClk(true);
+    double tStart = condProfile ? stat->getClk(true) : 0.0;
 
     NodeID src = store->getSrcID();
     NodeID pointer = store->getDstID();
@@ -907,7 +912,7 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
     else if (itg->second != guard)
         itg->second = PathCond::getOr(itg->second, guard);
 
-    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+    if (condProfile) timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged;
 }
 
@@ -918,7 +923,7 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
 {
     if (kLimit == 0) return Andersen::processGep(edge->getSrcID(), edge);
     bool parentChanged = Andersen::processGep(edge->getSrcID(), edge);
-    double tStart = stat->getClk(true);
+    double tStart = condProfile ? stat->getClk(true) : 0.0;
 
     NodeID src = edge->getSrcID();
     NodeID dst = edge->getDstID();
@@ -993,7 +998,7 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
     // the underlying bitvector (ptD).  Worklist should only advance when the
     // bitvector changes (parentChanged), otherwise we introduce spurious
     // propagation that can alter the final fixpoint.
-    timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+    if (condProfile) timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged || condChanged;
 }
 
@@ -1004,7 +1009,7 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
 AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
 {
     if (kLimit == 0) return Andersen::alias(v1, v2);
-    double tStart = stat->getClk(true);
+    double tStart = condProfile ? stat->getClk(true) : 0.0;
     numAliasTotal++;
     if (v1 == v2) return MustAlias;
 
@@ -1023,7 +1028,7 @@ AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
     // have at least one True guard, so the conjunction is satisfiable.
     if (pts1.empty() || pts2.empty())
     {
-        timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+        if (condProfile) timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
         return AliasResult::MayAlias;
     }
 
@@ -1035,12 +1040,12 @@ AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
         if (z3IsSat(conj))
         {
             numAliasRefined++;
-            timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+            if (condProfile) timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
             return AliasResult::MayAlias;
         }
     }
 
-    timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
+    if (condProfile) timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return AliasResult::NoAlias;
 }
 
@@ -1060,6 +1065,7 @@ ConditionalAndersen::CondPointsTo ConditionalAndersen::expandCondFIObjs(NodeID n
     CondPointsTo expanded;
     NodeID rep = consCG->sccRepNode(nodeId);
     const PointsTo& pts = getPts(rep);
+    expanded.reserve(pts.count());
     const CondPointsTo& condPts = getCondPts(nodeId);
 
     for (NodeID obj : pts)

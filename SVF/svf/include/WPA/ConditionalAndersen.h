@@ -12,6 +12,7 @@
 #include "Util/FastGuard.h"
 #include "Util/Z3Expr.h"
 #include "Graphs/ICFGEdge.h"
+#include <parallel_hashmap/phmap.h>
 
 namespace SVF
 {
@@ -25,7 +26,7 @@ class ConditionalAndersen : public Andersen
 {
 public:
     /// Conditional points-to: object -> guard (at most one guard per object)
-    typedef Map<NodeID, const PathCond*> CondPointsTo;
+    typedef phmap::flat_hash_map<NodeID, const PathCond*> CondPointsTo;
 
     /// Constructor
     ConditionalAndersen(SVFIR* _pag,
@@ -118,7 +119,7 @@ protected:
     Map<NodeID, CondPointsTo> condPtsMap;
 
     /// Unified edge-guard map: (src, dst, kind) -> PathCond
-    std::unordered_map<EdgeGuardKey, const PathCond*, EdgeGuardKeyHash> edgeGuards;
+    phmap::flat_hash_map<EdgeGuardKey, const PathCond*, EdgeGuardKeyHash> edgeGuards;
 
     /// Look up an edge guard of a specific kind (returns True if absent)
     const PathCond* getEdgeGuard(NodeID src, NodeID dst, CondEdgeKind kind) const;

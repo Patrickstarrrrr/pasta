@@ -108,7 +108,17 @@ public:
         // when only m-limit is enabled (n-limit disabled).
         if (a->depth() > 100 || b->depth() > 100)
             return getCappedTrue();
-        return new PathCond(And, 0, true, a, b);
+
+        // Cache canonical (a,b) pairs to avoid duplicate allocations.
+        auto key = (a < b) ? std::make_pair(a, b) : std::make_pair(b, a);
+        static std::unordered_map<decltype(key), const PathCond*,
+                                  Hash<decltype(key)>> cache;
+        auto it = cache.find(key);
+        if (it != cache.end()) return it->second;
+
+        const PathCond* result = new PathCond(And, 0, true, a, b);
+        cache.emplace(key, result);
+        return result;
     }
 
     /// Check whether 'sub' is a pure-And-chain whose literals are a subset
@@ -152,7 +162,17 @@ public:
         // when only m-limit is enabled (n-limit disabled).
         if (a->depth() > 100 || b->depth() > 100)
             return getCappedTrue();
-        return new PathCond(Or, 0, true, a, b);
+
+        // Cache canonical (a,b) pairs to avoid duplicate allocations.
+        auto key = (a < b) ? std::make_pair(a, b) : std::make_pair(b, a);
+        static std::unordered_map<decltype(key), const PathCond*,
+                                  Hash<decltype(key)>> cache;
+        auto it = cache.find(key);
+        if (it != cache.end()) return it->second;
+
+        const PathCond* result = new PathCond(Or, 0, true, a, b);
+        cache.emplace(key, result);
+        return result;
     }
 
     /// Check whether 'sub' appears anywhere inside 'tree' as an OR-subtree.
