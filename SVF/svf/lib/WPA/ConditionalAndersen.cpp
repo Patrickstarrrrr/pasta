@@ -8,6 +8,7 @@
 #include "SVFIR/SVFStatements.h"
 #include "Util/Options.h"
 #include "Util/SVFUtil.h"
+#include <random>
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -27,6 +28,7 @@ ConditionalAndersen::ConditionalAndersen(SVFIR* _pag, PTATY type)
       mergeCondSCC(Options::CondAnderMergeCondSCC()),
       numZ3SatChecks(0),
       numAliasRefined(0),
+      numAliasRefinedToNoAlias(0),
       numAliasTotal(0),
       numCondPtsEntries(0),
       timeCondProp(0.0),
@@ -1045,6 +1047,7 @@ AliasResult ConditionalAndersen::alias(NodeID v1, NodeID v2)
         }
     }
 
+    numAliasRefinedToNoAlias++;
     if (condProfile) timeCondAlias += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return AliasResult::NoAlias;
 }
@@ -1127,6 +1130,48 @@ void ConditionalAndersen::dumpEdgeGuards() const
 }
 
 /*!
+ * Sample alias queries on top-level pointers to measure precision gain.
+ * Randomly selects pairs of top-level ValVars and queries alias().
+ * Statistics are accumulated into numAliasTotal / numAliasRefined /
+ * numAliasRefinedToNoAlias / timeCondAlias.
+ */
+void ConditionalAndersen::sampleAliasQueries(u32_t sampleSize)
+{
+    // Collect all top-level ValVar IDs.
+    std::vector<NodeID> topVars;
+    const auto& varMap = pag->getSVFVarMap();
+    for (const auto& p : varMap)
+    {
+        if (pag->isValidTopLevelPtr(p.second))
+            topVars.push_back(p.first);
+    }
+    if (topVars.size() < 2)
+    {
+        SVFUtil::outs() << "  [sampleAlias] Too few top-level vars (" << topVars.size() << "), skipping.\n";
+        return;
+    }
+
+    std::mt19937 rng(42); // fixed seed for reproducibility
+    std::uniform_int_distribution<size_t> dist(0, topVars.size() - 1);
+
+    SVFUtil::outs() << "  [sampleAlias] Sampling " << sampleSize
+                    << " pairs from " << topVars.size() << " top-level vars...\n";
+
+    for (u32_t i = 0; i < sampleSize; ++i)
+    {
+        size_t a = dist(rng);
+        size_t b = dist(rng);
+        if (a == b) { if (++b >= topVars.size()) b = 0; }
+        alias(topVars[a], topVars[b]);
+    }
+
+    u32_t baseMay = numAliasRefined + numAliasRefinedToNoAlias;
+    SVFUtil::outs() << "  [sampleAlias] Done. baseMayAlias=" << baseMay
+                    << " refinedToNoAlias=" << numAliasRefinedToNoAlias
+                    << " stayedMayAlias=" << numAliasRefined << "\n";
+}
+
+/*!
  * Finalize: optionally print conditional points-to for debugging (Phase 1).
  */
 void ConditionalAndersen::finalize()
@@ -1137,6 +1182,11 @@ void ConditionalAndersen::finalize()
     numCondPtsEntries = 0;
     for (const auto& entry : condPtsMap)
         numCondPtsEntries += entry.second.size();
+
+    // Run sampled alias queries to measure precision gain vs base Andersen.
+    // Only run when kLimit > 0 (otherwise identical to base Andersen).
+    // if (kLimit != 0)
+    //     sampleAliasQueries(50000);
 
     // Print statistics
     SVFUtil::outs() << "\n========== Conditional Andersen Statistics ==========\n";
@@ -1156,7 +1206,9 @@ void ConditionalAndersen::finalize()
     SVFUtil::outs() << "  PWC enabled:         " << (Options::CondAnderPWC() ? "true" : "false") << "\n";
     SVFUtil::outs() << "  Z3 SAT checks:       " << numZ3SatChecks << "\n";
     SVFUtil::outs() << "  Alias queries:       " << numAliasTotal << "\n";
+    SVFUtil::outs() << "  Alias base MayAlias: " << (numAliasRefined + numAliasRefinedToNoAlias) << "\n";
     SVFUtil::outs() << "  Alias refined (May): " << numAliasRefined << "\n";
+    SVFUtil::outs() << "  Alias refined (No):  " << numAliasRefinedToNoAlias << "\n";
     SVFUtil::outs() << "  CondPts entries:     " << numCondPtsEntries << "\n";
     SVFUtil::outs() << "\n  === Conditional Overhead (ms) ===\n";
     SVFUtil::outs() << "  Cond propagation:    " << timeCondProp << "\n";

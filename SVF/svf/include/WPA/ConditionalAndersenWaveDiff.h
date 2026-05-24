@@ -235,9 +235,13 @@ protected:
     /// Dump edge guards for debugging
     void dumpEdgeGuards() const;
 
+    /// Sample alias queries on top-level pointers to measure precision gain.
+    void sampleAliasQueries(u32_t sampleSize = 100000);
+
     /// Statistics counters
     mutable u32_t numZ3SatChecks;
-    mutable u32_t numAliasRefined;
+    mutable u32_t numAliasRefined;        ///< base MayAlias that stayed MayAlias after cond check
+    mutable u32_t numAliasRefinedToNoAlias; ///< base MayAlias that was refined to NoAlias
     mutable u32_t numAliasTotal;
     mutable u32_t numCondPtsEntries;
 

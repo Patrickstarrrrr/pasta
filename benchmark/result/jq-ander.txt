@@ -1,0 +1,133 @@
+
+*********General Stats***************
+################ (program : jq.bc)###############
+AddrsNum            22350
+BBWith2Succ         8621
+BBWith3Succ         151
+CallsNum            2542
+ConstArrayObj       14
+ConstStructObj      25
+ConstantObj         0
+CopysNum            5326
+FIObjNum            1823
+FSObjNum            10162
+FunctionObjs        1582
+GepsNum             24485
+GlobalObjs          95
+HeapObjs            142
+IndCallSites        501
+LoadsNum            48952
+MaxStructSize       854
+NonPtrObj           8268
+ReturnsNum          6115
+StackObjs           10166
+StoresNum           34734
+TotalCallSite       10471
+TotalFieldObjects   5242
+TotalObjects        17228
+TotalPTASVFStmts    89142
+TotalPointers       190323
+TotalSVFStmts       182884
+VarArrayObj         128
+VarStructObj        3407
+----------------Time and memory stats--------------------
+LLVMIRTime          0.349
+SVFIRTime           1.314
+SymbolTableTime     0.095
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : jq.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   417
+MaxNodeInCycle      15
+NodeInCycle         109
+TotalCycle          64
+TotalEdge           16392
+TotalNode           1582
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : jq.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.238979
+AvgIn/OutCopyEdge   0.790479
+AvgIn/OutEdge       1.43833
+AvgIn/OutLoadEdge   0.292517
+AvgIn/OutStoreEdge  0.116353
+AvgPtsSetSize       10.8913
+AvgTopLvlPtsSize    30.3907
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0
+SCCMergeTime        0
+TotalTime           2.906
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       22350
+CopyProcessed       169350
+DummyFieldPtrs      1056
+FieldObjs           5242
+GepProcessed        49511
+IndCallSites        501
+IndEdgeSolved       6409
+LoadProcessed       550508
+LocalVarInRecur     1520
+MaxInAddrEdge       1
+MaxInCopyEdge       1387
+MaxInLoadEdge       416
+MaxInStoreEdge      589
+MaxNodesInSCC       110
+MaxOutAddrEdge      10366
+MaxOutCopyEdge      2862
+MaxOutLoadEdge      354
+MaxOutStoreEdge     395
+MaxPtsSetSize       183
+MemObjects          17228
+NodesInCycles       2139
+NullPointer         878
+NumOfAddrs          21636
+NumOfCGEdge         108583
+NumOfCGNode         91633
+NumOfCopys          48007
+NumOfFieldExpand    0
+NumOfGeps           23559
+NumOfLoads          26483
+NumOfSCCDetect      12
+NumOfSFRs           0
+NumOfStores         10534
+NumOfValidNode      90535
+NumOfValidObjNode   15975
+Pointers            190323
+PointsToBlkPtr      0
+PointsToConstPtr    5216
+SolveIterations     12
+StoreProcessed      106241
+TotalCycleNum       296
+TotalObjects        17228
+TotalPWCCycleNum    46
+TotalPointers       190323
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : jq.bc)###############
+UniquePointsToSets       21489
+TotalUnions              264595
+PropertyUnions           86547
+UniqueUnions             3219
+LookupUnions             169003
+PreemptiveUnions         5826
+TotalComplements         1118948
+PropertyComplements      1035873
+UniqueComplements        2398
+LookupComplements        78283
+PreemptiveComplements    2394
+TotalIntersections       226129
+PropertyIntersections    219625
+UniqueIntersections      52
+LookupIntersections      1640
+PreemptiveIntersections  4812
+#######################################################
