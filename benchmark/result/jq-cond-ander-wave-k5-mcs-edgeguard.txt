@@ -1,0 +1,161 @@
+
+*********General Stats***************
+################ (program : jq.bc)###############
+AddrsNum            22350
+BBWith2Succ         8621
+BBWith3Succ         151
+CallsNum            2542
+ConstArrayObj       14
+ConstStructObj      25
+ConstantObj         0
+CopysNum            5326
+FIObjNum            1823
+FSObjNum            10162
+FunctionObjs        1582
+GepsNum             24485
+GlobalObjs          95
+HeapObjs            142
+IndCallSites        501
+LoadsNum            48952
+MaxStructSize       854
+NonPtrObj           8268
+ReturnsNum          6115
+StackObjs           10166
+StoresNum           34734
+TotalCallSite       10471
+TotalFieldObjects   5242
+TotalObjects        17228
+TotalPTASVFStmts    89142
+TotalPointers       190323
+TotalSVFStmts       182884
+VarArrayObj         128
+VarStructObj        3407
+----------------Time and memory stats--------------------
+LLVMIRTime          0.319
+SVFIRTime           1.188
+SymbolTableTime     0.09
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : jq.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   417
+MaxNodeInCycle      15
+NodeInCycle         109
+TotalCycle          64
+TotalEdge           16392
+TotalNode           1582
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : jq.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.238979
+AvgIn/OutCopyEdge   0.790479
+AvgIn/OutEdge       1.43833
+AvgIn/OutLoadEdge   0.292517
+AvgIn/OutStoreEdge  0.116353
+AvgPtsSetSize       10.8913
+AvgTopLvlPtsSize    30.3907
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0.575
+SCCMergeTime        0.289
+TotalTime           4.084
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       22350
+CopyProcessed       173046
+DummyFieldPtrs      1056
+FieldObjs           5242
+GepProcessed        51810
+IndCallSites        501
+IndEdgeSolved       6409
+LoadProcessed       550508
+LocalVarInRecur     1520
+MaxInAddrEdge       1
+MaxInCopyEdge       1387
+MaxInLoadEdge       416
+MaxInStoreEdge      589
+MaxNodesInSCC       110
+MaxOutAddrEdge      10366
+MaxOutCopyEdge      2862
+MaxOutLoadEdge      354
+MaxOutStoreEdge     395
+MaxPtsSetSize       183
+MemObjects          17228
+NodesInCycles       2139
+NullPointer         878
+NumOfAddrs          21636
+NumOfCGEdge         108583
+NumOfCGNode         91633
+NumOfCopys          48007
+NumOfFieldExpand    0
+NumOfGeps           23559
+NumOfLoads          26483
+NumOfSCCDetect      12
+NumOfSFRs           0
+NumOfStores         10534
+NumOfValidNode      90535
+NumOfValidObjNode   15975
+Pointers            190323
+PointsToBlkPtr      0
+PointsToConstPtr    5216
+SolveIterations     12
+StoreProcessed      106241
+TotalCycleNum       296
+TotalObjects        17228
+TotalPWCCycleNum    46
+TotalPointers       190323
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : jq.bc)###############
+UniquePointsToSets       21489
+TotalUnions              270589
+PropertyUnions           92542
+UniqueUnions             3219
+LookupUnions             169003
+PreemptiveUnions         5825
+TotalComplements         1118948
+PropertyComplements      1035873
+UniqueComplements        2398
+LookupComplements        78283
+PreemptiveComplements    2394
+TotalIntersections       226128
+PropertyIntersections    219626
+UniqueIntersections      56
+LookupIntersections      1635
+PreemptiveIntersections  4811
+#######################################################
+  [sampleAlias] Sampling 10000 pairs from 65810 top-level vars...
+  [sampleAlias] Done. baseMayAlias=1372 refinedToNoAlias=0 stayedMayAlias=1372
+
+========== Conditional Andersen Statistics ==========
+  Limit mode:          depth-based
+  kLimit:              5
+  eagerSat:            false
+  PWC enabled:         true
+  Z3 SAT checks:       1372
+  Alias queries:       10000
+  Alias base MayAlias: 1372
+  Alias refined (May): 1372
+  Alias refined (No):  0
+  CondPts entries:     1495187
+
+  === Conditional Overhead (ms) ===
+  Cond propagation:    0
+  Cond alias query:    0
+  Cond SCC merge:      0
+  Guard limit:         0
+  SAT check:           0
+  Total cond overhead: 0
+  Copy guards:         31756
+  Load guards:         0
+  Store guards:        0
+  GEP guards:          0
+=====================================================
+

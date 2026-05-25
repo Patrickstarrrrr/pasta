@@ -92,8 +92,8 @@ protected:
     /// Any further And-operation with these guards is ignored.
     mutable Set<const PathCond*> conjCappedGuards;
 
-    /// Edge kind for unified edge-guard map
-    enum CondEdgeKind { CopyStatic, CopyDerived, Load, Store, Gep };
+    /// Edge kind for unified edge-guard map (Copy guards now stored on edge objects)
+    enum CondEdgeKind { Copy, Load, Store, Gep };
 
     struct EdgeGuardKey
     {
@@ -121,14 +121,18 @@ protected:
     /// Unified edge-guard map: (src, dst, kind) -> PathCond
     phmap::flat_hash_map<EdgeGuardKey, const PathCond*, EdgeGuardKeyHash> edgeGuards;
 
-    /// Look up an edge guard of a specific kind (returns True if absent)
+    /// Look up an edge guard from the ConstraintEdge object (returns True if absent)
     const PathCond* getEdgeGuard(NodeID src, NodeID dst, CondEdgeKind kind) const;
 
-    /// Convenience: look up copy edge guard (static > derived > True)
+    /// Convenience: look up copy edge guard directly from CopyCGEdge
     const PathCond* getEdgeGuard(NodeID src, NodeID dst) const;
     const PathCond* getLoadEdgeGuard(NodeID src, NodeID dst) const;
     const PathCond* getStoreEdgeGuard(NodeID src, NodeID dst) const;
     const PathCond* getGepEdgeGuard(NodeID src, NodeID dst) const;
+
+    /// Merge a guard onto a CopyCGEdge.
+    /// If createIfMissing is false, only merges onto an existing edge.
+    void mergeCopyEdgeGuard(NodeID src, NodeID dst, const PathCond* guard, bool createIfMissing = true);
 
     /// Override constraint processing
     virtual void processAddr(const AddrCGEdge* addr) override;

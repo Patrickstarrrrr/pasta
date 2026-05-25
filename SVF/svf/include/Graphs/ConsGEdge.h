@@ -39,6 +39,7 @@
 namespace SVF
 {
 
+class PathCond;
 class ConstraintNode;
 /*!
  * Self-defined edge for constraint resolution
@@ -57,9 +58,11 @@ public:
     };
 private:
     EdgeID edgeId;
+    const PathCond* guard;  ///< Conditional guard for path-aware analysis
 public:
     /// Constructor
-    ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0) : GenericConsEdgeTy(s,d,k),edgeId(id)
+    ConstraintEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id = 0, const PathCond* g = nullptr)
+        : GenericConsEdgeTy(s,d,k), edgeId(id), guard(g)
     {
     }
     /// Destructor
@@ -70,6 +73,16 @@ public:
     inline EdgeID getEdgeID() const
     {
         return edgeId;
+    }
+    /// Return conditional guard (may be nullptr)
+    inline const PathCond* getGuard() const
+    {
+        return guard;
+    }
+    /// Set conditional guard
+    inline void setGuard(const PathCond* g)
+    {
+        guard = g;
     }
     /// ClassOf
     static inline bool classof(const GenericConsEdgeTy *edge)
@@ -114,7 +127,7 @@ public:
     //@}
 
     /// constructor
-    AddrCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id);
+    AddrCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, const PathCond* g = nullptr);
 };
 
 
@@ -145,7 +158,8 @@ public:
     //@}
 
     /// constructor
-    CopyCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id) : ConstraintEdge(s,d,Copy,id)
+    CopyCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, const PathCond* g = nullptr)
+        : ConstraintEdge(s,d,Copy,id,g)
     {
     }
 };
@@ -179,7 +193,8 @@ public:
     //@}
 
     /// constructor
-    StoreCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id) : ConstraintEdge(s,d,Store,id)
+    StoreCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, const PathCond* g = nullptr)
+        : ConstraintEdge(s,d,Store,id,g)
     {
     }
 };
@@ -213,7 +228,8 @@ public:
     //@}
 
     /// Constructor
-    LoadCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id) : ConstraintEdge(s,d,Load,id)
+    LoadCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, const PathCond* g = nullptr)
+        : ConstraintEdge(s,d,Load,id,g)
     {
     }
 };
@@ -232,8 +248,8 @@ private:
 protected:
 
     /// Constructor
-    GepCGEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id)
-        : ConstraintEdge(s,d,k,id)
+    GepCGEdge(ConstraintNode* s, ConstraintNode* d, ConstraintEdgeK k, EdgeID id, const PathCond* g = nullptr)
+        : ConstraintEdge(s,d,k,id,g)
     {
 
     }
@@ -294,8 +310,8 @@ public:
 
     /// Constructor
     NormalGepCGEdge(ConstraintNode* s, ConstraintNode* d, const AccessPath& ap,
-                    EdgeID id)
-        : GepCGEdge(s, d, NormalGep, id), ap(ap)
+                    EdgeID id, const PathCond* g = nullptr)
+        : GepCGEdge(s, d, NormalGep, id, g), ap(ap)
     {
     }
 
@@ -345,8 +361,8 @@ public:
     //@}
 
     /// Constructor
-    VariantGepCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id)
-        : GepCGEdge(s,d,VariantGep,id)
+    VariantGepCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, const PathCond* g = nullptr)
+        : GepCGEdge(s,d,VariantGep,id,g)
     {}
 };
 

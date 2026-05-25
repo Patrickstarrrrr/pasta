@@ -1,0 +1,141 @@
+
+*********General Stats***************
+################ (program : jq.bc)###############
+AddrsNum            22350
+BBWith2Succ         8621
+BBWith3Succ         151
+CallsNum            2542
+ConstArrayObj       14
+ConstStructObj      25
+ConstantObj         0
+CopysNum            5326
+FIObjNum            1823
+FSObjNum            10162
+FunctionObjs        1582
+GepsNum             24487
+GlobalObjs          95
+HeapObjs            142
+IndCallSites        501
+LoadsNum            48953
+MaxStructSize       854
+NonPtrObj           8265
+ReturnsNum          6115
+StackObjs           10166
+StoresNum           34735
+TotalCallSite       10471
+TotalFieldObjects   5242
+TotalObjects        17228
+TotalPTASVFStmts    89146
+TotalPointers       190326
+TotalSVFStmts       182888
+VarArrayObj         128
+VarStructObj        3407
+----------------Time and memory stats--------------------
+LLVMIRTime          0.351
+SVFIRTime           1.328
+SymbolTableTime     0.095
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : jq.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   417
+MaxNodeInCycle      15
+NodeInCycle         109
+TotalCycle          64
+TotalEdge           16392
+TotalNode           1582
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : jq.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.238971
+AvgIn/OutCopyEdge   0.790508
+AvgIn/OutEdge       1.43836
+AvgIn/OutLoadEdge   0.292518
+AvgIn/OutStoreEdge  0.11636
+AvgPtsSetSize       11.8622
+AvgTopLvlPtsSize    33.1947
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       1.202
+SCCMergeTime        0.381
+TotalTime           9.225
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       22350
+CopyProcessed       928218
+DummyFieldPtrs      1056
+FieldObjs           5242
+GepProcessed        448796
+IndCallSites        501
+IndEdgeSolved       6409
+LoadProcessed       788548
+LocalVarInRecur     1520
+MaxInAddrEdge       1
+MaxInCopyEdge       1387
+MaxInLoadEdge       416
+MaxInStoreEdge      589
+MaxNodesInSCC       110
+MaxOutAddrEdge      10366
+MaxOutCopyEdge      2862
+MaxOutLoadEdge      354
+MaxOutStoreEdge     395
+MaxPtsSetSize       207
+MemObjects          17228
+NodesInCycles       2139
+NullPointer         878
+NumOfAddrs          21636
+NumOfCGEdge         108590
+NumOfCGNode         91636
+NumOfCopys          48010
+NumOfFieldExpand    0
+NumOfGeps           23561
+NumOfLoads          26484
+NumOfSCCDetect      19
+NumOfSFRs           0
+NumOfStores         10535
+NumOfValidNode      90538
+NumOfValidObjNode   15975
+Pointers            190326
+PointsToBlkPtr      0
+PointsToConstPtr    5216
+SolveIterations     19
+StoreProcessed      242460
+TotalCycleNum       296
+TotalObjects        17228
+TotalPWCCycleNum    46
+TotalPointers       190326
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : jq.bc)###############
+UniquePointsToSets       1
+TotalUnions              5174
+PropertyUnions           5174
+UniqueUnions             0
+LookupUnions             0
+PreemptiveUnions         0
+TotalComplements         0
+PropertyComplements      0
+UniqueComplements        0
+LookupComplements        0
+PreemptiveComplements    0
+TotalIntersections       12044
+PropertyIntersections    12044
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  0
+#######################################################
+
+========== SingleTrackCondAndersen Statistics ==========
+  kLimit:              1
+  eagerSat:            false
+  Z3 SAT checks:       0
+  CondPts entries:     2084336
+=====================================================
+

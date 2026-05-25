@@ -186,8 +186,8 @@ void ConstraintGraph::destroy()
 /*!
  * Constructor for address constraint graph edge
  */
-AddrCGEdge::AddrCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id)
-    : ConstraintEdge(s,d,Addr,id)
+AddrCGEdge::AddrCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id, const PathCond* g)
+    : ConstraintEdge(s,d,Addr,id,g)
 {
     // Retarget addr edges may lead s to be a dummy node
     const SVFVar* node = SVFIR::getPAG()->getSVFVar(s->getId());
@@ -201,13 +201,13 @@ AddrCGEdge::AddrCGEdge(ConstraintNode* s, ConstraintNode* d, EdgeID id)
 /*!
  * Add an address edge
  */
-AddrCGEdge* ConstraintGraph::addAddrCGEdge(NodeID src, NodeID dst)
+AddrCGEdge* ConstraintGraph::addAddrCGEdge(NodeID src, NodeID dst, const PathCond* guard)
 {
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if (hasEdge(srcNode, dstNode, ConstraintEdge::Addr))
         return nullptr;
-    AddrCGEdge* edge = new AddrCGEdge(srcNode, dstNode, edgeIndex++);
+    AddrCGEdge* edge = new AddrCGEdge(srcNode, dstNode, edgeIndex++, guard);
 
     bool inserted = AddrCGEdgeSet.insert(edge).second;
     (void)inserted; // Suppress warning of unused variable under release build
@@ -221,7 +221,7 @@ AddrCGEdge* ConstraintGraph::addAddrCGEdge(NodeID src, NodeID dst)
 /*!
  * Add Copy edge
  */
-CopyCGEdge* ConstraintGraph::addCopyCGEdge(NodeID src, NodeID dst)
+CopyCGEdge* ConstraintGraph::addCopyCGEdge(NodeID src, NodeID dst, const PathCond* guard)
 {
 
     ConstraintNode* srcNode = getConstraintNode(src);
@@ -229,7 +229,7 @@ CopyCGEdge* ConstraintGraph::addCopyCGEdge(NodeID src, NodeID dst)
     if (hasEdge(srcNode, dstNode, ConstraintEdge::Copy) || srcNode == dstNode)
         return nullptr;
 
-    CopyCGEdge* edge = new CopyCGEdge(srcNode, dstNode, edgeIndex++);
+    CopyCGEdge* edge = new CopyCGEdge(srcNode, dstNode, edgeIndex++, guard);
 
     bool inserted = directEdgeSet.insert(edge).second;
     (void)inserted; // Suppress warning of unused variable under release build
@@ -244,7 +244,7 @@ CopyCGEdge* ConstraintGraph::addCopyCGEdge(NodeID src, NodeID dst)
 /*!
  * Add Gep edge
  */
-NormalGepCGEdge*  ConstraintGraph::addNormalGepCGEdge(NodeID src, NodeID dst, const AccessPath& ap)
+NormalGepCGEdge*  ConstraintGraph::addNormalGepCGEdge(NodeID src, NodeID dst, const AccessPath& ap, const PathCond* guard)
 {
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
@@ -252,7 +252,7 @@ NormalGepCGEdge*  ConstraintGraph::addNormalGepCGEdge(NodeID src, NodeID dst, co
         return nullptr;
 
     NormalGepCGEdge* edge =
-        new NormalGepCGEdge(srcNode, dstNode, ap, edgeIndex++);
+        new NormalGepCGEdge(srcNode, dstNode, ap, edgeIndex++, guard);
 
     bool inserted = directEdgeSet.insert(edge).second;
     (void)inserted; // Suppress warning of unused variable under release build
@@ -266,14 +266,14 @@ NormalGepCGEdge*  ConstraintGraph::addNormalGepCGEdge(NodeID src, NodeID dst, co
 /*!
  * Add variant gep edge
  */
-VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst)
+VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst, const PathCond* guard)
 {
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if (hasEdge(srcNode, dstNode, ConstraintEdge::VariantGep))
         return nullptr;
 
-    VariantGepCGEdge* edge = new VariantGepCGEdge(srcNode, dstNode, edgeIndex++);
+    VariantGepCGEdge* edge = new VariantGepCGEdge(srcNode, dstNode, edgeIndex++, guard);
 
     bool inserted = directEdgeSet.insert(edge).second;
     (void)inserted; // Suppress warning of unused variable under release build
@@ -287,14 +287,14 @@ VariantGepCGEdge* ConstraintGraph::addVariantGepCGEdge(NodeID src, NodeID dst)
 /*!
  * Add Load edge
  */
-LoadCGEdge* ConstraintGraph::addLoadCGEdge(NodeID src, NodeID dst)
+LoadCGEdge* ConstraintGraph::addLoadCGEdge(NodeID src, NodeID dst, const PathCond* guard)
 {
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if (hasEdge(srcNode, dstNode, ConstraintEdge::Load))
         return nullptr;
 
-    LoadCGEdge* edge = new LoadCGEdge(srcNode, dstNode, edgeIndex++);
+    LoadCGEdge* edge = new LoadCGEdge(srcNode, dstNode, edgeIndex++, guard);
 
     bool inserted = LoadCGEdgeSet.insert(edge).second;
     (void)inserted; // Suppress warning of unused variable under release build
@@ -308,14 +308,14 @@ LoadCGEdge* ConstraintGraph::addLoadCGEdge(NodeID src, NodeID dst)
 /*!
  * Add Store edge
  */
-StoreCGEdge* ConstraintGraph::addStoreCGEdge(NodeID src, NodeID dst)
+StoreCGEdge* ConstraintGraph::addStoreCGEdge(NodeID src, NodeID dst, const PathCond* guard)
 {
     ConstraintNode* srcNode = getConstraintNode(src);
     ConstraintNode* dstNode = getConstraintNode(dst);
     if (hasEdge(srcNode, dstNode, ConstraintEdge::Store))
         return nullptr;
 
-    StoreCGEdge* edge = new StoreCGEdge(srcNode, dstNode, edgeIndex++);
+    StoreCGEdge* edge = new StoreCGEdge(srcNode, dstNode, edgeIndex++, guard);
 
     bool inserted = StoreCGEdgeSet.insert(edge).second;
     (void)inserted; // Suppress warning of unused variable under release build
@@ -338,31 +338,32 @@ void ConstraintGraph::reTargetDstOfEdge(ConstraintEdge* edge, ConstraintNode* ne
 {
     NodeID newDstNodeID = newDstNode->getId();
     NodeID srcId = edge->getSrcID();
+    const PathCond* guard = edge->getGuard();
     if(LoadCGEdge* load = SVFUtil::dyn_cast<LoadCGEdge>(edge))
     {
         removeLoadEdge(load);
-        addLoadCGEdge(srcId,newDstNodeID);
+        addLoadCGEdge(srcId,newDstNodeID,guard);
     }
     else if(StoreCGEdge* store = SVFUtil::dyn_cast<StoreCGEdge>(edge))
     {
         removeStoreEdge(store);
-        addStoreCGEdge(srcId,newDstNodeID);
+        addStoreCGEdge(srcId,newDstNodeID,guard);
     }
     else if(CopyCGEdge* copy = SVFUtil::dyn_cast<CopyCGEdge>(edge))
     {
         removeDirectEdge(copy);
-        addCopyCGEdge(srcId,newDstNodeID);
+        addCopyCGEdge(srcId,newDstNodeID,guard);
     }
     else if(NormalGepCGEdge* gep = SVFUtil::dyn_cast<NormalGepCGEdge>(edge))
     {
         const AccessPath ap = gep->getAccessPath();
         removeDirectEdge(gep);
-        addNormalGepCGEdge(srcId,newDstNodeID, ap);
+        addNormalGepCGEdge(srcId,newDstNodeID, ap, guard);
     }
     else if(VariantGepCGEdge* gep = SVFUtil::dyn_cast<VariantGepCGEdge>(edge))
     {
         removeDirectEdge(gep);
-        addVariantGepCGEdge(srcId,newDstNodeID);
+        addVariantGepCGEdge(srcId,newDstNodeID,guard);
     }
     else if(AddrCGEdge* addr = SVFUtil::dyn_cast<AddrCGEdge>(edge))
     {
@@ -382,31 +383,32 @@ void ConstraintGraph::reTargetSrcOfEdge(ConstraintEdge* edge, ConstraintNode* ne
 {
     NodeID newSrcNodeID = newSrcNode->getId();
     NodeID dstId = edge->getDstID();
+    const PathCond* guard = edge->getGuard();
     if(LoadCGEdge* load = SVFUtil::dyn_cast<LoadCGEdge>(edge))
     {
         removeLoadEdge(load);
-        addLoadCGEdge(newSrcNodeID,dstId);
+        addLoadCGEdge(newSrcNodeID,dstId,guard);
     }
     else if(StoreCGEdge* store = SVFUtil::dyn_cast<StoreCGEdge>(edge))
     {
         removeStoreEdge(store);
-        addStoreCGEdge(newSrcNodeID,dstId);
+        addStoreCGEdge(newSrcNodeID,dstId,guard);
     }
     else if(CopyCGEdge* copy = SVFUtil::dyn_cast<CopyCGEdge>(edge))
     {
         removeDirectEdge(copy);
-        addCopyCGEdge(newSrcNodeID,dstId);
+        addCopyCGEdge(newSrcNodeID,dstId,guard);
     }
     else if(NormalGepCGEdge* gep = SVFUtil::dyn_cast<NormalGepCGEdge>(edge))
     {
         const AccessPath ap = gep->getAccessPath();
         removeDirectEdge(gep);
-        addNormalGepCGEdge(newSrcNodeID, dstId, ap);
+        addNormalGepCGEdge(newSrcNodeID, dstId, ap, guard);
     }
     else if(VariantGepCGEdge* gep = SVFUtil::dyn_cast<VariantGepCGEdge>(edge))
     {
         removeDirectEdge(gep);
-        addVariantGepCGEdge(newSrcNodeID,dstId);
+        addVariantGepCGEdge(newSrcNodeID,dstId,guard);
     }
     else if(AddrCGEdge* addr = SVFUtil::dyn_cast<AddrCGEdge>(edge))
     {

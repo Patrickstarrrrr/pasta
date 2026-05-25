@@ -173,16 +173,16 @@ public:
     ///Add a SVFIR edge into Edge map
     //@{
     /// Add Address edge
-    AddrCGEdge* addAddrCGEdge(NodeID src, NodeID dst);
+    AddrCGEdge* addAddrCGEdge(NodeID src, NodeID dst, const PathCond* guard = nullptr);
     /// Add Copy edge
-    CopyCGEdge* addCopyCGEdge(NodeID src, NodeID dst);
+    CopyCGEdge* addCopyCGEdge(NodeID src, NodeID dst, const PathCond* guard = nullptr);
     /// Add Gep edge
-    NormalGepCGEdge* addNormalGepCGEdge(NodeID src, NodeID dst, const AccessPath& ap);
-    VariantGepCGEdge* addVariantGepCGEdge(NodeID src, NodeID dst);
+    NormalGepCGEdge* addNormalGepCGEdge(NodeID src, NodeID dst, const AccessPath& ap, const PathCond* guard = nullptr);
+    VariantGepCGEdge* addVariantGepCGEdge(NodeID src, NodeID dst, const PathCond* guard = nullptr);
     /// Add Load edge
-    LoadCGEdge* addLoadCGEdge(NodeID src, NodeID dst);
+    LoadCGEdge* addLoadCGEdge(NodeID src, NodeID dst, const PathCond* guard = nullptr);
     /// Add Store edge
-    StoreCGEdge* addStoreCGEdge(NodeID src, NodeID dst);
+    StoreCGEdge* addStoreCGEdge(NodeID src, NodeID dst, const PathCond* guard = nullptr);
     //@}
 
     ///Get SVFIR edge

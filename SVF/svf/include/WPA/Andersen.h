@@ -113,6 +113,7 @@ public:
                  || pta->getAnalysisTy() == AndersenSCD_WPA
                  || pta->getAnalysisTy() == AndersenSFR_WPA
                  || pta->getAnalysisTy() == CondAndersen_WPA
+                 || pta->getAnalysisTy() == SingleTrackCondAndersen_WPA
                  || pta->getAnalysisTy() == TypeCPP_WPA
                  || pta->getAnalysisTy() == Steensgaard_WPA);
     }

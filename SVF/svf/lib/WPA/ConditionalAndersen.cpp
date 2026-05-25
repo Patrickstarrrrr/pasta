@@ -87,11 +87,7 @@ void ConditionalAndersen::attachStaticEdgeGuards()
 {
     auto setCopyGuard = [&](NodeID src, NodeID dst, const PathCond* guard)
     {
-        auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::CopyStatic});
-        if (it == edgeGuards.end())
-            edgeGuards[EdgeGuardKey{src, dst, CondEdgeKind::CopyStatic}] = guard;
-        else
-            it->second = PathCond::getOr(it->second, guard);
+        mergeCopyEdgeGuard(src, dst, guard, false); // do NOT create new edges in static attachment
     };
 
     // --- PhiStmt: guard from phi's enclosing BB ---
@@ -144,11 +140,21 @@ void ConditionalAndersen::attachStaticEdgeGuards()
     // --- LoadStmt: guard from enclosing BB ---
     auto setLoadGuard = [&](NodeID src, NodeID dst, const PathCond* guard)
     {
-        auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::Load});
-        if (it == edgeGuards.end())
-            edgeGuards[EdgeGuardKey{src, dst, CondEdgeKind::Load}] = guard;
-        else
-            it->second = PathCond::getOr(it->second, guard);
+        if (!guard || guard->isTrue()) return;
+        ConstraintNode* srcNode = consCG->getConstraintNode(src);
+        for (ConstraintEdge* e : srcNode->getOutEdges())
+        {
+            if (e->getDstID() == dst && e->getEdgeKind() == ConstraintEdge::Load)
+            {
+                LoadCGEdge* edge = SVFUtil::cast<LoadCGEdge>(e);
+                const PathCond* oldG = edge->getGuard();
+                if (oldG && !oldG->isTrue())
+                    edge->setGuard(PathCond::getOr(oldG, guard));
+                else
+                    edge->setGuard(guard);
+                return;
+            }
+        }
     };
     SVFStmt::SVFStmtSetTy& loads = pag->getPTASVFStmtSet(SVFStmt::Load);
     for (auto it = loads.begin(), eit = loads.end(); it != eit; ++it)
@@ -162,11 +168,21 @@ void ConditionalAndersen::attachStaticEdgeGuards()
     // --- StoreStmt: guard from enclosing BB ---
     auto setStoreGuard = [&](NodeID src, NodeID dst, const PathCond* guard)
     {
-        auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::Store});
-        if (it == edgeGuards.end())
-            edgeGuards[EdgeGuardKey{src, dst, CondEdgeKind::Store}] = guard;
-        else
-            it->second = PathCond::getOr(it->second, guard);
+        if (!guard || guard->isTrue()) return;
+        ConstraintNode* srcNode = consCG->getConstraintNode(src);
+        for (ConstraintEdge* e : srcNode->getOutEdges())
+        {
+            if (e->getDstID() == dst && e->getEdgeKind() == ConstraintEdge::Store)
+            {
+                StoreCGEdge* edge = SVFUtil::cast<StoreCGEdge>(e);
+                const PathCond* oldG = edge->getGuard();
+                if (oldG && !oldG->isTrue())
+                    edge->setGuard(PathCond::getOr(oldG, guard));
+                else
+                    edge->setGuard(guard);
+                return;
+            }
+        }
     };
     SVFStmt::SVFStmtSetTy& stores = pag->getPTASVFStmtSet(SVFStmt::Store);
     for (auto it = stores.begin(), eit = stores.end(); it != eit; ++it)
@@ -180,11 +196,20 @@ void ConditionalAndersen::attachStaticEdgeGuards()
     // --- GepStmt: guard from enclosing BB ---
     auto setGepGuard = [&](NodeID src, NodeID dst, const PathCond* guard)
     {
-        auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::Gep});
-        if (it == edgeGuards.end())
-            edgeGuards[EdgeGuardKey{src, dst, CondEdgeKind::Gep}] = guard;
-        else
-            it->second = PathCond::getOr(it->second, guard);
+        if (!guard || guard->isTrue()) return;
+        ConstraintNode* srcNode = consCG->getConstraintNode(src);
+        for (ConstraintEdge* e : srcNode->getOutEdges())
+        {
+            if (e->getDstID() == dst && (e->getEdgeKind() == ConstraintEdge::NormalGep || e->getEdgeKind() == ConstraintEdge::VariantGep))
+            {
+                const PathCond* oldG = e->getGuard();
+                if (oldG && !oldG->isTrue())
+                    e->setGuard(PathCond::getOr(oldG, guard));
+                else
+                    e->setGuard(guard);
+                return;
+            }
+        }
     };
     SVFStmt::SVFStmtSetTy& geps = pag->getPTASVFStmtSet(SVFStmt::Gep);
     for (auto it = geps.begin(), eit = geps.end(); it != eit; ++it)
@@ -252,23 +277,8 @@ void ConditionalAndersen::attachStaticEdgeGuards()
     }
 
     // --- AddrStmt: guard from enclosing BB ---
-    SVFStmt::SVFStmtSetTy& addrs = pag->getPTASVFStmtSet(SVFStmt::Addr);
-    for (auto it = addrs.begin(), eit = addrs.end(); it != eit; ++it)
-    {
-        const AddrStmt* addr = SVFUtil::cast<AddrStmt>(*it);
-        const PathCond* g = getBBGuard(addr->getICFGNode() ? addr->getICFGNode()->getBB() : nullptr);
-        if (!g->isTrue())
-        {
-            // Addr edges are handled specially; store guard for use in processAddr
-            NodeID src = addr->getRHSVarID();
-            NodeID dst = addr->getLHSVarID();
-            auto itg = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::CopyStatic});
-            if (itg == edgeGuards.end())
-                edgeGuards[EdgeGuardKey{src, dst, CondEdgeKind::CopyStatic}] = g;
-            else
-                itg->second = PathCond::getOr(itg->second, g);
-        }
-    }
+    // Addr edge guards are not used by processAddr (True is implicit),
+    // so we do not store them.
 }
 
 /*!
@@ -277,15 +287,45 @@ void ConditionalAndersen::attachStaticEdgeGuards()
  */
 const PathCond* ConditionalAndersen::getEdgeGuard(NodeID src, NodeID dst) const
 {
-    auto it = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::CopyStatic});
-    if (it != edgeGuards.end())
-        return it->second;
-
-    auto it2 = edgeGuards.find(EdgeGuardKey{src, dst, CondEdgeKind::CopyDerived});
-    if (it2 != edgeGuards.end())
-        return it2->second;
-
+    ConstraintNode* srcNode = consCG->getConstraintNode(src);
+    if (!srcNode)
+        return PathCond::getTrue();
+    for (ConstraintEdge* edge : srcNode->getOutEdges())
+    {
+        if (edge->getEdgeKind() == ConstraintEdge::Copy && edge->getDstID() == dst)
+        {
+            const PathCond* g = edge->getGuard();
+            return g ? g : PathCond::getTrue();
+        }
+    }
     return PathCond::getTrue();
+}
+
+void ConditionalAndersen::mergeCopyEdgeGuard(NodeID src, NodeID dst, const PathCond* guard, bool createIfMissing)
+{
+    if (!guard || guard->isTrue()) return;
+    CopyCGEdge* edge = nullptr;
+    if (createIfMissing)
+    {
+        edge = consCG->addCopyCGEdge(src, dst, guard);
+    }
+    if (!edge)
+    {
+        // Edge already exists (or we don't want to create); find it via directEdgeSet (O(log N)) and OR-merge the guard
+        ConstraintNode* srcNode = consCG->getConstraintNode(src);
+        ConstraintNode* dstNode = consCG->getConstraintNode(dst);
+        ConstraintEdge keyEdge(srcNode, dstNode, ConstraintEdge::Copy);
+        auto it = consCG->getDirectCGEdges().find(&keyEdge);
+        if (it != consCG->getDirectCGEdges().end())
+        {
+            edge = SVFUtil::cast<CopyCGEdge>(*it);
+            const PathCond* oldG = edge->getGuard();
+            if (oldG && !oldG->isTrue())
+                edge->setGuard(PathCond::getOr(oldG, guard));
+            else
+                edge->setGuard(guard);
+        }
+    }
 }
 
 const PathCond* ConditionalAndersen::getLoadEdgeGuard(NodeID src, NodeID dst) const
@@ -589,31 +629,23 @@ bool ConditionalAndersen::sccHasConditionalEdge(NodeID repId) const
         // Outgoing edges
         for (ConstraintEdge* edge : node->getOutEdges())
         {
-            if (edge->getEdgeKind() == ConstraintEdge::Copy)
+            if (edge->getEdgeKind() == ConstraintEdge::Copy ||
+                edge->getEdgeKind() == ConstraintEdge::NormalGep ||
+                edge->getEdgeKind() == ConstraintEdge::VariantGep)
             {
-                const PathCond* g = getEdgeGuard(nodeId, edge->getDstID());
-                if (!g->isTrue()) return true;
-            }
-            else if (edge->getEdgeKind() == ConstraintEdge::NormalGep ||
-                     edge->getEdgeKind() == ConstraintEdge::VariantGep)
-            {
-                const PathCond* g = getGepEdgeGuard(nodeId, edge->getDstID());
-                if (!g->isTrue()) return true;
+                const PathCond* g = edge->getGuard();
+                if (g && !g->isTrue()) return true;
             }
         }
         // Incoming edges (also part of the SCC cycle)
         for (ConstraintEdge* edge : node->getInEdges())
         {
-            if (edge->getEdgeKind() == ConstraintEdge::Copy)
+            if (edge->getEdgeKind() == ConstraintEdge::Copy ||
+                edge->getEdgeKind() == ConstraintEdge::NormalGep ||
+                edge->getEdgeKind() == ConstraintEdge::VariantGep)
             {
-                const PathCond* g = getEdgeGuard(edge->getSrcID(), nodeId);
-                if (!g->isTrue()) return true;
-            }
-            else if (edge->getEdgeKind() == ConstraintEdge::NormalGep ||
-                     edge->getEdgeKind() == ConstraintEdge::VariantGep)
-            {
-                const PathCond* g = getGepEdgeGuard(edge->getSrcID(), nodeId);
-                if (!g->isTrue()) return true;
+                const PathCond* g = edge->getGuard();
+                if (g && !g->isTrue()) return true;
             }
         }
     }
@@ -671,9 +703,12 @@ NodeStack& ConditionalAndersen::SCCDetect()
     }
 
     // Batch-update edgeGuards in a single pass to avoid O(N*M) linear scans.
+    // Copy edge guards are stored on ConstraintEdge objects and are preserved
+    // automatically by retargeting; only Load/Store/Gep guards need remapping.
     for (auto it = edgeGuards.begin(); it != edgeGuards.end(); )
     {
         const EdgeGuardKey& key = it->first;
+        if (key.kind == CondEdgeKind::Copy) { ++it; continue; }
         auto srcIt = mergedNodes.find(key.src);
         auto dstIt = mergedNodes.find(key.dst);
         if (srcIt == mergedNodes.end() && dstIt == mergedNodes.end())
@@ -737,12 +772,7 @@ void ConditionalAndersen::connectCaller2CalleeParams(const CallICFGNode* cs,
 
     for (const auto& pair : newEdges)
     {
-        auto key = EdgeGuardKey{pair.first, pair.second, CondEdgeKind::CopyDerived};
-        auto it = edgeGuards.find(key);
-        if (it == edgeGuards.end())
-            edgeGuards[key] = csGuard;
-        else if (it->second != csGuard)
-            it->second = PathCond::getOr(it->second, csGuard);
+        mergeCopyEdgeGuard(pair.first, pair.second, csGuard, false);
     }
 
     cpySrcNodes.insert(newEdges.begin(), newEdges.end());
@@ -761,12 +791,7 @@ void ConditionalAndersen::connectCaller2ForkedFunParams(const CallICFGNode* cs,
 
     for (const auto& pair : newEdges)
     {
-        auto key = EdgeGuardKey{pair.first, pair.second, CondEdgeKind::CopyDerived};
-        auto it = edgeGuards.find(key);
-        if (it == edgeGuards.end())
-            edgeGuards[key] = csGuard;
-        else if (it->second != csGuard)
-            it->second = PathCond::getOr(it->second, csGuard);
+        mergeCopyEdgeGuard(pair.first, pair.second, csGuard, false);
     }
 
     cpySrcNodes.insert(newEdges.begin(), newEdges.end());
@@ -792,7 +817,8 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
     double tStart = condProfile ? stat->getClk(true) : 0.0;
 
     NodeID dst = edge->getDstID();
-    const PathCond* guard = getEdgeGuard(node, dst);
+    const PathCond* guard = edge->getGuard();
+    if (!guard) guard = PathCond::getTrue();
 
     bool condChanged = false;
     auto it = condPtsMap.find(node);
@@ -864,17 +890,14 @@ bool ConditionalAndersen::processLoad(NodeID node, const ConstraintEdge* load)
             ptsG = jt->second;
     }
 
-    const PathCond* loadG = getLoadEdgeGuard(pointer, dst);
+    const PathCond* loadG = load->getGuard();
+    if (!loadG) loadG = PathCond::getTrue();
     const PathCond* guard;
     if (loadG->isTrue()) guard = ptsG;
     else if (ptsG->isTrue()) guard = loadG;
     else guard = PathCond::getAnd(loadG, ptsG);
 
-    auto itg = edgeGuards.find(EdgeGuardKey{node, dst, CondEdgeKind::CopyDerived});
-    if (itg == edgeGuards.end())
-        edgeGuards[EdgeGuardKey{node, dst, CondEdgeKind::CopyDerived}] = guard;
-    else if (itg->second != guard)
-        itg->second = PathCond::getOr(itg->second, guard);
+    mergeCopyEdgeGuard(node, dst, guard, false);
 
     if (condProfile) timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged;
@@ -902,17 +925,14 @@ bool ConditionalAndersen::processStore(NodeID node, const ConstraintEdge* store)
             ptsG = jt->second;
     }
 
-    const PathCond* storeG = getStoreEdgeGuard(src, pointer);
+    const PathCond* storeG = store->getGuard();
+    if (!storeG) storeG = PathCond::getTrue();
     const PathCond* guard;
     if (storeG->isTrue()) guard = ptsG;
     else if (ptsG->isTrue()) guard = storeG;
     else guard = PathCond::getAnd(storeG, ptsG);
 
-    auto itg = edgeGuards.find(EdgeGuardKey{src, node, CondEdgeKind::CopyDerived});
-    if (itg == edgeGuards.end())
-        edgeGuards[EdgeGuardKey{src, node, CondEdgeKind::CopyDerived}] = guard;
-    else if (itg->second != guard)
-        itg->second = PathCond::getOr(itg->second, guard);
+    mergeCopyEdgeGuard(src, node, guard, false);
 
     if (condProfile) timeCondProp += (stat->getClk(true) - tStart) / TIMEINTERVAL;
     return parentChanged;
@@ -929,7 +949,8 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
 
     NodeID src = edge->getSrcID();
     NodeID dst = edge->getDstID();
-    const PathCond* edgeG = getGepEdgeGuard(src, dst);
+    const PathCond* edgeG = edge->getGuard();
+    if (!edgeG) edgeG = PathCond::getTrue();
     const bool edgeIsTrue = edgeG->isTrue();
 
     bool condChanged = false;
@@ -1121,8 +1142,20 @@ void ConditionalAndersen::dumpEdgeGuards() const
     };
 
     SVFUtil::outs() << "\n========== Conditional Andersen Edge Guards ==========\n";
-    dumpByKind(CondEdgeKind::CopyStatic, "Static Copy Guards");
-    dumpByKind(CondEdgeKind::CopyDerived, "Derived Copy Guards");
+    SVFUtil::outs() << "--- Copy Guards ---\n";
+    for (ConstraintEdge* edge : consCG->getDirectCGEdges())
+    {
+        if (edge->getEdgeKind() == ConstraintEdge::Copy)
+        {
+            const PathCond* g = edge->getGuard();
+            if (g && !g->isTrue())
+            {
+                SVFUtil::outs() << "  (" << edge->getSrcID() << " -> "
+                                << edge->getDstID() << "): "
+                                << g->toString() << "\n";
+            }
+        }
+    }
     dumpByKind(CondEdgeKind::Load, "Load Guards");
     dumpByKind(CondEdgeKind::Store, "Store Guards");
     dumpByKind(CondEdgeKind::Gep, "GEP Guards");
@@ -1185,8 +1218,8 @@ void ConditionalAndersen::finalize()
 
     // Run sampled alias queries to measure precision gain vs base Andersen.
     // Only run when kLimit > 0 (otherwise identical to base Andersen).
-    // if (kLimit != 0)
-    //     sampleAliasQueries(50000);
+    if (kLimit != 0)
+        sampleAliasQueries(10000);
 
     // Print statistics
     SVFUtil::outs() << "\n========== Conditional Andersen Statistics ==========\n";
@@ -1217,18 +1250,31 @@ void ConditionalAndersen::finalize()
     SVFUtil::outs() << "  Guard limit:         " << timeGuardLimit << "\n";
     SVFUtil::outs() << "  SAT check:           " << timeSATCheck << "\n";
     SVFUtil::outs() << "  Total cond overhead: " << (timeCondProp + timeCondAlias + timeCondSCCMerge + timeGuardLimit + timeSATCheck) << "\n";
-    auto countByKind = [&](CondEdgeKind kind) -> size_t
+    size_t copyGuardCount = 0, loadGuardCount = 0, storeGuardCount = 0, gepGuardCount = 0;
+    for (ConstraintEdge* edge : consCG->getDirectCGEdges())
     {
-        size_t c = 0;
-        for (const auto& pair : edgeGuards)
-            if (pair.first.kind == kind) ++c;
-        return c;
-    };
-    SVFUtil::outs() << "  Static copy guards:  " << countByKind(CondEdgeKind::CopyStatic) << "\n";
-    SVFUtil::outs() << "  Derived copy guards: " << countByKind(CondEdgeKind::CopyDerived) << "\n";
-    SVFUtil::outs() << "  Load guards:         " << countByKind(CondEdgeKind::Load) << "\n";
-    SVFUtil::outs() << "  Store guards:        " << countByKind(CondEdgeKind::Store) << "\n";
-    SVFUtil::outs() << "  GEP guards:          " << countByKind(CondEdgeKind::Gep) << "\n";
+        const PathCond* g = edge->getGuard();
+        if (!g || g->isTrue()) continue;
+        auto kind = edge->getEdgeKind();
+        if (kind == ConstraintEdge::Copy)
+            ++copyGuardCount;
+        else if (kind == ConstraintEdge::NormalGep || kind == ConstraintEdge::VariantGep)
+            ++gepGuardCount;
+    }
+    for (ConstraintEdge* edge : consCG->getLoadCGEdges())
+    {
+        const PathCond* g = edge->getGuard();
+        if (g && !g->isTrue()) ++loadGuardCount;
+    }
+    for (ConstraintEdge* edge : consCG->getStoreCGEdges())
+    {
+        const PathCond* g = edge->getGuard();
+        if (g && !g->isTrue()) ++storeGuardCount;
+    }
+    SVFUtil::outs() << "  Copy guards:         " << copyGuardCount << "\n";
+    SVFUtil::outs() << "  Load guards:         " << loadGuardCount << "\n";
+    SVFUtil::outs() << "  Store guards:        " << storeGuardCount << "\n";
+    SVFUtil::outs() << "  GEP guards:          " << gepGuardCount << "\n";
     SVFUtil::outs() << "=====================================================\n\n";
 
     if (Options::CondAnderDumpGuards())

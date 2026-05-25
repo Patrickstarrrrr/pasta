@@ -68,6 +68,7 @@ public:
         AndersenWaveDiff_WPA,	///< Diff wave propagation andersen-style WPA
         CondAndersen_WPA,     ///< Conditional path-aware Andersen PTA
         CondAndersenWaveDiff_WPA, ///< Conditional path-aware Andersen with wave-diff
+        SingleTrackCondAndersen_WPA, ///< Single-track conditional Andersen (condPtsMap only)
         Steensgaard_WPA,      ///< Steensgaard PTA
         CSCallString_WPA,	///< Call string based context sensitive WPA
         CSSummary_WPA,		///< Summary based context sensitive WPA

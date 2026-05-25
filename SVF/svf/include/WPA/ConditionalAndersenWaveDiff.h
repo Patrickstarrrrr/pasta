@@ -94,7 +94,7 @@ protected:
     mutable Set<const PathCond*> conjCappedGuards;
 
     /// Edge kind for unified edge-guard map
-    enum CondEdgeKind { CopyStatic, CopyDerived, Load, Store, Gep };
+    enum CondEdgeKind { Copy, Load, Store, Gep };
 
     struct EdgeGuardKey
     {
@@ -141,6 +141,10 @@ protected:
     const PathCond* getLoadEdgeGuard(NodeID src, NodeID dst) const;
     const PathCond* getStoreEdgeGuard(NodeID src, NodeID dst) const;
     const PathCond* getGepEdgeGuard(NodeID src, NodeID dst) const;
+
+    /// Merge a guard onto a CopyCGEdge.
+    /// If createIfMissing is false, only merges onto an existing edge.
+    void mergeCopyEdgeGuard(NodeID src, NodeID dst, const PathCond* guard, bool createIfMissing = true);
 
     /// Override constraint processing
     virtual void processAddr(const AddrCGEdge* addr) override;

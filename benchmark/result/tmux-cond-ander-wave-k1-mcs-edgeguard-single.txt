@@ -1,0 +1,217 @@
+
+*********General Stats***************
+################ (program : tmux.bc)###############
+AddrsNum            26789
+BBWith2Succ         14416
+BBWith3Succ         173
+CallsNum            4477
+ConstArrayObj       100
+ConstStructObj      139
+ConstantObj         0
+CopysNum            3534
+FIObjNum            2883
+FSObjNum            13455
+FunctionObjs        2663
+GepsNum             52009
+GlobalObjs          373
+HeapObjs            68
+IndCallSites        90
+LoadsNum            83022
+MaxStructSize       431
+NonPtrObj           7796
+ReturnsNum          5829
+StackObjs           13234
+StoresNum           41361
+TotalCallSite       13942
+TotalFieldObjects   5306
+TotalObjects        21645
+TotalPTASVFStmts    173133
+TotalPointers       303904
+TotalSVFStmts       276225
+VarArrayObj         121
+VarStructObj        456
+----------------Time and memory stats--------------------
+LLVMIRTime          0.721
+SVFIRTime           2.345
+SymbolTableTime     0.19
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : tmux.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   2312
+MaxNodeInCycle      528
+NodeInCycle         568
+TotalCycle          27
+TotalEdge           16241
+TotalNode           2663
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : tmux.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.163681
+AvgIn/OutCopyEdge   0.895982
+AvgIn/OutEdge       1.60164
+AvgIn/OutLoadEdge   0.384891
+AvgIn/OutStoreEdge  0.157091
+AvgPtsSetSize       115.348
+AvgTopLvlPtsSize    235.504
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       2.615
+SCCMergeTime        5.993
+TotalTime           144.224
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       26789
+CopyProcessed       1579216
+DummyFieldPtrs      605
+FieldObjs           5306
+GepProcessed        979794
+IndCallSites        90
+IndEdgeSolved       2328
+LoadProcessed       29083460
+LocalVarInRecur     1395
+MaxInAddrEdge       1
+MaxInCopyEdge       2330
+MaxInLoadEdge       8178
+MaxInStoreEdge      664
+MaxNodesInSCC       14547
+MaxOutAddrEdge      10452
+MaxOutCopyEdge      21299
+MaxOutLoadEdge      171
+MaxOutStoreEdge     8715
+MaxPtsSetSize       495
+MemObjects          21645
+NodesInCycles       15762
+NullPointer         1225
+NumOfAddrs          24787
+NumOfCGEdge         217758
+NumOfCGNode         152907
+NumOfCopys          84209
+NumOfFieldExpand    0
+NumOfGeps           51474
+NumOfLoads          58286
+NumOfSCCDetect      19
+NumOfSFRs           0
+NumOfStores         23789
+NumOfValidNode      151435
+NumOfValidObjNode   16070
+Pointers            303904
+PointsToBlkPtr      0
+PointsToConstPtr    29117
+SolveIterations     20
+StoreProcessed      3528582
+TotalCycleNum       154
+TotalObjects        21645
+TotalPWCCycleNum    18
+TotalPointers       303904
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : tmux.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   2312
+MaxNodeInCycle      528
+NodeInCycle         568
+TotalCycle          27
+TotalEdge           16241
+TotalNode           2663
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : tmux.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.163681
+AvgIn/OutCopyEdge   0.895982
+AvgIn/OutEdge       1.60164
+AvgIn/OutLoadEdge   0.384891
+AvgIn/OutStoreEdge  0.157091
+AvgPtsSetSize       113.651
+AvgTopLvlPtsSize    235.504
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       5.602
+SCCMergeTime        6.033
+TotalTime           234.458
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       26789
+CopyProcessed       3094978
+DummyFieldPtrs      605
+FieldObjs           3151
+GepProcessed        1906326
+IndCallSites        90
+IndEdgeSolved       2328
+LoadProcessed       29274680
+LocalVarInRecur     1395
+MaxInAddrEdge       1
+MaxInCopyEdge       2330
+MaxInLoadEdge       8178
+MaxInStoreEdge      664
+MaxNodesInSCC       14547
+MaxOutAddrEdge      10452
+MaxOutCopyEdge      21299
+MaxOutLoadEdge      171
+MaxOutStoreEdge     8715
+MaxPtsSetSize       495
+MemObjects          21645
+NodesInCycles       1199
+NullPointer         1225
+NumOfAddrs          24787
+NumOfCGEdge         217758
+NumOfCGNode         152907
+NumOfCopys          84209
+NumOfFieldExpand    0
+NumOfGeps           51474
+NumOfLoads          58286
+NumOfSCCDetect      37
+NumOfSFRs           0
+NumOfStores         23789
+NumOfValidNode      151435
+NumOfValidObjNode   16070
+Pointers            303904
+PointsToBlkPtr      0
+PointsToConstPtr    58234
+SolveIterations     37
+StoreProcessed      3528582
+TotalCycleNum       152
+TotalObjects        21645
+TotalPWCCycleNum    17
+TotalPointers       303904
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : tmux.bc)###############
+UniquePointsToSets       1
+TotalUnions              17763
+PropertyUnions           17763
+UniqueUnions             0
+LookupUnions             0
+PreemptiveUnions         0
+TotalComplements         0
+PropertyComplements      0
+UniqueComplements        0
+LookupComplements        0
+PreemptiveComplements    0
+TotalIntersections       21006
+PropertyIntersections    21006
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  0
+#######################################################
+
+========== SingleTrackCondAndersen Statistics ==========
+  kLimit:              1
+  eagerSat:            false
+  Z3 SAT checks:       0
+  CondPts entries:     31086953
+=====================================================
+
