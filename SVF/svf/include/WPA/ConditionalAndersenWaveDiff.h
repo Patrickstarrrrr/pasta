@@ -201,6 +201,9 @@ protected:
     /// Compute path guard for a basic block (OR of incoming conditional edges)
     const PathCond* getBBGuard(const SVFBasicBlock* bb) const;
 
+    /// Cache for getBBGuard to avoid recomputing the same BB guard repeatedly
+    mutable std::unordered_map<const SVFBasicBlock*, const PathCond*> bbGuardCache;
+
     /// Expand field-insensitive objects in a conditional points-to set.
     /// True guards are implicit: iterates the bitvector pts of the node.
     CondPointsTo expandCondFIObjs(NodeID nodeId) const;
@@ -228,7 +231,7 @@ protected:
 
     /// OR-merge a guard onto an existing (var,obj) entry in condPtsMap.
     /// Returns true iff the entry was newly inserted or the guard changed.
-    bool orMergeCondPts(NodeID var, NodeID obj, const PathCond* guard);
+    virtual bool orMergeCondPts(NodeID var, NodeID obj, const PathCond* guard);
 
     /// Convert PathCond to Z3Expr for SAT checking.
     Z3Expr pathCondToZ3(const PathCond* cond) const;

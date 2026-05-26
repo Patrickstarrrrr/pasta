@@ -63,6 +63,10 @@ void ConditionalAndersenWaveDiff::initialize()
 const PathCond* ConditionalAndersenWaveDiff::getBBGuard(const SVFBasicBlock* bb) const
 {
     if (!bb) return PathCond::getTrue();
+    auto cacheIt = bbGuardCache.find(bb);
+    if (cacheIt != bbGuardCache.end())
+        return cacheIt->second;
+
     const PathCond* g = PathCond::getFalse();
     bool hasGuard = false;
     for (const ICFGNode* entry : bb->getICFGNodeList())
@@ -82,7 +86,9 @@ const PathCond* ConditionalAndersenWaveDiff::getBBGuard(const SVFBasicBlock* bb)
             }
         }
     }
-    return hasGuard ? g : PathCond::getTrue();
+    const PathCond* result = hasGuard ? g : PathCond::getTrue();
+    bbGuardCache[bb] = result;
+    return result;
 }
 
 void ConditionalAndersenWaveDiff::attachStaticEdgeGuards()
@@ -93,11 +99,6 @@ void ConditionalAndersenWaveDiff::attachStaticEdgeGuards()
     };
 
     // --- PhiStmt: guard from phi's enclosing BB ---
-    // NOTE: We use the phi BB guard (not per-operand incoming-block guard)
-    // for simplicity.  Experiments show that per-operand guard only improves
-    // precision on 1/23 test cases (05_phi_assign, by 1 MayAlias) while
-    // leaving all others identical.  The original per-operand implementation
-    // is kept below in comments for reference.
     SVFStmt::SVFStmtSetTy& phis = pag->getPTASVFStmtSet(SVFStmt::Phi);
     for (auto it = phis.begin(), eit = phis.end(); it != eit; ++it)
     {
@@ -144,6 +145,7 @@ void ConditionalAndersenWaveDiff::attachStaticEdgeGuards()
     {
         if (!guard || guard->isTrue()) return;
         ConstraintNode* srcNode = consCG->getConstraintNode(src);
+        if (!srcNode) return;
         for (ConstraintEdge* e : srcNode->getOutEdges())
         {
             if (e->getDstID() == dst && e->getEdgeKind() == ConstraintEdge::Load)
@@ -158,6 +160,7 @@ void ConditionalAndersenWaveDiff::attachStaticEdgeGuards()
             }
         }
     };
+    // --- LoadStmt: guard from enclosing BB ---
     SVFStmt::SVFStmtSetTy& loads = pag->getPTASVFStmtSet(SVFStmt::Load);
     for (auto it = loads.begin(), eit = loads.end(); it != eit; ++it)
     {
@@ -172,6 +175,7 @@ void ConditionalAndersenWaveDiff::attachStaticEdgeGuards()
     {
         if (!guard || guard->isTrue()) return;
         ConstraintNode* srcNode = consCG->getConstraintNode(src);
+        if (!srcNode) return;
         for (ConstraintEdge* e : srcNode->getOutEdges())
         {
             if (e->getDstID() == dst && e->getEdgeKind() == ConstraintEdge::Store)
@@ -194,12 +198,12 @@ void ConditionalAndersenWaveDiff::attachStaticEdgeGuards()
         if (!g->isTrue())
             setStoreGuard(st->getRHSVarID(), st->getLHSVarID(), g);
     }
-
     // --- GepStmt: guard from enclosing BB ---
     auto setGepGuard = [&](NodeID src, NodeID dst, const PathCond* guard)
     {
         if (!guard || guard->isTrue()) return;
         ConstraintNode* srcNode = consCG->getConstraintNode(src);
+        if (!srcNode) return;
         for (ConstraintEdge* e : srcNode->getOutEdges())
         {
             if (e->getDstID() == dst && (e->getEdgeKind() == ConstraintEdge::NormalGep || e->getEdgeKind() == ConstraintEdge::VariantGep))
@@ -221,7 +225,6 @@ void ConditionalAndersenWaveDiff::attachStaticEdgeGuards()
         if (!g->isTrue())
             setGepGuard(gs->getRHSVarID(), gs->getLHSVarID(), g);
     }
-
     // --- SelectStmt: per-operand guard from enclosing BB ---
     SVFStmt::SVFStmtSetTy& selects = pag->getPTASVFStmtSet(SVFStmt::Select);
     for (auto it = selects.begin(), eit = selects.end(); it != eit; ++it)
@@ -316,6 +319,7 @@ void ConditionalAndersenWaveDiff::mergeCopyEdgeGuard(NodeID src, NodeID dst, con
         // Edge already exists (or we don't want to create); find it via directEdgeSet (O(log N)) and OR-merge the guard
         ConstraintNode* srcNode = consCG->getConstraintNode(src);
         ConstraintNode* dstNode = consCG->getConstraintNode(dst);
+        if (!srcNode || !dstNode) return; // nodes may not exist in constraint graph
         ConstraintEdge keyEdge(srcNode, dstNode, ConstraintEdge::Copy);
         auto it = consCG->getDirectCGEdges().find(&keyEdge);
         if (it != consCG->getDirectCGEdges().end())
