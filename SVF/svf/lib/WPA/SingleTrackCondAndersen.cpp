@@ -6,12 +6,16 @@
 
 #include "WPA/SingleTrackCondAndersen.h"
 #include "Util/SVFUtil.h"
+#include "Util/Options.h"
 #include "SVFIR/SVFIR.h"
+#include <random>
 
 using namespace SVF;
 
 SingleTrackCondAndersen::SingleTrackCondAndersen(SVFIR* _pag, PTATY type)
-    : ConditionalAndersenWaveDiff(_pag, type), analysisComplete(false)
+    : ConditionalAndersenWaveDiff(_pag, type), analysisComplete(false),
+      aliasSampleSize(Options::SingleTrackAliasSample()),
+      aliasUseSat(Options::SingleTrackAliasSat())
 {
 }
 
@@ -164,9 +168,104 @@ void SingleTrackCondAndersen::finalize()
     for (const auto& entry : condPtsMap)
         numCondPtsEntries += entry.second.size();
 
+    // Optional alias pair sampling
+    if (aliasSampleSize > 0)
+        sampleAliasQueries(aliasSampleSize);
+
     SVFUtil::outs() << "\n========== SingleTrackCondAndersen Statistics ==========\n";
     SVFUtil::outs() << "  analysisComplete:    true\n";
     SVFUtil::outs() << "  CondPts entries:     " << numCondPtsEntries << "\n";
     SVFUtil::outs() << "========================================================\n\n";
     SVFUtil::outs().flush();
+}
+
+void SingleTrackCondAndersen::sampleAliasQueries(u32_t sampleSize)
+{
+    SVFUtil::outs() << "  [sampleAlias] Collecting top-level vars...\n";
+    std::vector<NodeID> topVars;
+    const auto& varMap = pag->getSVFVarMap();
+    for (const auto& p : varMap)
+    {
+        if (pag->isValidTopLevelPtr(p.second))
+            topVars.push_back(p.first);
+    }
+    if (topVars.size() < 2)
+    {
+        SVFUtil::outs() << "  [sampleAlias] Too few top-level vars (" << topVars.size() << "), skipping.\n";
+        return;
+    }
+    SVFUtil::outs() << "  [sampleAlias] Top-level vars: " << topVars.size() << ", generating pairs...\n";
+
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<size_t> dist(0, topVars.size() - 1);
+
+    u32_t baseMay = 0;
+    u32_t refinedToNoAlias = 0;
+    u32_t stayedMayAlias = 0;
+
+    for (u32_t i = 0; i < sampleSize; ++i)
+    {
+        size_t a = dist(rng);
+        size_t b = dist(rng);
+        if (a == b) { if (++b >= topVars.size()) b = 0; }
+
+        NodeID v1 = topVars[a];
+        NodeID v2 = topVars[b];
+        NodeID n1 = sccRepNode(v1);
+        NodeID n2 = sccRepNode(v2);
+
+        if (!Andersen::getPts(n1).intersects(Andersen::getPts(n2)))
+            continue;
+
+        baseMay++;
+
+        ensureNodeSynced(n1);
+        ensureNodeSynced(n2);
+        auto it1 = condPtsMap.find(n1);
+        auto it2 = condPtsMap.find(n2);
+        if (it1 == condPtsMap.end() || it2 == condPtsMap.end())
+        {
+            refinedToNoAlias++;
+            continue;
+        }
+
+        bool mayAlias = false;
+        for (const auto& p1 : it1->second)
+        {
+            if (p1.second->isFalse()) continue;
+            auto jt = it2->second.find(p1.first);
+            if (jt == it2->second.end()) continue;
+            const PathCond* g2 = jt->second;
+            if (g2->isFalse()) continue;
+            if (p1.second->isTrue() && g2->isTrue())
+            {
+                mayAlias = true;
+                break;
+            }
+            if (aliasUseSat)
+            {
+                if (z3IsSat(PathCond::getAnd(p1.second, g2)))
+                {
+                    mayAlias = true;
+                    break;
+                }
+            }
+            else
+            {
+                // Approximate mode: conservatively treat non-True guards as satisfiable
+                mayAlias = true;
+                break;
+            }
+        }
+
+        if (mayAlias)
+            stayedMayAlias++;
+        else
+            refinedToNoAlias++;
+    }
+
+    SVFUtil::outs() << "  [sampleAlias] Done. baseMayAlias=" << baseMay
+                    << " refinedToNoAlias=" << refinedToNoAlias
+                    << " stayedMayAlias=" << stayedMayAlias
+                    << " (Z3 SAT: " << (aliasUseSat ? "enabled" : "disabled") << ")\n";
 }

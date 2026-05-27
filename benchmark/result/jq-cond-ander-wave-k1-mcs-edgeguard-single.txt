@@ -31,9 +31,9 @@ TotalSVFStmts       182884
 VarArrayObj         128
 VarStructObj        3407
 ----------------Time and memory stats--------------------
-LLVMIRTime          0.362
-SVFIRTime           1.391
-SymbolTableTime     0.097
+LLVMIRTime          0.338
+SVFIRTime           1.252
+SymbolTableTime     0.093
 #######################################################
 
 *********PTACallGraph Stats (Andersen analysis)***************
@@ -62,9 +62,9 @@ CopyGepTime         0
 LoadStoreTime       0
 MemoryUsageVmrss    0
 MemoryUsageVmsize   0
-SCCDetectTime       0.672
-SCCMergeTime        0.389
-TotalTime           4.162
+SCCDetectTime       0.677
+SCCMergeTime        0.312
+TotalTime           3.663
 UpdateCGTime        0
 ----------------Numbers stats----------------------------
 AddrProcessed       22350
@@ -115,53 +115,28 @@ TotalPointers       190323
 ****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
 ################ (program : jq.bc)###############
 UniquePointsToSets       21489
-TotalUnions              267557
+TotalUnions              267555
 PropertyUnions           89509
 UniqueUnions             3219
 LookupUnions             169003
-PreemptiveUnions         5826
+PreemptiveUnions         5824
 TotalComplements         1118948
 PropertyComplements      1035873
 UniqueComplements        2398
 LookupComplements        78283
 PreemptiveComplements    2394
-TotalIntersections       226129
-PropertyIntersections    219569
-UniqueIntersections      57
-LookupIntersections      1691
-PreemptiveIntersections  4812
+TotalIntersections       226127
+PropertyIntersections    219689
+UniqueIntersections      48
+LookupIntersections      1580
+PreemptiveIntersections  4810
 #######################################################
-  [sampleAlias] Sampling 10000 pairs from 65810 top-level vars...
-  [sampleAlias] Done. baseMayAlias=1366 refinedToNoAlias=0 stayedMayAlias=1366
-
-========== Conditional Andersen Statistics ==========
-  Limit mode:          depth-based
-  kLimit:              1
-  eagerSat:            false
-  PWC enabled:         true
-  Z3 SAT checks:       1366
-  Alias queries:       9995
-  Alias base MayAlias: 1366
-  Alias refined (May): 1366
-  Alias refined (No):  0
-  CondPts entries:     1101114
-
-  === Conditional Overhead (ms) ===
-  Cond propagation:    0
-  Cond alias query:    0
-  Cond SCC merge:      0
-  Guard limit:         0
-  SAT check:           0
-  Total cond overhead: 0
-  Copy guards:         31279
-  Load guards:         0
-  Store guards:        0
-  GEP guards:          0
-=====================================================
-
+  [sampleAlias] Collecting top-level vars...
+  [sampleAlias] Top-level vars: 65810, generating pairs...
+  [sampleAlias] Done. baseMayAlias=13499772 refinedToNoAlias=585 stayedMayAlias=13499187 (Z3 SAT: enabled)
 
 ========== SingleTrackCondAndersen Statistics ==========
   analysisComplete:    true
-  CondPts entries:     1101114
+  CondPts entries:     1099664
 ========================================================
 

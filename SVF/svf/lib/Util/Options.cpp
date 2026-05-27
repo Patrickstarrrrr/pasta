@@ -390,6 +390,18 @@ const Option<bool> Options::CondAnderMergeCondSCC(
     false
 );
 
+const Option<u32_t> Options::SingleTrackAliasSample(
+    "single-track-alias-sample",
+    "number of alias pairs to sample in SingleTrackCondAndersen finalize (0 = disable)",
+    0
+);
+
+const Option<bool> Options::SingleTrackAliasSat(
+    "single-track-alias-sat",
+    "enable Z3 SAT checking in SingleTrackCondAndersen alias sampling (default: false)",
+    false
+);
+
 const Option<bool> Options::SaberCondAnder(
     "saber-cond-ander",
     "use ConditionalAndersen as the base PTA for SABER",

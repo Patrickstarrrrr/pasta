@@ -46,11 +46,16 @@ public:
 protected:
     mutable std::unordered_map<NodeID, PointsTo> ptsCache;
     bool analysisComplete;
+    u32_t aliasSampleSize;           ///< number of alias pairs to sample (0 = disable)
+    bool aliasUseSat;                ///< use Z3 SAT in alias sampling
 
     /// Ensure condPtsMap[node] contains every object in bitvector pts[node]
     void ensureNodeSynced(NodeID node);
 
     void invalidatePtsCache(NodeID id) { ptsCache.erase(id); }
+
+    /// Sample alias queries on top-level pointers and report precision gain
+    void sampleAliasQueries(u32_t sampleSize);
 };
 
 } // namespace SVF
