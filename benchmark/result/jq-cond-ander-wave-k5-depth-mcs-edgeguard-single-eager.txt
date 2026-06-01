@@ -31,9 +31,9 @@ TotalSVFStmts       182888
 VarArrayObj         128
 VarStructObj        3407
 ----------------Time and memory stats--------------------
-LLVMIRTime          0.33
-SVFIRTime           1.245
-SymbolTableTime     0.091
+LLVMIRTime          0.331
+SVFIRTime           1.174
+SymbolTableTime     0.093
 #######################################################
 
 *********PTACallGraph Stats (Andersen analysis)***************
@@ -62,16 +62,16 @@ CopyGepTime         0
 LoadStoreTime       0
 MemoryUsageVmrss    0
 MemoryUsageVmsize   0
-SCCDetectTime       0.626
-SCCMergeTime        0.333
-TotalTime           6.404
+SCCDetectTime       0.543
+SCCMergeTime        0.282
+TotalTime           10.611
 UpdateCGTime        0
 ----------------Numbers stats----------------------------
 AddrProcessed       22350
-CopyProcessed       180264
+CopyProcessed       173044
 DummyFieldPtrs      1056
 FieldObjs           5242
-GepProcessed        58603
+GepProcessed        51805
 IndCallSites        501
 IndEdgeSolved       6409
 LoadProcessed       550531
@@ -115,28 +115,28 @@ TotalPointers       190326
 ****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
 ################ (program : jq.bc)###############
 UniquePointsToSets       21489
-TotalUnions              284601
-PropertyUnions           106550
+TotalUnions              270585
+PropertyUnions           92532
 UniqueUnions             3219
 LookupUnions             169007
-PreemptiveUnions         5825
+PreemptiveUnions         5827
 TotalComplements         1118985
 PropertyComplements      1035906
 UniqueComplements        2398
 LookupComplements        78287
 PreemptiveComplements    2394
-TotalIntersections       226167
-PropertyIntersections    219722
-UniqueIntersections      52
-LookupIntersections      1582
-PreemptiveIntersections  4811
+TotalIntersections       226169
+PropertyIntersections    219565
+UniqueIntersections      58
+LookupIntersections      1733
+PreemptiveIntersections  4813
 #######################################################
   [sampleAlias] Collecting top-level vars...
   [sampleAlias] Top-level vars: 65812, generating pairs...
-  [sampleAlias] Done. baseMayAlias=13496060 refinedToNoAlias=0 stayedMayAlias=13496060 (Z3 SAT: disabled)
+  [sampleAlias] Done. baseMayAlias=1350626 refinedToNoAlias=141 stayedMayAlias=1350485 (Z3 SAT: enabled)
 
 ========== SingleTrackCondAndersen Statistics ==========
   analysisComplete:    true
-  CondPts entries:     1805436
+  CondPts entries:     1496472
 ========================================================
 
