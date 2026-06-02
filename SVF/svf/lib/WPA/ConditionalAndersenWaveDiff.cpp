@@ -1160,6 +1160,14 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
     auto it = condPtsMap.find(src);
 
     // Diff-based propagation: only iterate objects whose guards changed.
+    // NOTE: src always equals currentDiffNode here (handleCopyGep processes
+    // outgoing edges of the current node), so we only need the diff path.
+    // The fallback full-scan was removed because every object in condPtsMap
+    // is already present in the bitvector points-to set, and therefore has
+    // already been processed by Andersen::processGep (bitvector path) in a
+    // previous iteration. Re-processing them here caused redundant
+    // setObjFieldInsensitive / addNodeToBeCollapsed side effects that leaked
+    // conditional metadata into bitvector state.
     if (src == currentDiffNode && !currentDiffObjs.empty() && it != condPtsMap.end())
     {
         for (NodeID o : currentDiffObjs)
@@ -1168,23 +1176,6 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
             if (jt == it->second.end()) continue;
 
             const PathCond* og = jt->second;
-            if (og->isFalse()) continue;
-
-            const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
-            if (eagerSat && !z3IsSat(g)) continue;
-
-            NodeID newField = translateField(o);
-            if (orMergeCondPts(dst, newField, g))
-                condChanged = true;
-        }
-    }
-    else if (it != condPtsMap.end())
-    {
-        // Fallback: full scan for non-diff nodes.
-        for (const auto& pair : it->second)
-        {
-            NodeID o = pair.first;
-            const PathCond* og = pair.second;
             if (og->isFalse()) continue;
 
             const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);

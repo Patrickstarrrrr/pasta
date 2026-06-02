@@ -15,7 +15,9 @@ using namespace SVF;
 SingleTrackCondAndersen::SingleTrackCondAndersen(SVFIR* _pag, PTATY type)
     : ConditionalAndersenWaveDiff(_pag, type), analysisComplete(false),
       aliasSampleSize(Options::SingleTrackAliasSample()),
-      aliasUseSat(Options::SingleTrackAliasSat())
+      aliasUseSat(Options::SingleTrackAliasSat()),
+      aliasQueryCount(0), aliasQueryTime(0.0),
+      condPtsMapNodes(0), condPtsMapMaxSize(0), condPtsMapMinSize(0)
 {
 }
 
@@ -120,13 +122,19 @@ AliasResult SingleTrackCondAndersen::alias(NodeID v1, NodeID v2)
     if (!analysisComplete)
         return ConditionalAndersenWaveDiff::alias(n1, n2);
 
+    double tStart = SVFStat::getClk(true);
+    aliasQueryCount++;
+
     ensureNodeSynced(n1);
     ensureNodeSynced(n2);
 
     auto it1 = condPtsMap.find(n1);
     auto it2 = condPtsMap.find(n2);
     if (it1 == condPtsMap.end() || it2 == condPtsMap.end())
+    {
+        aliasQueryTime += (SVFStat::getClk(true) - tStart) / TIMEINTERVAL;
         return NoAlias;
+    }
 
     for (const auto& p1 : it1->second)
     {
@@ -139,11 +147,18 @@ AliasResult SingleTrackCondAndersen::alias(NodeID v1, NodeID v2)
             if (g2->isFalse())
                 continue;
             if (p1.second->isTrue() && g2->isTrue())
+            {
+                aliasQueryTime += (SVFStat::getClk(true) - tStart) / TIMEINTERVAL;
                 return MayAlias;
+            }
             if (z3IsSat(PathCond::getAnd(p1.second, g2)))
+            {
+                aliasQueryTime += (SVFStat::getClk(true) - tStart) / TIMEINTERVAL;
                 return MayAlias;
+            }
         }
     }
+    aliasQueryTime += (SVFStat::getClk(true) - tStart) / TIMEINTERVAL;
     return NoAlias;
 }
 
@@ -163,10 +178,25 @@ void SingleTrackCondAndersen::finalize()
     analysisComplete = true;
     ptsCache.clear();
 
-    // Count conditional points-to entries
+    // Count conditional points-to entries and compute detailed stats
     numCondPtsEntries = 0;
+    condPtsMapNodes = 0;
+    condPtsMapMaxSize = 0;
+    condPtsMapMinSize = 0;
+    bool first = true;
     for (const auto& entry : condPtsMap)
-        numCondPtsEntries += entry.second.size();
+    {
+        u64_t sz = entry.second.size();
+        if (sz == 0) continue;
+        numCondPtsEntries += sz;
+        condPtsMapNodes++;
+        if (sz > condPtsMapMaxSize) condPtsMapMaxSize = sz;
+        if (first || sz < condPtsMapMinSize)
+        {
+            condPtsMapMinSize = sz;
+            first = false;
+        }
+    }
 
     // Optional alias pair sampling
     if (aliasSampleSize > 0)
@@ -174,7 +204,22 @@ void SingleTrackCondAndersen::finalize()
 
     SVFUtil::outs() << "\n========== SingleTrackCondAndersen Statistics ==========\n";
     SVFUtil::outs() << "  analysisComplete:    true\n";
-    SVFUtil::outs() << "  CondPts entries:     " << numCondPtsEntries << "\n";
+    SVFUtil::outs() << "  CondPtsMap nodes:    " << condPtsMapNodes << "\n";
+    SVFUtil::outs() << "  CondPtsMap entries:  " << numCondPtsEntries << "\n";
+    if (condPtsMapNodes > 0)
+    {
+        double avg = static_cast<double>(numCondPtsEntries) / static_cast<double>(condPtsMapNodes);
+        SVFUtil::outs() << "  CondPtsMap avg:      " << avg << "\n";
+        SVFUtil::outs() << "  CondPtsMap max:      " << condPtsMapMaxSize << "\n";
+        SVFUtil::outs() << "  CondPtsMap min:      " << condPtsMapMinSize << "\n";
+    }
+    if (aliasQueryCount > 0)
+    {
+        double avgMs = (aliasQueryTime * 1000.0) / static_cast<double>(aliasQueryCount);
+        SVFUtil::outs() << "  Alias queries:       " << aliasQueryCount << "\n";
+        SVFUtil::outs() << "  Alias total time:    " << aliasQueryTime << "s\n";
+        SVFUtil::outs() << "  Alias avg time:      " << avgMs << "ms\n";
+    }
     SVFUtil::outs() << "========================================================\n\n";
     SVFUtil::outs().flush();
 }
@@ -219,46 +264,9 @@ void SingleTrackCondAndersen::sampleAliasQueries(u32_t sampleSize)
 
         baseMay++;
 
-        ensureNodeSynced(n1);
-        ensureNodeSynced(n2);
-        auto it1 = condPtsMap.find(n1);
-        auto it2 = condPtsMap.find(n2);
-        if (it1 == condPtsMap.end() || it2 == condPtsMap.end())
-        {
-            refinedToNoAlias++;
-            continue;
-        }
-
-        bool mayAlias = false;
-        for (const auto& p1 : it1->second)
-        {
-            if (p1.second->isFalse()) continue;
-            auto jt = it2->second.find(p1.first);
-            if (jt == it2->second.end()) continue;
-            const PathCond* g2 = jt->second;
-            if (g2->isFalse()) continue;
-            if (p1.second->isTrue() && g2->isTrue())
-            {
-                mayAlias = true;
-                break;
-            }
-            if (aliasUseSat)
-            {
-                if (z3IsSat(PathCond::getAnd(p1.second, g2)))
-                {
-                    mayAlias = true;
-                    break;
-                }
-            }
-            else
-            {
-                // Approximate mode: conservatively treat non-True guards as satisfiable
-                mayAlias = true;
-                break;
-            }
-        }
-
-        if (mayAlias)
+        // Use the class alias() method so that alias query timing is captured.
+        AliasResult r = alias(v1, v2);
+        if (r == MayAlias)
             stayedMayAlias++;
         else
             refinedToNoAlias++;

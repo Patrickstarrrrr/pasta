@@ -1,0 +1,149 @@
+
+*********General Stats***************
+################ (program : git.bc)###############
+AddrsNum            23765
+BBWith2Succ         35184
+BBWith3Succ         674
+CallsNum            5905
+ConstArrayObj       207
+ConstStructObj      307
+ConstantObj         0
+CopysNum            20772
+FIObjNum            5100
+FSObjNum            4474
+FunctionObjs        3424
+GepsNum             67754
+GlobalObjs          1738
+HeapObjs            292
+IndCallSites        376
+LoadsNum            50058
+MaxStructSize       272
+NonPtrObj           8614
+ReturnsNum          13761
+StackObjs           4120
+StoresNum           39416
+TotalCallSite       44179
+TotalFieldObjects   9612
+TotalObjects        19187
+TotalPTASVFStmts    158016
+TotalPointers       484512
+TotalSVFStmts       359198
+VarArrayObj         779
+VarStructObj        2321
+----------------Time and memory stats--------------------
+LLVMIRTime          1.459
+SVFIRTime           3.602
+SymbolTableTime     0.237
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : git.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   5335
+MaxNodeInCycle      569
+NodeInCycle         664
+TotalCycle          71
+TotalEdge           58324
+TotalNode           3424
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : git.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.147966
+AvgIn/OutCopyEdge   1.19124
+AvgIn/OutEdge       1.58744
+AvgIn/OutLoadEdge   0.145178
+AvgIn/OutStoreEdge  0.103052
+AvgPtsSetSize       134.64
+AvgTopLvlPtsSize    449.124
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       3.085
+SCCMergeTime        7.058
+TotalTime           172.971
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       23765
+CopyProcessed       407532
+DummyFieldPtrs      3054
+FieldObjs           9612
+GepProcessed        217769
+IndCallSites        376
+IndEdgeSolved       14391
+LoadProcessed       44113266
+LocalVarInRecur     923
+MaxInAddrEdge       1
+MaxInCopyEdge       6250
+MaxInLoadEdge       3187
+MaxInStoreEdge      118
+MaxNodesInSCC       51
+MaxOutAddrEdge      14192
+MaxOutCopyEdge      15291
+MaxOutLoadEdge      356
+MaxOutStoreEdge     2611
+MaxPtsSetSize       2007
+MemObjects          19187
+NodesInCycles       3301
+NullPointer         1189
+NumOfAddrs          22030
+NumOfCGEdge         214317
+NumOfCGNode         153749
+NumOfCopys          111381
+NumOfFieldExpand    0
+NumOfGeps           65978
+NumOfLoads          21615
+NumOfSCCDetect      16
+NumOfSFRs           0
+NumOfStores         15343
+NumOfValidNode      148886
+NumOfValidObjNode   13153
+Pointers            484512
+PointsToBlkPtr      0
+PointsToConstPtr    20849
+SolveIterations     16
+StoreProcessed      7210423
+TotalCycleNum       1043
+TotalObjects        19187
+TotalPWCCycleNum    104
+TotalPointers       484512
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : git.bc)###############
+UniquePointsToSets       144359
+TotalUnions              1003143
+PropertyUnions           359561
+UniqueUnions             72486
+LookupUnions             438627
+PreemptiveUnions         132469
+TotalComplements         2763602
+PropertyComplements      2290600
+UniqueComplements        63865
+LookupComplements        345284
+PreemptiveComplements    63853
+TotalIntersections       2305885
+PropertyIntersections    2175610
+UniqueIntersections      205
+LookupIntersections      2212
+PreemptiveIntersections  127858
+#######################################################
+  [sampleAlias] Collecting top-level vars...
+  [sampleAlias] Top-level vars: 137079, generating pairs...
+  [sampleAlias] Done. baseMayAlias=37451829 refinedToNoAlias=432091 stayedMayAlias=37019738 (Z3 SAT: enabled)
+
+========== SingleTrackCondAndersen Statistics ==========
+  analysisComplete:    true
+  CondPtsMap nodes:    85231
+  CondPtsMap entries:  42680212
+  CondPtsMap avg:      500.759
+  CondPtsMap max:      2081
+  CondPtsMap min:      1
+  Alias queries:       37259716
+  Alias total time:    3612.55s
+  Alias avg time:      0.0969559ms
+========================================================
+

@@ -16,6 +16,7 @@
 #define SINGLETRACK_COND_ANDERSEN_H_
 
 #include "WPA/ConditionalAndersenWaveDiff.h"
+#include "Util/SVFStat.h"
 #include <unordered_map>
 
 namespace SVF
@@ -48,6 +49,15 @@ protected:
     bool analysisComplete;
     u32_t aliasSampleSize;           ///< number of alias pairs to sample (0 = disable)
     bool aliasUseSat;                ///< use Z3 SAT in alias sampling
+
+    /// Statistics: alias query timing (post-analysis only)
+    u64_t aliasQueryCount;           ///< number of alias() calls after analysis
+    double aliasQueryTime;           ///< total time spent in alias() (seconds)
+
+    /// Statistics: condPtsMap size details
+    u64_t condPtsMapNodes;           ///< number of nodes in condPtsMap
+    u64_t condPtsMapMaxSize;         ///< max entries per node
+    u64_t condPtsMapMinSize;         ///< min entries per node (non-empty)
 
     /// Ensure condPtsMap[node] contains every object in bitvector pts[node]
     void ensureNodeSynced(NodeID node);
