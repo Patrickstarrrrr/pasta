@@ -144,8 +144,9 @@ public:
     static const Option<bool> CondAnderMergeCondSCC;   // merge SCCs with conditional edges
 
     // SingleTrackCondAndersen
-    static const Option<u32_t> SingleTrackAliasSample; // alias pair sample size (0 = disable)
-    static const Option<bool> SingleTrackAliasSat;     // use Z3 SAT in alias sampling
+    static const Option<u32_t> SingleTrackAliasSample;      // alias pair sample size (0 = disable)
+    static const Option<bool> SingleTrackAliasSat;          // use Z3 SAT in alias sampling
+    static const Option<u32_t> SingleTrackPrecisionSample;  // per-pointer precision sample size (0 = disable)
 
     // SABER
     static const Option<bool> SaberCondAnder;

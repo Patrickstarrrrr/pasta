@@ -12,28 +12,28 @@ CopysNum            20772
 FIObjNum            5100
 FSObjNum            4474
 FunctionObjs        3424
-GepsNum             68108
+GepsNum             67754
 GlobalObjs          1738
 HeapObjs            292
 IndCallSites        376
-LoadsNum            50235
+LoadsNum            50058
 MaxStructSize       272
-NonPtrObj           8596
+NonPtrObj           8614
 ReturnsNum          13761
 StackObjs           4120
-StoresNum           39593
+StoresNum           39416
 TotalCallSite       44179
 TotalFieldObjects   9612
 TotalObjects        19187
-TotalPTASVFStmts    158724
-TotalPointers       485043
-TotalSVFStmts       359906
+TotalPTASVFStmts    158016
+TotalPointers       484512
+TotalSVFStmts       359198
 VarArrayObj         779
 VarStructObj        2321
 ----------------Time and memory stats--------------------
-LLVMIRTime          1.583
-SVFIRTime           3.647
-SymbolTableTime     0.238
+LLVMIRTime          1.774
+SVFIRTime           4.048
+SymbolTableTime     0.3
 #######################################################
 
 *********PTACallGraph Stats (Andersen analysis)***************
@@ -50,100 +50,100 @@ TotalNode           3424
 *********Andersen Pointer Analysis Stats***************
 ################ (program : git.bc)###############
 ----------------Time and memory stats--------------------
-AvgIn/OutAddrEdge   0.147542
-AvgIn/OutCopyEdge   1.19084
-AvgIn/OutEdge       1.58827
-AvgIn/OutLoadEdge   0.145942
-AvgIn/OutStoreEdge  0.103943
-AvgPtsSetSize       135.099
-AvgTopLvlPtsSize    448.786
+AvgIn/OutAddrEdge   0.147966
+AvgIn/OutCopyEdge   1.19124
+AvgIn/OutEdge       1.58744
+AvgIn/OutLoadEdge   0.145178
+AvgIn/OutStoreEdge  0.103052
+AvgPtsSetSize       134.64
+AvgTopLvlPtsSize    449.124
 CollapseTime        0
 CopyGepTime         0
 LoadStoreTime       0
 MemoryUsageVmrss    0
 MemoryUsageVmsize   0
-SCCDetectTime       2.713
-SCCMergeTime        6.982
-TotalTime           1512.07
+SCCDetectTime       3.171
+SCCMergeTime        8.578
+TotalTime           552.388
 UpdateCGTime        0
 ----------------Numbers stats----------------------------
 AddrProcessed       23765
-CopyProcessed       407374
+CopyProcessed       424729
 DummyFieldPtrs      3054
 FieldObjs           9612
-GepProcessed        218972
+GepProcessed        213062
 IndCallSites        376
 IndEdgeSolved       14391
-LoadProcessed       44176681
+LoadProcessed       44113266
 LocalVarInRecur     923
 MaxInAddrEdge       1
-MaxInCopyEdge       6286
-MaxInLoadEdge       3313
+MaxInCopyEdge       6250
+MaxInLoadEdge       3187
 MaxInStoreEdge      118
 MaxNodesInSCC       51
 MaxOutAddrEdge      14192
-MaxOutCopyEdge      15308
+MaxOutCopyEdge      15291
 MaxOutLoadEdge      356
-MaxOutStoreEdge     2737
+MaxOutStoreEdge     2611
 MaxPtsSetSize       2007
 MemObjects          19187
 NodesInCycles       3301
-NullPointer         1190
+NullPointer         1189
 NumOfAddrs          22030
-NumOfCGEdge         215119
-NumOfCGNode         154150
-NumOfCopys          111476
+NumOfCGEdge         214317
+NumOfCGNode         153749
+NumOfCopys          111381
 NumOfFieldExpand    0
-NumOfGeps           66332
-NumOfLoads          21791
+NumOfGeps           65978
+NumOfLoads          21615
 NumOfSCCDetect      16
 NumOfSFRs           0
-NumOfStores         15520
-NumOfValidNode      149313
-NumOfValidObjNode   13178
-Pointers            485043
+NumOfStores         15343
+NumOfValidNode      148886
+NumOfValidObjNode   13153
+Pointers            484512
 PointsToBlkPtr      0
-PointsToConstPtr    20931
+PointsToConstPtr    20849
 SolveIterations     16
-StoreProcessed      7221339
+StoreProcessed      7210423
 TotalCycleNum       1043
 TotalObjects        19187
 TotalPWCCycleNum    104
-TotalPointers       485043
+TotalPointers       484512
 #######################################################
 
 ****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
 ################ (program : git.bc)###############
-UniquePointsToSets       145526
-TotalUnions              1007861
-PropertyUnions           360814
-UniqueUnions             72897
-LookupUnions             440454
-PreemptiveUnions         133696
-TotalComplements         2772235
-PropertyComplements      2295998
-UniqueComplements        64336
-LookupComplements        347577
-PreemptiveComplements    64324
-TotalIntersections       2297017
-PropertyIntersections    2165722
-UniqueIntersections      206
-LookupIntersections      2290
-PreemptiveIntersections  128799
+UniquePointsToSets       144358
+TotalUnions              1015629
+PropertyUnions           372051
+UniqueUnions             72487
+LookupUnions             438626
+PreemptiveUnions         132465
+TotalComplements         2763602
+PropertyComplements      2290600
+UniqueComplements        63865
+LookupComplements        345284
+PreemptiveComplements    63853
+TotalIntersections       2305880
+PropertyIntersections    2175654
+UniqueIntersections      195
+LookupIntersections      2178
+PreemptiveIntersections  127853
 #######################################################
   [sampleAlias] Collecting top-level vars...
-  [sampleAlias] Top-level vars: 137433, generating pairs...
-  [sampleAlias] Done. baseMayAlias=37457313 refinedToNoAlias=190808 stayedMayAlias=37266505 (Z3 SAT: enabled)
+  [sampleAlias] Top-level vars: 137079, generating pairs...
+  [sampleAlias] Done. baseMayAlias=37451873 refinedToNoAlias=192304 stayedMayAlias=37259569 (Z3 SAT: enabled)
 
 ========== SingleTrackCondAndersen Statistics ==========
   analysisComplete:    true
-  CondPtsMap nodes:    85564
-  CondPtsMap entries:  42785124
-  CondPtsMap avg:      500.037
-  CondPtsMap max:      2081
+  CondPtsMap nodes:    80315
+  CondPtsMap entries:  39522799
+  CondPtsMap avg:      492.097
+  CondPtsMap max:      2037
   CondPtsMap min:      1
-  Alias queries:       37266733
-  Alias total time:    2852.47s
-  Alias avg time:      0.076542ms
+  Alias queries:       37259734
+  Alias total time:    1778.58s
+  Alias avg time:      0.0477347ms
 ========================================================
 

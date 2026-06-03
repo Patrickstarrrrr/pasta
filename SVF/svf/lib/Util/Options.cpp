@@ -402,6 +402,12 @@ const Option<bool> Options::SingleTrackAliasSat(
     false
 );
 
+const Option<u32_t> Options::SingleTrackPrecisionSample(
+    "single-track-precision-sample",
+    "number of top-level pointers to sample for per-pointer precision gain (0 = disable)",
+    0
+);
+
 const Option<bool> Options::SaberCondAnder(
     "saber-cond-ander",
     "use ConditionalAndersen as the base PTA for SABER",

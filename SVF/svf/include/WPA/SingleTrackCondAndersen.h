@@ -49,6 +49,7 @@ protected:
     bool analysisComplete;
     u32_t aliasSampleSize;           ///< number of alias pairs to sample (0 = disable)
     bool aliasUseSat;                ///< use Z3 SAT in alias sampling
+    u32_t precisionSampleSize;       ///< number of top-level ptrs to sample for precision (0 = disable)
 
     /// Statistics: alias query timing (post-analysis only)
     u64_t aliasQueryCount;           ///< number of alias() calls after analysis
@@ -66,6 +67,12 @@ protected:
 
     /// Sample alias queries on top-level pointers and report precision gain
     void sampleAliasQueries(u32_t sampleSize);
+
+    /// Sample top-level pointers and report per-pointer precision gain
+    void samplePrecisionGain(u32_t sampleSize);
+
+    /// Sample top-level pointers and report alias partner reduction
+    void sampleAliasPartnerReduction(u32_t sampleSize);
 };
 
 } // namespace SVF

@@ -1135,17 +1135,14 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
         SVFUtil::dyn_cast<NormalGepCGEdge>(edge);
     assert((isVariant || normalGep) && "unknown gep edge kind");
 
-    auto translateField = [&](NodeID o) -> NodeID
+    // Lightweight version for conditional path: no setObjFieldInsensitive
+    // side effect. We must not alter bitvector state from the conditional path.
+    auto translateFieldLite = [&](NodeID o) -> NodeID
     {
         if (isVariant)
         {
             if (consCG->isBlkObjOrConstantObj(o))
                 return o;
-            if (!isFieldInsensitive(o))
-            {
-                setObjFieldInsensitive(o);
-                consCG->addNodeToBeCollapsed(consCG->getBaseObjVarID(o));
-            }
             return consCG->getFIObjVar(o);
         }
         else
@@ -1181,7 +1178,16 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
             const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
             if (eagerSat && !z3IsSat(g)) continue;
 
-            NodeID newField = translateField(o);
+            NodeID newField = translateFieldLite(o);
+
+            // If the bitvector path never propagated this field object (e.g.
+            // because the source object was not in the diff set when the GEP
+            // edge was processed), skip it in condPtsMap as well. This keeps
+            // condPtsMap a subset of the bitvector, ensuring getPts() never
+            // returns objects that the baseline bitvector analysis missed.
+            if (!Andersen::getPts(dst).test(newField))
+                continue;
+
             if (orMergeCondPts(dst, newField, g))
                 condChanged = true;
         }
@@ -1198,7 +1204,12 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
             for (NodeID o : pts)
             {
                 if (it != condPtsMap.end() && it->second.count(o)) continue;
-                NodeID newField = translateField(o);
+                NodeID newField = translateFieldLite(o);
+
+                // Skip if bitvector never propagated this field object.
+                if (!Andersen::getPts(dst).test(newField))
+                    continue;
+
                 if (orMergeCondPts(dst, newField, limitedEdgeG))
                     condChanged = true;
             }

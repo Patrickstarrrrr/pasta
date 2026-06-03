@@ -16,6 +16,7 @@ SingleTrackCondAndersen::SingleTrackCondAndersen(SVFIR* _pag, PTATY type)
     : ConditionalAndersenWaveDiff(_pag, type), analysisComplete(false),
       aliasSampleSize(Options::SingleTrackAliasSample()),
       aliasUseSat(Options::SingleTrackAliasSat()),
+      precisionSampleSize(Options::SingleTrackPrecisionSample()),
       aliasQueryCount(0), aliasQueryTime(0.0),
       condPtsMapNodes(0), condPtsMapMaxSize(0), condPtsMapMinSize(0)
 {
@@ -151,8 +152,14 @@ AliasResult SingleTrackCondAndersen::alias(NodeID v1, NodeID v2)
                 aliasQueryTime += (SVFStat::getClk(true) - tStart) / TIMEINTERVAL;
                 return MayAlias;
             }
-            if (z3IsSat(PathCond::getAnd(p1.second, g2)))
+            if (aliasUseSat && z3IsSat(PathCond::getAnd(p1.second, g2)))
             {
+                aliasQueryTime += (SVFStat::getClk(true) - tStart) / TIMEINTERVAL;
+                return MayAlias;
+            }
+            if (!aliasUseSat)
+            {
+                // Approximate mode: conservatively treat non-True guards as MayAlias
                 aliasQueryTime += (SVFStat::getClk(true) - tStart) / TIMEINTERVAL;
                 return MayAlias;
             }
@@ -178,6 +185,29 @@ void SingleTrackCondAndersen::finalize()
     analysisComplete = true;
     ptsCache.clear();
 
+    // Clean up condPtsMap: remove objects that are not in the bitvector.
+    // These "extra" objects were introduced by the conditional processGep path
+    // when the bitvector diff was empty (bitvector path missed the field object).
+    // Keeping them breaks the subset invariant: condPtsMap should only track
+    // guards for objects already present in the bitvector.
+    for (auto it = condPtsMap.begin(); it != condPtsMap.end(); )
+    {
+        NodeID node = it->first;
+        const PointsTo& bvPts = Andersen::getPts(node);
+        auto& cmap = it->second;
+        for (auto jt = cmap.begin(); jt != cmap.end(); )
+        {
+            if (!bvPts.test(jt->first))
+                jt = cmap.erase(jt);
+            else
+                ++jt;
+        }
+        if (cmap.empty())
+            it = condPtsMap.erase(it);
+        else
+            ++it;
+    }
+
     // Count conditional points-to entries and compute detailed stats
     numCondPtsEntries = 0;
     condPtsMapNodes = 0;
@@ -201,6 +231,14 @@ void SingleTrackCondAndersen::finalize()
     // Optional alias pair sampling
     if (aliasSampleSize > 0)
         sampleAliasQueries(aliasSampleSize);
+
+    // Optional per-pointer precision gain sampling
+    if (precisionSampleSize > 0)
+        samplePrecisionGain(precisionSampleSize);
+
+    // Optional alias partner reduction sampling
+    if (precisionSampleSize > 0)
+        sampleAliasPartnerReduction(precisionSampleSize);
 
     SVFUtil::outs() << "\n========== SingleTrackCondAndersen Statistics ==========\n";
     SVFUtil::outs() << "  analysisComplete:    true\n";
@@ -276,4 +314,202 @@ void SingleTrackCondAndersen::sampleAliasQueries(u32_t sampleSize)
                     << " refinedToNoAlias=" << refinedToNoAlias
                     << " stayedMayAlias=" << stayedMayAlias
                     << " (Z3 SAT: " << (aliasUseSat ? "enabled" : "disabled") << ")\n";
+}
+
+void SingleTrackCondAndersen::samplePrecisionGain(u32_t sampleSize)
+{
+    SVFUtil::outs() << "  [samplePrecision] Collecting top-level vars...\n";
+    std::vector<NodeID> topVars;
+    const auto& varMap = pag->getSVFVarMap();
+    for (const auto& p : varMap)
+    {
+        if (pag->isValidTopLevelPtr(p.second))
+            topVars.push_back(p.first);
+    }
+    if (topVars.empty())
+    {
+        SVFUtil::outs() << "  [samplePrecision] No top-level vars, skipping.\n";
+        return;
+    }
+
+    // Random shuffle for sampling
+    std::mt19937 rng(42);
+    if (topVars.size() > sampleSize)
+    {
+        std::shuffle(topVars.begin(), topVars.end(), rng);
+        topVars.resize(sampleSize);
+    }
+
+    u32_t sampled = static_cast<u32_t>(topVars.size());
+    SVFUtil::outs() << "  [samplePrecision] Sampling " << sampled
+                    << " top-level pointers...\n";
+
+    u64_t totalBvSize = 0;
+    u64_t totalCondSize = 0;
+    u64_t refinedCount = 0;
+    u64_t totalReduction = 0;
+    u64_t maxReduction = 0;
+    u64_t extraInCond = 0;      // objects in condPtsMap but not in bitvector
+    u64_t missingInCond = 0;    // objects in bitvector but filtered by condPtsMap
+
+    for (NodeID v : topVars)
+    {
+        NodeID rep = sccRepNode(v);
+        size_t bvSize = Andersen::getPts(rep).count();
+        size_t condSize = getPts(rep).count();  // triggers lazy sync + False filter
+
+        totalBvSize += bvSize;
+        totalCondSize += condSize;
+
+        if (condSize < bvSize)
+        {
+            refinedCount++;
+            u64_t reduction = static_cast<u64_t>(bvSize - condSize);
+            totalReduction += reduction;
+            if (reduction > maxReduction)
+                maxReduction = reduction;
+        }
+
+        // Debug: count extra/missing objects
+        auto cIt = condPtsMap.find(rep);
+        if (cIt != condPtsMap.end())
+        {
+            const PointsTo& bvPts = Andersen::getPts(rep);
+            for (const auto& pair : cIt->second)
+            {
+                if (pair.second->isFalse()) continue;
+                if (!bvPts.test(pair.first))
+                    extraInCond++;
+            }
+        }
+        for (NodeID obj : Andersen::getPts(rep))
+        {
+            if (cIt == condPtsMap.end() || cIt->second.find(obj) == cIt->second.end())
+                missingInCond++;
+            else if (cIt->second.at(obj)->isFalse())
+                missingInCond++;
+        }
+    }
+
+    // Clear pts cache to free memory (getPts may have cached many sets)
+    ptsCache.clear();
+
+    double avgReduction = (refinedCount > 0)
+        ? (static_cast<double>(totalReduction) / static_cast<double>(refinedCount))
+        : 0.0;
+
+    SVFUtil::outs() << "  [samplePrecision] Done. sampled=" << sampled
+                    << " totalBvSize=" << totalBvSize
+                    << " totalCondSize=" << totalCondSize
+                    << " refined=" << refinedCount
+                    << " totalReduction=" << totalReduction
+                    << " avgReduction=" << avgReduction
+                    << " maxReduction=" << maxReduction
+                    << " extraInCond=" << extraInCond
+                    << " missingInCond=" << missingInCond << "\n";
+}
+
+void SingleTrackCondAndersen::sampleAliasPartnerReduction(u32_t sampleSize)
+{
+    SVFUtil::outs() << "  [samplePartners] Collecting top-level vars...\n";
+    std::vector<NodeID> topVars;
+    const auto& varMap = pag->getSVFVarMap();
+    for (const auto& p : varMap)
+    {
+        if (pag->isValidTopLevelPtr(p.second))
+            topVars.push_back(p.first);
+    }
+    if (topVars.empty())
+    {
+        SVFUtil::outs() << "  [samplePartners] No top-level vars, skipping.\n";
+        return;
+    }
+
+    std::mt19937 rng(42);
+    if (topVars.size() > sampleSize)
+    {
+        std::shuffle(topVars.begin(), topVars.end(), rng);
+        topVars.resize(sampleSize);
+    }
+
+    SVFUtil::outs() << "  [samplePartners] Sampling " << topVars.size()
+                    << " top-level pointers for alias partner reduction...\n";
+
+    // Pre-sync all top-level pointers so alias() avoids repeated sync overhead
+    SVFUtil::outs() << "  [samplePartners] Syncing top-level pointers to condPtsMap...\n";
+    for (NodeID v : topVars)
+        ensureNodeSynced(sccRepNode(v));
+
+    // Build reverse points-to map (object -> top-level pointers) using bitvector pts
+    SVFUtil::outs() << "  [samplePartners] Building reverse points-to map...\n";
+    Map<NodeID, std::vector<NodeID>> revPts;
+    for (NodeID v : topVars)
+    {
+        NodeID rep = sccRepNode(v);
+        for (NodeID o : Andersen::getPts(rep))
+            revPts[o].push_back(v);
+    }
+
+    u64_t totalBvPartners = 0;
+    u64_t totalRefined = 0;
+    u64_t refinedPtrCount = 0;
+    u64_t totalReduction = 0;
+    u64_t maxReduction = 0;
+
+    for (NodeID p : topVars)
+    {
+        NodeID repP = sccRepNode(p);
+
+        // Collect all bitvector alias partners: pointers sharing at least one object
+        std::unordered_set<NodeID> bvPartners;
+        for (NodeID o : Andersen::getPts(repP))
+        {
+            auto it = revPts.find(o);
+            if (it != revPts.end())
+            {
+                for (NodeID q : it->second)
+                    if (q != p)
+                        bvPartners.insert(q);
+            }
+        }
+
+        if (bvPartners.empty())
+            continue;
+
+        // Check which partners are refined to NoAlias by conditional analysis
+        u64_t refinedForP = 0;
+        for (NodeID q : bvPartners)
+        {
+            if (alias(p, q) == NoAlias)
+                refinedForP++;
+        }
+
+        u64_t bvCount = bvPartners.size();
+        totalBvPartners += bvCount;
+        totalRefined += refinedForP;
+
+        if (refinedForP > 0)
+        {
+            refinedPtrCount++;
+            totalReduction += refinedForP;
+            if (refinedForP > maxReduction)
+                maxReduction = refinedForP;
+        }
+    }
+
+    // Clear pts cache to free memory
+    ptsCache.clear();
+
+    SVFUtil::outs() << "  [samplePartners] Done. sampled=" << topVars.size()
+                    << " totalBvPartners=" << totalBvPartners
+                    << " totalRefined=" << totalRefined;
+    if (refinedPtrCount > 0)
+    {
+        double avgReduction = static_cast<double>(totalReduction)
+                              / static_cast<double>(refinedPtrCount);
+        SVFUtil::outs() << " refinedPtrs=" << refinedPtrCount
+                        << " avgReduction=" << avgReduction
+                        << " maxReduction=" << maxReduction;
+    }
+    SVFUtil::outs() << " (Z3 SAT: " << (aliasUseSat ? "enabled" : "disabled") << ")\n";
 }
