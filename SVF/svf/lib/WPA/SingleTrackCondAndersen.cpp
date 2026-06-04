@@ -333,6 +333,8 @@ void SingleTrackCondAndersen::samplePrecisionGain(u32_t sampleSize)
     }
 
     // Random shuffle for sampling
+    // Sort to ensure deterministic sampling across different analysis runs.
+    std::sort(topVars.begin(), topVars.end());
     std::mt19937 rng(42);
     if (topVars.size() > sampleSize)
     {
@@ -435,7 +437,12 @@ void SingleTrackCondAndersen::sampleAliasPartnerReduction(u32_t sampleSize)
     SVFUtil::outs() << "  [samplePartners] Sampling " << topVars.size()
                     << " top-level pointers for alias partner reduction...\n";
 
-    // Pre-sync all top-level pointers so alias() avoids repeated sync overhead
+    // Pre-sync all top-level pointers so that objects with implicit True guards
+    // are present in condPtsMap. This is necessary because condPtsMap only
+    // stores non-True guards; absent objects would otherwise be misclassified
+    // as NoAlias by alias().
+    // NOTE: unsat objects are now stored as False (not erased), so sync will
+    // not overwrite them with True.
     SVFUtil::outs() << "  [samplePartners] Syncing top-level pointers to condPtsMap...\n";
     for (NodeID v : topVars)
         ensureNodeSynced(sccRepNode(v));
@@ -476,11 +483,55 @@ void SingleTrackCondAndersen::sampleAliasPartnerReduction(u32_t sampleSize)
         if (bvPartners.empty())
             continue;
 
-        // Check which partners are refined to NoAlias by conditional analysis
+        // Check which partners are refined to NoAlias by conditional analysis.
+        // We do NOT sync nodes to condPtsMap here because sync would add all
+        // bitvector objects with True guard, destroying the precision gained
+        // by eagerSat filtering (unsat guards get erased during analysis).
+        // Instead we query condPtsMap directly: an object absent from
+        // condPtsMap means it was either never conditionally propagated or its
+        // guard was unsat and erased --- both cases should be treated as NoAlias.
         u64_t refinedForP = 0;
+        auto itP = condPtsMap.find(repP);
         for (NodeID q : bvPartners)
         {
-            if (alias(p, q) == NoAlias)
+            NodeID repQ = sccRepNode(q);
+            auto itQ = condPtsMap.find(repQ);
+
+            // If either pointer has no conditional entries at all, they share
+            // no conditional objects => NoAlias (all objects were filtered).
+            if (itP == condPtsMap.end() || itQ == condPtsMap.end())
+            {
+                refinedForP++;
+                continue;
+            }
+
+            bool mayAlias = false;
+            for (const auto& pairP : itP->second)
+            {
+                if (pairP.second->isFalse()) continue;
+                auto jt = itQ->second.find(pairP.first);
+                if (jt == itQ->second.end()) continue;
+                if (jt->second->isFalse()) continue;
+
+                if (pairP.second->isTrue() && jt->second->isTrue())
+                {
+                    mayAlias = true;
+                    break;
+                }
+                if (aliasUseSat && z3IsSat(PathCond::getAnd(pairP.second, jt->second)))
+                {
+                    mayAlias = true;
+                    break;
+                }
+                if (!aliasUseSat)
+                {
+                    // Approximate mode: any shared non-False object => MayAlias
+                    mayAlias = true;
+                    break;
+                }
+            }
+
+            if (!mayAlias)
                 refinedForP++;
         }
 
@@ -496,9 +547,6 @@ void SingleTrackCondAndersen::sampleAliasPartnerReduction(u32_t sampleSize)
                 maxReduction = refinedForP;
         }
     }
-
-    // Clear pts cache to free memory
-    ptsCache.clear();
 
     SVFUtil::outs() << "  [samplePartners] Done. sampled=" << topVars.size()
                     << " totalBvPartners=" << totalBvPartners

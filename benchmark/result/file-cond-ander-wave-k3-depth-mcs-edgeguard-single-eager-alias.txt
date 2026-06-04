@@ -31,8 +31,8 @@ TotalSVFStmts       44138
 VarArrayObj         46
 VarStructObj        104
 ----------------Time and memory stats--------------------
-LLVMIRTime          0.093
-SVFIRTime           0.273
+LLVMIRTime          0.095
+SVFIRTime           0.294
 SymbolTableTime     0.022
 #######################################################
 
@@ -62,16 +62,16 @@ CopyGepTime         0
 LoadStoreTime       0
 MemoryUsageVmrss    0
 MemoryUsageVmsize   0
-SCCDetectTime       0.07
-SCCMergeTime        0.009
-TotalTime           0.496
+SCCDetectTime       0.066
+SCCMergeTime        0.008
+TotalTime           0.338
 UpdateCGTime        0
 ----------------Numbers stats----------------------------
 AddrProcessed       4321
-CopyProcessed       13837
+CopyProcessed       13502
 DummyFieldPtrs      144
 FieldObjs           571
-GepProcessed        6019
+GepProcessed        6014
 IndCallSites        3
 IndEdgeSolved       9
 LoadProcessed       8913
@@ -115,8 +115,8 @@ TotalPointers       48928
 ****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
 ################ (program : file.bc)###############
 UniquePointsToSets       3898
-TotalUnions              27442
-PropertyUnions           20065
+TotalUnions              27102
+PropertyUnions           19725
 UniqueUnions             367
 LookupUnions             6330
 PreemptiveUnions         680
@@ -133,19 +133,19 @@ PreemptiveIntersections  690
 #######################################################
   [samplePrecision] Collecting top-level vars...
   [samplePrecision] Sampling 15659 top-level pointers...
-  [samplePrecision] Done. sampled=15659 totalBvSize=63033 totalCondSize=62997 refined=36 totalReduction=36 avgReduction=1 maxReduction=1 extraInCond=0 missingInCond=36
+  [samplePrecision] Done. sampled=15659 totalBvSize=63033 totalCondSize=63027 refined=6 totalReduction=6 avgReduction=1 maxReduction=1 extraInCond=0 missingInCond=6
   [samplePartners] Collecting top-level vars...
   [samplePartners] Sampling 15659 top-level pointers for alias partner reduction...
   [samplePartners] Syncing top-level pointers to condPtsMap...
   [samplePartners] Building reverse points-to map...
-  [samplePartners] Done. sampled=15659 totalBvPartners=22343588 totalRefined=11964 refinedPtrs=2632 avgReduction=4.54559 maxReduction=412 (Z3 SAT: enabled)
+  [samplePartners] Done. sampled=15659 totalBvPartners=22343588 totalRefined=14160 refinedPtrs=4809 avgReduction=2.94448 maxReduction=3424 (Z3 SAT: enabled)
 
 ========== SingleTrackCondAndersen Statistics ==========
   analysisComplete:    true
-  CondPtsMap nodes:    9182
-  CondPtsMap entries:  46768
-  CondPtsMap avg:      5.09344
-  CondPtsMap max:      27
+  CondPtsMap nodes:    8885
+  CondPtsMap entries:  41972
+  CondPtsMap avg:      4.72392
+  CondPtsMap max:      28
   CondPtsMap min:      1
 ========================================================
 

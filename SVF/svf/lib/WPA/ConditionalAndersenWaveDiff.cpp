@@ -991,7 +991,14 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
             else
                 newCond = applyLimits(PathCond::getAnd(cond, guard));
 
-            if (eagerSat && !z3IsSat(newCond)) continue;
+            if (eagerSat && !z3IsSat(newCond))
+            {
+                // Mark as False (instead of skipping) so that ensureNodeSynced
+                // later knows this object was explicitly filtered and will not
+                // overwrite it with True.
+                orMergeCondPts(dst, obj, PathCond::getFalse());
+                continue;
+            }
 
             if (orMergeCondPts(dst, obj, newCond))
                 condChanged = true;
@@ -1011,7 +1018,11 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
             else
                 newCond = applyLimits(PathCond::getAnd(cond, guard));
 
-            if (eagerSat && !z3IsSat(newCond)) continue;
+            if (eagerSat && !z3IsSat(newCond))
+            {
+                orMergeCondPts(dst, obj, PathCond::getFalse());
+                continue;
+            }
 
             if (orMergeCondPts(dst, obj, newCond))
                 condChanged = true;
@@ -1175,10 +1186,14 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
             const PathCond* og = jt->second;
             if (og->isFalse()) continue;
 
-            const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
-            if (eagerSat && !z3IsSat(g)) continue;
-
             NodeID newField = translateFieldLite(o);
+
+            const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
+            if (eagerSat && !z3IsSat(g))
+            {
+                orMergeCondPts(dst, newField, PathCond::getFalse());
+                continue;
+            }
 
             // If the bitvector path never propagated this field object (e.g.
             // because the source object was not in the diff set when the GEP
