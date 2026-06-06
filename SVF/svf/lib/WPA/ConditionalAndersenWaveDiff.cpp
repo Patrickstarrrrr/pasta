@@ -531,16 +531,31 @@ bool ConditionalAndersenWaveDiff::orMergeCondPts(NodeID var, NodeID obj, const P
 {
     (void)var; (void)obj; // silence unused warnings if no debug
     // True guards are implicit: if the merged result is True, erase the entry.
+    // However, if the entry already exists with a concrete (non-True) guard,
+    // keep it.  Erasing a concrete guard and replacing it with implicit True
+    // is an over-approximation that causes non-monotonic alias precision
+    // (larger k can lose precision).
     if (guard->isTrue())
     {
         auto itOuter = condPtsMap.find(var);
         if (itOuter != condPtsMap.end())
         {
-            itOuter->second.erase(obj);
-            if (itOuter->second.empty())
-                condPtsMap.erase(itOuter);
+            auto it = itOuter->second.find(obj);
+            if (it != itOuter->second.end())
+            {
+                if (it->second->isTrue())
+                {
+                    itOuter->second.erase(obj);
+                    if (itOuter->second.empty())
+                        condPtsMap.erase(itOuter);
+                    return true;
+                }
+                // Existing guard is concrete: keep it.
+                return false;
+            }
         }
-        return true;
+        // No entry exists: True is implicit, nothing to do.
+        return false;
     }
 
     auto itOuter = condPtsMap.find(var);
@@ -554,13 +569,36 @@ bool ConditionalAndersenWaveDiff::orMergeCondPts(NodeID var, NodeID obj, const P
             /* debug removed */
             if (merged == it->second)
                 return false; // no change
+            // Depth-limit mode: prevent Or-tree from growing beyond a fixed
+            // bound (independent of kLimit).  Or-merges introduce disjunctions
+            // that make guards more permissive (easier to satisfy).  If the
+            // Or-limit grew with k, larger k could produce *looser* guards
+            // than smaller k, breaking monotonicity.  Using a fixed Or-limit
+            // ensures And-chains can grow with k (more precise) while Or-tree
+            // depth stays bounded (no extra looseness).
+            const u32_t orLimit = 3;
+            if (useDepthLimit &&
+                merged->depth() > orLimit &&
+                merged->depth() > it->second->depth())
+            {
+                conjCappedGuards.insert(it->second); // freeze this guard
+                return false; // keep existing guard
+            }
             // If the merged result collapses to True, erase the entry.
+            // However, if the existing guard is not True (e.g. the merge
+            // collapsed to True only because of the safety cap / CappedTrue),
+            // keep the existing guard to avoid precision loss that causes
+            // non-monotonic alias behaviour.
             if (merged->isTrue())
             {
-                map.erase(it);
-                if (map.empty())
-                    condPtsMap.erase(itOuter);
-                return true;
+                if (it->second->isTrue())
+                {
+                    map.erase(it);
+                    if (map.empty())
+                        condPtsMap.erase(itOuter);
+                    return true;
+                }
+                return false; // keep existing guard
             }
             // Apply limits to prevent Or-tree from growing unbounded.
             // For m/n-limit mode, large guards will be capped here before they
@@ -986,10 +1024,19 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
 
             const PathCond* cond = jt->second;
             const PathCond* newCond;
-            if (!useDepthLimit && isConjCapped(cond))
-                newCond = cond;
+            if (isConjCapped(cond))
+                newCond = cond; // already capped, do not append new literals
+            else if (useDepthLimit &&
+                     (std::max(cond->depth(), guard->depth()) + 1 > static_cast<u32_t>(kLimit)))
+            {
+                newCond = cond; // retain current length, do not append new literals
+                conjCappedGuards.insert(cond);
+            }
             else
                 newCond = applyLimits(PathCond::getAnd(cond, guard));
+
+            if (newCond->isTrue())
+                continue; // True guard is implicit; do not erase existing entry
 
             if (eagerSat && !z3IsSat(newCond))
             {
@@ -1013,10 +1060,19 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
             const PathCond* cond = pair.second;
 
             const PathCond* newCond;
-            if (!useDepthLimit && isConjCapped(cond))
-                newCond = cond;
+            if (isConjCapped(cond))
+                newCond = cond; // already capped, do not append new literals
+            else if (useDepthLimit &&
+                     (std::max(cond->depth(), guard->depth()) + 1 > static_cast<u32_t>(kLimit)))
+            {
+                newCond = cond; // retain current length, do not append new literals
+                conjCappedGuards.insert(cond);
+            }
             else
                 newCond = applyLimits(PathCond::getAnd(cond, guard));
+
+            if (newCond->isTrue())
+                continue; // True guard is implicit; do not erase existing entry
 
             if (eagerSat && !z3IsSat(newCond))
             {
@@ -1034,7 +1090,8 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
     if (!guard->isTrue())
     {
         const PathCond* limitedGuard = applyLimits(guard);
-        if (!limitedGuard->isFalse() && !(eagerSat && !z3IsSat(limitedGuard)))
+        if (!limitedGuard->isTrue() && !limitedGuard->isFalse() &&
+            !(eagerSat && !z3IsSat(limitedGuard)))
         {
             const PointsTo& pts = getPts(node);
             for (NodeID obj : pts)
@@ -1188,7 +1245,21 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
 
             NodeID newField = translateFieldLite(o);
 
-            const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
+            const PathCond* g;
+            if (edgeIsTrue)
+                g = og;
+            else if (isConjCapped(og))
+                g = og; // already capped, do not append edge guard
+            else if (useDepthLimit &&
+                     (std::max(og->depth(), edgeG->depth()) + 1 > static_cast<u32_t>(kLimit)))
+            {
+                g = og; // retain current length, do not append edge guard
+                conjCappedGuards.insert(og);
+            }
+            else
+                g = PathCond::getAnd(og, edgeG);
+            if (g->isTrue())
+                continue; // True guard is implicit; do not erase existing entry
             if (eagerSat && !z3IsSat(g))
             {
                 orMergeCondPts(dst, newField, PathCond::getFalse());
@@ -1213,7 +1284,8 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
     if (!edgeIsTrue)
     {
         const PathCond* limitedEdgeG = applyLimits(edgeG);
-        if (!limitedEdgeG->isFalse() && !(eagerSat && !z3IsSat(limitedEdgeG)))
+        if (!limitedEdgeG->isTrue() && !limitedEdgeG->isFalse() &&
+            !(eagerSat && !z3IsSat(limitedEdgeG)))
         {
             const PointsTo& pts = getPts(src);
             for (NodeID o : pts)

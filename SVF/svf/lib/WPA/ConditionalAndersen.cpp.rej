@@ -1,0 +1,10 @@
+@@ -855,7 +855,8 @@
+             if (!useDepthLimit && isConjCapped(cond))
+                 newCond = cond;
+             else if (useDepthLimit && cond->isPureAndChain() &&
+-                     cond->depth() >= static_cast<u32_t>(kLimit))
++                     (std::max(cond->depth(), guard->depth()) + 1 >
++                      static_cast<u32_t>(kLimit)))
+             {
+                 // depth-limit mode: when the current And-chain already reaches
+                 // the k-limit, do not append new literals.  This preserves the

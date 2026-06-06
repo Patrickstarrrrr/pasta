@@ -240,6 +240,40 @@ void SingleTrackCondAndersen::finalize()
     if (precisionSampleSize > 0)
         sampleAliasPartnerReduction(precisionSampleSize);
 
+    // Debug: print condPtsMap depth distribution and specific pointers
+    {
+        std::map<u32_t, u64_t> depthHist;
+        u64_t nTrue = 0, nFalse = 0, nConcrete = 0;
+        for (const auto& entry : condPtsMap)
+        {
+            for (const auto& pair : entry.second)
+            {
+                if (pair.second->isTrue()) nTrue++;
+                else if (pair.second->isFalse()) nFalse++;
+                else { nConcrete++; depthHist[pair.second->depth()]++; }
+            }
+        }
+        SVFUtil::outs() << "  [DEBUG] Guard types: True=" << nTrue << " False=" << nFalse << " Concrete=" << nConcrete << "\n";
+        SVFUtil::outs() << "  [DEBUG] Concrete guard depth histogram:\n";
+        for (const auto& pr : depthHist)
+            SVFUtil::outs() << "    depth=" << pr.first << " count=" << pr.second << "\n";
+
+        NodeID p1 = 21378;
+        NodeID p2 = 51557;
+        for (NodeID debugPtr : {p1, p2})
+        {
+            auto it = condPtsMap.find(debugPtr);
+            SVFUtil::outs() << "  [DEBUG] Pointer " << debugPtr << " condPtsMap (" << (it == condPtsMap.end() ? 0 : it->second.size()) << " entries):\n";
+            if (it != condPtsMap.end())
+            {
+                for (const auto& pair : it->second)
+                    SVFUtil::outs() << "    obj=" << pair.first << " guard=" << pair.second->toString() << "\n";
+            }
+        }
+        AliasResult ar = alias(p1, p2);
+        SVFUtil::outs() << "  [DEBUG] alias(" << p1 << ", " << p2 << ") = " << (ar == MayAlias ? "MayAlias" : (ar == NoAlias ? "NoAlias" : "MustAlias")) << "\n";
+    }
+
     SVFUtil::outs() << "\n========== SingleTrackCondAndersen Statistics ==========\n";
     SVFUtil::outs() << "  analysisComplete:    true\n";
     SVFUtil::outs() << "  CondPtsMap nodes:    " << condPtsMapNodes << "\n";
@@ -462,6 +496,10 @@ void SingleTrackCondAndersen::sampleAliasPartnerReduction(u32_t sampleSize)
     u64_t refinedPtrCount = 0;
     u64_t totalReduction = 0;
     u64_t maxReduction = 0;
+    NodeID maxReductionPtr = 0;
+
+    // Distribution buckets
+    u64_t bucket0 = 0, bucket1_10 = 0, bucket11_100 = 0, bucket101_1000 = 0, bucket1001plus = 0;
 
     for (NodeID p : topVars)
     {
@@ -484,28 +522,31 @@ void SingleTrackCondAndersen::sampleAliasPartnerReduction(u32_t sampleSize)
             continue;
 
         // Check which partners are refined to NoAlias by conditional analysis.
-        // We do NOT sync nodes to condPtsMap here because sync would add all
-        // bitvector objects with True guard, destroying the precision gained
-        // by eagerSat filtering (unsat guards get erased during analysis).
-        // Instead we query condPtsMap directly: an object absent from
-        // condPtsMap means it was either never conditionally propagated or its
-        // guard was unsat and erased --- both cases should be treated as NoAlias.
         u64_t refinedForP = 0;
         auto itP = condPtsMap.find(repP);
+
+        // Deep diagnostic accumulators for pointer 21378
+        u32_t diagMayAliasCount = 0, diagNoAliasCount = 0;
+        std::vector<std::pair<NodeID, std::string>> diagMayAliasPartners;
+        std::vector<std::pair<NodeID, std::string>> diagNoAliasPartners;
+
         for (NodeID q : bvPartners)
         {
             NodeID repQ = sccRepNode(q);
             auto itQ = condPtsMap.find(repQ);
 
-            // If either pointer has no conditional entries at all, they share
-            // no conditional objects => NoAlias (all objects were filtered).
             if (itP == condPtsMap.end() || itQ == condPtsMap.end())
             {
                 refinedForP++;
+                if (repP == 21378 && diagNoAliasPartners.size() < 20)
+                {
+                    diagNoAliasPartners.push_back({repQ, "MISSING_COND_PTSMAP"});
+                }
                 continue;
             }
 
             bool mayAlias = false;
+            std::string satGuardStr;
             for (const auto& pairP : itP->second)
             {
                 if (pairP.second->isFalse()) continue;
@@ -516,23 +557,74 @@ void SingleTrackCondAndersen::sampleAliasPartnerReduction(u32_t sampleSize)
                 if (pairP.second->isTrue() && jt->second->isTrue())
                 {
                     mayAlias = true;
+                    satGuardStr = "T /\\ T";
                     break;
                 }
                 if (aliasUseSat && z3IsSat(PathCond::getAnd(pairP.second, jt->second)))
                 {
                     mayAlias = true;
+                    satGuardStr = "(" + pairP.second->toString() + ") /\\ (" + jt->second->toString() + ") = SAT";
                     break;
                 }
                 if (!aliasUseSat)
                 {
-                    // Approximate mode: any shared non-False object => MayAlias
                     mayAlias = true;
+                    satGuardStr = "non-sat mode";
                     break;
                 }
             }
 
             if (!mayAlias)
                 refinedForP++;
+
+            if (repP == 21378)
+            {
+                if (mayAlias)
+                {
+                    diagMayAliasCount++;
+                    if (diagMayAliasPartners.size() < 20)
+                    {
+                        std::string qGuardStr;
+                        if (itQ != condPtsMap.end())
+                        {
+                            for (const auto& pairQ : itQ->second)
+                                qGuardStr += "obj" + std::to_string(pairQ.first) + "=" + pairQ.second->toString() + "; ";
+                        }
+                        diagMayAliasPartners.push_back({repQ, qGuardStr + " | " + satGuardStr});
+                    }
+                }
+                else
+                {
+                    diagNoAliasCount++;
+                    if (diagNoAliasPartners.size() < 20)
+                    {
+                        std::string qGuardStr;
+                        if (itQ != condPtsMap.end())
+                        {
+                            for (const auto& pairQ : itQ->second)
+                                qGuardStr += "obj" + std::to_string(pairQ.first) + "=" + pairQ.second->toString() + "; ";
+                        }
+                        diagNoAliasPartners.push_back({repQ, qGuardStr});
+                    }
+                }
+            }
+        }
+
+        if (repP == 21378)
+        {
+            SVFUtil::outs() << "  [samplePartners] === Deep diagnostic for 21378 ===\n";
+            SVFUtil::outs() << "  [samplePartners] Self condPtsMap (" << (itP == condPtsMap.end() ? 0 : itP->second.size()) << " entries):\n";
+            if (itP != condPtsMap.end())
+            {
+                for (const auto& pair : itP->second)
+                    SVFUtil::outs() << "    obj=" << pair.first << " guard=" << pair.second->toString() << "\n";
+            }
+            SVFUtil::outs() << "  [samplePartners] MayAlias partners: " << diagMayAliasCount << "\n";
+            for (const auto& pr : diagMayAliasPartners)
+                SVFUtil::outs() << "    partner=" << pr.first << " " << pr.second << "\n";
+            SVFUtil::outs() << "  [samplePartners] NoAlias partners: " << diagNoAliasCount << "\n";
+            for (const auto& pr : diagNoAliasPartners)
+                SVFUtil::outs() << "    partner=" << pr.first << " " << pr.second << "\n";
         }
 
         u64_t bvCount = bvPartners.size();
@@ -544,9 +636,80 @@ void SingleTrackCondAndersen::sampleAliasPartnerReduction(u32_t sampleSize)
             refinedPtrCount++;
             totalReduction += refinedForP;
             if (refinedForP > maxReduction)
+            {
                 maxReduction = refinedForP;
+                maxReductionPtr = repP;
+            }
+            if (refinedForP <= 10) bucket1_10++;
+            else if (refinedForP <= 100) bucket11_100++;
+            else if (refinedForP <= 1000) bucket101_1000++;
+            else bucket1001plus++;
+        }
+        else
+        {
+            bucket0++;
+        }
+
+        // Diagnostic: track specific high-impact pointers across k values
+        if (repP == 49270 || repP == 40261)
+        {
+            u64_t nTrue = 0, nFalse = 0, nConcrete = 0;
+            if (itP != condPtsMap.end())
+            {
+                for (const auto& pair : itP->second)
+                {
+                    if (pair.second->isTrue()) nTrue++;
+                    else if (pair.second->isFalse()) nFalse++;
+                    else nConcrete++;
+                }
+            }
+            SVFUtil::outs() << "  [samplePartners] Diagnostic pointer " << repP
+                            << " bvPartners=" << bvCount
+                            << " refined=" << refinedForP
+                            << " true=" << nTrue << " false=" << nFalse
+                            << " concrete=" << nConcrete << "\n";
+        }
+
+        // Deep diagnostic for pointer 21378
+        if (repP == 21378)
+        {
+            SVFUtil::outs() << "  [samplePartners] === Deep diagnostic for 21378 ===\n";
+            SVFUtil::outs() << "  [samplePartners] Self condPtsMap (" << (itP == condPtsMap.end() ? 0 : itP->second.size()) << " entries):\n";
+            if (itP != condPtsMap.end())
+            {
+                for (const auto& pair : itP->second)
+                {
+                    SVFUtil::outs() << "    obj=" << pair.first << " guard=" << pair.second->toString() << "\n";
+                }
+            }
         }
     }
+
+    // Print diagnostic info for the max-reduction pointer
+    if (maxReductionPtr != 0)
+    {
+        auto it = condPtsMap.find(maxReductionPtr);
+        u64_t nTrue = 0, nFalse = 0, nConcrete = 0;
+        if (it != condPtsMap.end())
+        {
+            for (const auto& pair : it->second)
+            {
+                if (pair.second->isTrue()) nTrue++;
+                else if (pair.second->isFalse()) nFalse++;
+                else nConcrete++;
+            }
+        }
+        SVFUtil::outs() << "  [samplePartners] Max-reduction pointer: " << maxReductionPtr
+                        << " reduction=" << maxReduction
+                        << " true=" << nTrue << " false=" << nFalse
+                        << " concrete=" << nConcrete << "\n";
+    }
+
+    SVFUtil::outs() << "  [samplePartners] Refined distribution: 0=" << bucket0
+                    << " 1-10=" << bucket1_10
+                    << " 11-100=" << bucket11_100
+                    << " 101-1000=" << bucket101_1000
+                    << " >1000=" << bucket1001plus << "\n";
 
     SVFUtil::outs() << "  [samplePartners] Done. sampled=" << topVars.size()
                     << " totalBvPartners=" << totalBvPartners

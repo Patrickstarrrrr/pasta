@@ -559,12 +559,20 @@ bool ConditionalAndersen::orMergeCondPts(NodeID var, NodeID obj, const PathCond*
             if (merged == it->second)
                 return false; // no change
             // If the merged result collapses to True, erase the entry.
+            // However, if the existing guard is not True (e.g. the merge
+            // collapsed to True only because of the safety cap / CappedTrue),
+            // keep the existing guard to avoid precision loss that causes
+            // non-monotonic alias behaviour.
             if (merged->isTrue())
             {
-                map.erase(it);
-                if (map.empty())
-                    condPtsMap.erase(itOuter);
-                return true;
+                if (it->second->isTrue())
+                {
+                    map.erase(it);
+                    if (map.empty())
+                        condPtsMap.erase(itOuter);
+                    return true;
+                }
+                return false; // keep existing guard
             }
             // Apply limits to prevent Or-tree from growing unbounded.
             // For m/n-limit mode, large guards will be capped here before they
@@ -829,10 +837,20 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
             NodeID obj = pair.first;
             const PathCond* cond = pair.second;
 
-            // If conj-capped, ignore further And operations
             const PathCond* newCond;
             if (!useDepthLimit && isConjCapped(cond))
             {
+                // conj-capped mode: ignore further And operations
+                newCond = cond;
+            }
+            else if (useDepthLimit && cond->isPureAndChain() &&
+                     (std::max(cond->depth(), guard->depth()) + 1 > static_cast<u32_t>(kLimit)))
+            {
+                // depth-limit mode: when appending the edge guard would exceed
+                // the k-limit, do not append new literals.  This preserves the
+                // current guard instead of collapsing to True, avoiding the
+                // precision loss and non-monotonicity caused by aggressive
+                // truncation.
                 newCond = cond;
             }
             else
