@@ -31,9 +31,9 @@ TotalSVFStmts       44138
 VarArrayObj         46
 VarStructObj        104
 ----------------Time and memory stats--------------------
-LLVMIRTime          0.086
-SVFIRTime           0.246
-SymbolTableTime     0.021
+LLVMIRTime          0.085
+SVFIRTime           0.27
+SymbolTableTime     0.024
 #######################################################
 
 *********PTACallGraph Stats (Andersen analysis)***************
@@ -62,16 +62,16 @@ CopyGepTime         0
 LoadStoreTime       0
 MemoryUsageVmrss    0
 MemoryUsageVmsize   0
-SCCDetectTime       0.057
+SCCDetectTime       0.073
 SCCMergeTime        0.009
-TotalTime           0.563
+TotalTime           0.559
 UpdateCGTime        0
 ----------------Numbers stats----------------------------
 AddrProcessed       4321
-CopyProcessed       13977
+CopyProcessed       14932
 DummyFieldPtrs      144
 FieldObjs           571
-GepProcessed        6112
+GepProcessed        6609
 IndCallSites        3
 IndEdgeSolved       9
 LoadProcessed       8913
@@ -115,8 +115,8 @@ TotalPointers       48928
 ****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
 ################ (program : file.bc)###############
 UniquePointsToSets       3898
-TotalUnions              27675
-PropertyUnions           20296
+TotalUnions              29127
+PropertyUnions           21748
 UniqueUnions             367
 LookupUnions             6332
 PreemptiveUnions         680
@@ -133,22 +133,108 @@ PreemptiveIntersections  690
 #######################################################
   [samplePrecision] Collecting top-level vars...
   [samplePrecision] Sampling 15659 top-level pointers...
-  [samplePrecision] Done. sampled=15659 totalBvSize=63033 totalCondSize=63033 refined=0 totalReduction=0 avgReduction=0 maxReduction=0 extraInCond=0 missingInCond=0
+  [samplePrecision] Done. sampled=15659 totalBvSize=63033 totalCondSize=61939 refined=554 totalReduction=1094 avgReduction=1.97473 maxReduction=3 extraInCond=0 missingInCond=1094
   [samplePartners] Collecting top-level vars...
   [samplePartners] Sampling 15659 top-level pointers for alias partner reduction...
   [samplePartners] Syncing top-level pointers to condPtsMap...
   [samplePartners] Building reverse points-to map...
-  [samplePartners] Done. sampled=15659 totalBvPartners=22343588 totalRefined=17760 refinedPtrs=3053 avgReduction=5.81723 maxReduction=412 (Z3 SAT: enabled)
+  [samplePartners] === Deep diagnostic for 21378 ===
+  [samplePartners] Self condPtsMap (1 entries):
+    obj=21344 guard=c21373F
+  [samplePartners] MayAlias partners: 64
+    partner=21343 obj21344=T;  | (c21373F) /\ (T) = SAT
+    partner=41152 obj20853=c20872F; obj21344=(c21347F /\ c21347F); obj41068=T; obj11873=c11934T;  | (c21373F) /\ ((c21347F /\ c21347F)) = SAT
+    partner=6207 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6206 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=21357 obj21344=c21347F;  | (c21373F) /\ (c21347F) = SAT
+    partner=41213 obj20853=T; obj21344=(c21347F /\ c21347F); obj41068=T; obj11873=T;  | (c21373F) /\ ((c21347F /\ c21347F)) = SAT
+    partner=6210 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6209 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6213 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6113 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6132 obj5622=c6639T; obj21344=(c6066T /\ c6130F); obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ ((c6066T /\ c6130F)) = SAT
+    partner=6106 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6103 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6100 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6099 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6071 obj5622=c6639T; obj21344=T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (T) = SAT
+    partner=21346 obj21344=T;  | (c21373F) /\ (T) = SAT
+    partner=41234 obj20853=c41229T; obj21344=((c21347F /\ c21347F) /\ c41229T); obj41068=c41229T; obj11873=c41229T;  | (c21373F) /\ (((c21347F /\ c21347F) /\ c41229T)) = SAT
+    partner=6214 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+    partner=6195 obj5622=c6639T; obj21344=c6066T; obj7398=((c5852F /\ ((((c5563F /\ c5563F) /\ c5852F) /\ c5852F) /\ c5852F)) /\ (c5967T /\ ((((c5563F /\ c5563F) /\ c5967T) /\ c5967T) /\ c5967T)));  | (c21373F) /\ (c6066T) = SAT
+  [samplePartners] NoAlias partners: 2217
+    partner=51557 obj6384=c6372F; obj3=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T); obj40720=((c40702F /\ c40722F) /\ c40722F); obj51553=T; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))); obj50842=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=T; obj5165=c5139F; obj5666=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj5561=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj7331=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj5520=((c5522F /\ c5522F) /\ c6402T); obj1397=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T); obj7398=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj6779=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); 
+    partner=51556 obj6384=c6372F; obj3=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T); obj40720=((c40702F /\ c40722F) /\ c40722F); obj51553=T; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))); obj50842=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=T; obj5165=c5139F; obj5666=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj5561=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj7331=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj5520=((c5522F /\ c5522F) /\ c6402T); obj1397=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T); obj7398=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj6779=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); 
+    partner=51249 obj6384=((c6372F /\ (c22260F /\ ((c18174F /\ c22260F) /\ c22260F))) /\ c22260F); obj3=c22260F; obj40720=((((c40702F /\ c40722F) /\ c40722F) /\ (c22260F /\ ((c18174F /\ c22260F) /\ c22260F))) /\ c22260F); obj51553=T; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=(((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))) /\ (c22260F /\ ((c18174F /\ c22260F) /\ c22260F))); obj50842=c22260F; obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=T; obj5165=((c5139F /\ (c22260F /\ ((c18174F /\ c22260F) /\ c22260F))) /\ c22260F); obj5666=((c22260F /\ ((c18174F /\ c22260F) /\ c22260F)) /\ c22260F); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c22260F /\ ((c18174F /\ c22260F) /\ c22260F)) /\ c22260F); obj5561=((c22260F /\ ((c18174F /\ c22260F) /\ c22260F)) /\ c22260F); obj7331=((c22260F /\ ((c18174F /\ c22260F) /\ c22260F)) /\ c22260F); obj5520=((((c5522F /\ c5522F) /\ c6402T) /\ (c22260F /\ ((c18174F /\ c22260F) /\ c22260F))) /\ c22260F); obj1397=(c22260F \/ c3580F); obj7398=((c22260F /\ ((c18174F /\ c22260F) /\ c22260F)) /\ c22260F); obj6779=((c22260F /\ ((c18174F /\ c22260F) /\ c22260F)) /\ c22260F); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); 
+    partner=51248 obj6384=((c6372F /\ (c22260F /\ c1769T)) /\ c22260F); obj3=c22260F; obj40720=((((c40702F /\ c40722F) /\ c40722F) /\ (c22260F /\ c1769T)) /\ c22260F); obj51553=T; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=(((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))) /\ (c22260F /\ c1769T)); obj50842=c22260F; obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=T; obj5165=((c5139F /\ (c22260F /\ c1769T)) /\ c22260F); obj5666=((c22260F /\ c1769T) /\ c22260F); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c22260F /\ c1769T) /\ c22260F); obj5561=((c22260F /\ c1769T) /\ c22260F); obj7331=((c22260F /\ c1769T) /\ c22260F); obj5520=((((c5522F /\ c5522F) /\ c6402T) /\ (c22260F /\ c1769T)) /\ c22260F); obj1397=(c22260F \/ c3580F); obj7398=((c22260F /\ c1769T) /\ c22260F); obj6779=((c22260F /\ c1769T) /\ c22260F); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); 
+    partner=51228 obj6384=((((c6372F /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj9554=((((c8756T /\ c8756T) /\ c8756T) /\ c20825F) /\ c20825F); obj3=(c8168F /\ c8168F); obj40720=((((((c40702F /\ c40722F) /\ c40722F) /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj51553=T; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=(((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))) /\ c6579F); obj50842=T; obj5622=(c6639T \/ (c21373T /\ c21373T)); obj51772=((((((c38827T /\ c38827T) /\ c4421F) /\ c4421F) /\ c3990F) /\ c3990F) /\ c38709F); obj50850=T; obj5165=((((c5139F /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5520=((((((c5522F /\ c5522F) /\ c6402T) /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj1397=T; obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj9605=(c9600F /\ (c10897F /\ (((c8592T \/ c8620T) /\ c10897F) /\ c10897F))); 
+    partner=51225 obj6384=((((c6372F /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj9554=((((c8756T /\ c8756T) /\ c8756T) /\ c20798F) /\ c20798F); obj3=(c8168F /\ c8168F); obj40720=((((((c40702F /\ c40722F) /\ c40722F) /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj51553=T; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=(((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))) /\ c6579F); obj50842=T; obj5622=(c6639T \/ (c21373T /\ c21373T)); obj51772=((((((c38827T /\ c38827T) /\ c4421F) /\ c4421F) /\ c3990F) /\ c3990F) /\ c38709F); obj50850=T; obj5165=((((c5139F /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5520=((((((c5522F /\ c5522F) /\ c6402T) /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj1397=T; obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj9605=(c9600F /\ (c10897F /\ (((c8592T \/ c8620T) /\ c10897F) /\ c10897F))); 
+    partner=51219 obj6384=((c6372F /\ (c18908F /\ c1769T)) /\ c18908F); obj3=c18908F; obj40720=((((c40702F /\ c40722F) /\ c40722F) /\ (c18908F /\ c1769T)) /\ c18908F); obj51553=T; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=(((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))) /\ (c18908F /\ c1769T)); obj50842=c18908F; obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=T; obj5165=((c5139F /\ (c18908F /\ c1769T)) /\ c18908F); obj5666=((c18908F /\ c1769T) /\ c18908F); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18908F /\ c1769T) /\ c18908F); obj5561=((c18908F /\ c1769T) /\ c18908F); obj7331=((c18908F /\ c1769T) /\ c18908F); obj5520=((((c5522F /\ c5522F) /\ c6402T) /\ (c18908F /\ c1769T)) /\ c18908F); obj1397=(c18908F \/ c3580F); obj7398=((c18908F /\ c1769T) /\ c18908F); obj6779=((c18908F /\ c1769T) /\ c18908F); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); 
+    partner=51050 obj5622=c6639T; obj21344=(c21373T /\ c21373T); obj9142=c9158T; 
+    partner=51044 obj5622=c6639T; obj21344=(c21373T /\ c21373T); obj9142=c9158T; 
+    partner=51041 obj5622=c6639T; obj21344=(c21373T /\ c21373T); obj9142=c9158T; 
+    partner=51035 obj5622=c6639T; obj21344=(c21373T /\ c21373T); obj9142=c9158T; 
+    partner=51014 obj5622=c6639T; obj21344=(c21373T /\ c21373T); obj9142=c9158T; 
+    partner=51008 obj5622=c6639T; obj21344=(c21373T /\ c21373T); obj9142=c9158T; 
+    partner=50622 obj6384=((c6372F /\ c6459T) /\ c6459T); obj3=((c41398T \/ c41407T) \/ c35738T); obj40720=((((c40702F /\ c40722F) /\ c40722F) /\ c6459T) /\ c6459T); obj51553=F; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj49989=((c50300F /\ c48760F) /\ c48760F); obj51551=(((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))) /\ c6459T); obj50842=((((c3647F /\ c3690F) /\ c3690F) /\ c6459T) /\ c6459T); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=F; obj5165=((c5139F /\ c6459T) /\ c6459T); obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj19451=((c19502T /\ c19502T) \/ (c20055T /\ c20055T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj1158=T; obj5520=((((c5522F /\ c5522F) /\ c6402T) /\ c6459T) /\ c6459T); obj1397=((c3580F /\ c6459T) /\ c6459T); obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); 
+    partner=50621 obj6384=((c6372F /\ c6459T) /\ c6459T); obj3=T; obj40720=((((c40702F /\ c40722F) /\ c40722F) /\ c6459T) /\ c6459T); obj51553=F; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj49989=((c50300F /\ c48760F) /\ c48760F); obj51551=(((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))) /\ c6459T); obj50842=((((c3647F /\ c3690F) /\ c3690F) /\ c6459T) /\ c6459T); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=F; obj5165=((c5139F /\ c6459T) /\ c6459T); obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj19451=((c19502T /\ c19502T) \/ (c20055T /\ c20055T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj1158=T; obj5520=((((c5522F /\ c5522F) /\ c6402T) /\ c6459T) /\ c6459T); obj1397=((c3580F /\ c6459T) /\ c6459T); obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); 
+    partner=50601 obj6384=((((c6372F /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj9554=((c8756T /\ c8756T) /\ c8756T); obj3=(c8168F /\ c8168F); obj40720=((((((c40702F /\ c40722F) /\ c40722F) /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj51553=F; obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=(((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))) /\ c6579F); obj50842=((((((c3647F /\ c3690F) /\ c3690F) /\ c6478F) /\ c6478F) /\ c6579F) /\ c6579F); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj51772=((((((c38827T /\ c38827T) /\ c4421F) /\ c4421F) /\ c3990F) /\ c3990F) /\ c38709F); obj50850=F; obj5165=((((c5139F /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5520=((((((c5522F /\ c5522F) /\ c6402T) /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj1397=((((((c3580F /\ c6478F) /\ c6478F) /\ c6579F) /\ c6579F) /\ c7333F) /\ c7333F); obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj9605=(c9600F /\ (c10897F /\ (((c8592T \/ c8620T) /\ c10897F) /\ c10897F))); 
+    partner=50578 obj9554=((((c9538T /\ c9556F) /\ (c9556F /\ (c9556F /\ c9556F))) /\ c10830T) /\ c10830T); obj6384=c6372F; obj3=(((c3630T \/ c3639T) \/ c3653T) \/ c3673T); obj40720=((c40702F /\ c40722F) /\ c40722F); obj51553=(((c15388T \/ c15050T) /\ c15553F) /\ c15553F); obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj5126=c1769T; obj51551=((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))); obj50842=((c3647F /\ c3690F) /\ c3690F); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=(((c15388T \/ c15050T) /\ c15553F) /\ c15553F); obj5165=c5139F; obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5520=(c18041T /\ ((((c17998F /\ c17998F) /\ c17998F) /\ c18041T) /\ c18041T)); obj1397=c3580F; obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj9605=((c9600F /\ c10830T) /\ c10830T); 
+    partner=50578 obj9554=((((c9538T /\ c9556F) /\ (c9556F /\ (c9556F /\ c9556F))) /\ c10830T) /\ c10830T); obj6384=c6372F; obj3=(((c3630T \/ c3639T) \/ c3653T) \/ c3673T); obj40720=((c40702F /\ c40722F) /\ c40722F); obj51553=(((c15388T \/ c15050T) /\ c15553F) /\ c15553F); obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj5126=c1769T; obj51551=((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))); obj50842=((c3647F /\ c3690F) /\ c3690F); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=(((c15388T \/ c15050T) /\ c15553F) /\ c15553F); obj5165=c5139F; obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5520=(c18041T /\ ((((c17998F /\ c17998F) /\ c17998F) /\ c18041T) /\ c18041T)); obj1397=c3580F; obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj9605=((c9600F /\ c10830T) /\ c10830T); 
+    partner=50578 obj9554=((((c9538T /\ c9556F) /\ (c9556F /\ (c9556F /\ c9556F))) /\ c10830T) /\ c10830T); obj6384=c6372F; obj3=(((c3630T \/ c3639T) \/ c3653T) \/ c3673T); obj40720=((c40702F /\ c40722F) /\ c40722F); obj51553=(((c15388T \/ c15050T) /\ c15553F) /\ c15553F); obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj5126=c1769T; obj51551=((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))); obj50842=((c3647F /\ c3690F) /\ c3690F); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=(((c15388T \/ c15050T) /\ c15553F) /\ c15553F); obj5165=c5139F; obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5520=(c18041T /\ ((((c17998F /\ c17998F) /\ c17998F) /\ c18041T) /\ c18041T)); obj1397=c3580F; obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj9605=((c9600F /\ c10830T) /\ c10830T); 
+    partner=50489 obj6384=c6372F; obj3=(((c3630T \/ c3639T) \/ c3653T) \/ c3673T); obj40720=((c40702F /\ c40722F) /\ c40722F); obj51553=(((c15388T \/ c15050T) /\ c15553F) /\ c15553F); obj40985=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); obj51551=((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F))); obj50842=((c3647F /\ c3690F) /\ c3690F); obj5622=(c6639T \/ (c21373T /\ c21373T)); obj50850=(((c15388T \/ c15050T) /\ c15553F) /\ c15553F); obj5165=c5139F; obj5666=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj21344=(c21373T /\ c21373T); obj22251=c1769T; obj9142=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5561=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj7331=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj5520=(c18041T /\ ((((c17998F /\ c17998F) /\ c17998F) /\ c18041T) /\ c18041T)); obj1397=c3580F; obj7398=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj6779=((c18041T /\ c18041T) \/ (c14848T /\ c14848T)); obj40994=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F); 
+  [samplePartners] === Deep diagnostic for 21378 ===
+  [samplePartners] Self condPtsMap (1 entries):
+    obj=21344 guard=c21373F
+  [samplePartners] Diagnostic pointer 40261 bvPartners=2654 refined=0 true=0 false=0 concrete=1
+  [samplePartners] Diagnostic pointer 49270 bvPartners=3424 refined=3424 true=0 false=1 concrete=0
+  [samplePartners] Max-reduction pointer: 49270 reduction=3424 true=0 false=1 concrete=0
+  [samplePartners] Refined distribution: 0=6710 1-10=4267 11-100=606 101-1000=26 >1000=4
+  [samplePartners] Done. sampled=15659 totalBvPartners=22343588 totalRefined=44522 refinedPtrs=4903 avgReduction=9.08056 maxReduction=3424 (Z3 SAT: enabled)
+  [DEBUG] Guard types: True=5453 False=1158 Concrete=53757
+  [DEBUG] Concrete guard depth histogram:
+    depth=1 count=12193
+    depth=2 count=4961
+    depth=3 count=17459
+    depth=4 count=10686
+    depth=5 count=1607
+    depth=6 count=4473
+    depth=7 count=2378
+  [DEBUG] Pointer 21378 condPtsMap (1 entries):
+    obj=21344 guard=c21373F
+  [DEBUG] Pointer 51557 condPtsMap (21 entries):
+    obj=6384 guard=c6372F
+    obj=3 guard=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T)
+    obj=40720 guard=((c40702F /\ c40722F) /\ c40722F)
+    obj=51553 guard=T
+    obj=40985 guard=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F)
+    obj=51551 guard=((c39455F /\ c39507F) /\ (c39507F /\ (((c2089F /\ c2089F) /\ c3758F) /\ c3758F)))
+    obj=50842 guard=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T)
+    obj=5622 guard=(c6639T \/ (c21373T /\ c21373T))
+    obj=50850 guard=T
+    obj=5165 guard=c5139F
+    obj=5666 guard=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T)
+    obj=21344 guard=(c21373T /\ c21373T)
+    obj=22251 guard=c1769T
+    obj=9142 guard=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T)
+    obj=5561 guard=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T)
+    obj=7331 guard=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T)
+    obj=5520 guard=((c5522F /\ c5522F) /\ c6402T)
+    obj=1397 guard=(((c40852F \/ c40722F) /\ c40780T) /\ c40780T)
+    obj=7398 guard=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T)
+    obj=6779 guard=((((c40852F /\ c40852F) \/ (c40722F /\ c40722F)) /\ c40780T) /\ c40780T)
+    obj=40994 guard=(((c2089F /\ c2089F) /\ c3758F) /\ c3758F)
+  [DEBUG] alias(21378, 51557) = NoAlias
 
 ========== SingleTrackCondAndersen Statistics ==========
   analysisComplete:    true
-  CondPtsMap nodes:    9498
-  CondPtsMap entries:  46937
-  CondPtsMap avg:      4.94178
-  CondPtsMap max:      28
+  CondPtsMap nodes:    10139
+  CondPtsMap entries:  54915
+  CondPtsMap avg:      5.41621
+  CondPtsMap max:      29
   CondPtsMap min:      1
-  Alias queries:       22305006
-  Alias total time:    766.856s
-  Alias avg time:      0.0343804ms
+  Alias queries:       1
+  Alias total time:    0s
+  Alias avg time:      0ms
 ========================================================
 

@@ -31,8 +31,8 @@ TotalSVFStmts       44138
 VarArrayObj         46
 VarStructObj        104
 ----------------Time and memory stats--------------------
-LLVMIRTime          0.081
-SVFIRTime           0.224
+LLVMIRTime          0.082
+SVFIRTime           0.238
 SymbolTableTime     0.021
 #######################################################
 
@@ -62,16 +62,16 @@ CopyGepTime         0
 LoadStoreTime       0
 MemoryUsageVmrss    0
 MemoryUsageVmsize   0
-SCCDetectTime       0.065
+SCCDetectTime       0.053
 SCCMergeTime        0.009
-TotalTime           0.262
+TotalTime           0.29
 UpdateCGTime        0
 ----------------Numbers stats----------------------------
 AddrProcessed       4321
-CopyProcessed       13327
+CopyProcessed       15147
 DummyFieldPtrs      144
 FieldObjs           571
-GepProcessed        5966
+GepProcessed        6693
 IndCallSites        3
 IndEdgeSolved       9
 LoadProcessed       8913
@@ -115,8 +115,8 @@ TotalPointers       48928
 ****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
 ################ (program : file.bc)###############
 UniquePointsToSets       3898
-TotalUnions              26879
-PropertyUnions           19502
+TotalUnions              29426
+PropertyUnions           22049
 UniqueUnions             367
 LookupUnions             6330
 PreemptiveUnions         680
@@ -138,17 +138,99 @@ PreemptiveIntersections  690
   [samplePartners] Sampling 15659 top-level pointers for alias partner reduction...
   [samplePartners] Syncing top-level pointers to condPtsMap...
   [samplePartners] Building reverse points-to map...
-  [samplePartners] Done. sampled=15659 totalBvPartners=22343588 totalRefined=4192 refinedPtrs=1374 avgReduction=3.05095 maxReduction=18 (Z3 SAT: enabled)
+  [samplePartners] === Deep diagnostic for 21378 ===
+  [samplePartners] Self condPtsMap (1 entries):
+    obj=21344 guard=c21373F
+  [samplePartners] MayAlias partners: 64
+    partner=21343 obj21344=T;  | (c21373F) /\ (T) = SAT
+    partner=41152 obj20853=c20872F; obj21344=c21347F; obj41068=T; obj11873=c11934T;  | (c21373F) /\ (c21347F) = SAT
+    partner=6207 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6206 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=21357 obj21344=c21347F;  | (c21373F) /\ (c21347F) = SAT
+    partner=41213 obj20853=T; obj21344=c21347F; obj41068=T; obj11873=T;  | (c21373F) /\ (c21347F) = SAT
+    partner=6210 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6209 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6213 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6113 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6132 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6106 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6103 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6100 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6099 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6071 obj5622=c6639T; obj21344=T; obj7398=c5967T;  | (c21373F) /\ (T) = SAT
+    partner=21346 obj21344=T;  | (c21373F) /\ (T) = SAT
+    partner=41234 obj20853=c41229T; obj21344=c21347F; obj41068=c41229T; obj11873=c41229T;  | (c21373F) /\ (c21347F) = SAT
+    partner=6214 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+    partner=6195 obj5622=c6639T; obj21344=c6066T; obj7398=c5967T;  | (c21373F) /\ (c6066T) = SAT
+  [samplePartners] NoAlias partners: 2217
+    partner=51557 obj6384=c6372F; obj3=c5183F; obj40720=c40702F; obj51553=c39507T; obj1401=((c40852F \/ c40722F) \/ c3580F); obj40985=(c40852F \/ c40722F); obj51551=c39455F; obj50842=((c40852F \/ c40722F) \/ c3647F); obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=(c40852F \/ c40722F); obj21344=c21373T; obj22251=(c40852F \/ c40722F); obj9142=(c40852F \/ c40722F); obj5561=(c40852F \/ c40722F); obj7331=(c40852F \/ c40722F); obj5520=(c5522F \/ c26971T); obj7398=(c40852F \/ c40722F); obj6779=(c40852F \/ c40722F); obj40994=(c40852F \/ c40722F); 
+    partner=51556 obj6384=c6372F; obj3=c5183F; obj40720=c40702F; obj51553=c39507T; obj1401=((c40852F \/ c40722F) \/ c3580F); obj40985=(c40852F \/ c40722F); obj51551=c39455F; obj50842=((c40852F \/ c40722F) \/ c3647F); obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=(c40852F \/ c40722F); obj21344=c21373T; obj22251=(c40852F \/ c40722F); obj9142=(c40852F \/ c40722F); obj5561=(c40852F \/ c40722F); obj7331=(c40852F \/ c40722F); obj5520=(c5522F \/ c26971T); obj7398=(c40852F \/ c40722F); obj6779=(c40852F \/ c40722F); obj40994=(c40852F \/ c40722F); 
+    partner=51249 obj6384=c6372F; obj3=c5183F; obj40720=c40702F; obj51553=c39507T; obj1401=(c22260F \/ c3580F); obj40985=c22260F; obj51551=c39455F; obj50842=(c22260F \/ c3647F); obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=c22260F; obj21344=c21373T; obj22251=c22260F; obj9142=c22260F; obj5561=c22260F; obj7331=c22260F; obj5520=(c5522F \/ c26971T); obj7398=c22260F; obj6779=c22260F; obj40994=c22260F; 
+    partner=51248 obj6384=c6372F; obj3=c5183F; obj40720=c40702F; obj51553=c39507T; obj1401=(c22260F \/ c3580F); obj40985=c22260F; obj51551=c39455F; obj50842=(c22260F \/ c3647F); obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=c22260F; obj21344=c21373T; obj22251=c22260F; obj9142=c22260F; obj5561=c22260F; obj7331=c22260F; obj5520=(c5522F \/ c26971T); obj7398=c22260F; obj6779=c22260F; obj40994=c22260F; 
+    partner=51228 obj6384=c6372F; obj9554=c8756T; obj3=((c8168F \/ c6478F) \/ (c6478F \/ c5183F)); obj40720=c40702F; obj51553=c39507T; obj1401=T; obj40985=(c6579F \/ c6589F); obj51551=c39455F; obj50842=T; obj5622=(c6639T \/ c21373T); obj51772=c38827T; obj50850=c6837F; obj5165=c5139F; obj5666=((c14848T \/ c18041T) \/ c14649T); obj21344=c21373T; obj22251=(c6579F \/ c6589F); obj9142=((c14848T \/ c18041T) \/ c14649T); obj5561=((c14848T \/ c18041T) \/ c14649T); obj7331=((c14848T \/ c18041T) \/ c14649T); obj5520=(c5522F \/ c26971T); obj7398=((c14848T \/ c18041T) \/ c14649T); obj6779=((c14848T \/ c18041T) \/ c14649T); obj40994=(c6579F \/ c6589F); obj9605=c9600F; 
+    partner=51225 obj6384=c6372F; obj9554=c8756T; obj3=((c8168F \/ c6478F) \/ (c6478F \/ c5183F)); obj40720=c40702F; obj51553=c39507T; obj1401=T; obj40985=(c6579F \/ c6589F); obj51551=c39455F; obj50842=T; obj5622=(c6639T \/ c21373T); obj51772=c38827T; obj50850=c6837F; obj5165=c5139F; obj5666=((c14848T \/ c18041T) \/ c14649T); obj21344=c21373T; obj22251=(c6579F \/ c6589F); obj9142=((c14848T \/ c18041T) \/ c14649T); obj5561=((c14848T \/ c18041T) \/ c14649T); obj7331=((c14848T \/ c18041T) \/ c14649T); obj5520=(c5522F \/ c26971T); obj7398=((c14848T \/ c18041T) \/ c14649T); obj6779=((c14848T \/ c18041T) \/ c14649T); obj40994=(c6579F \/ c6589F); obj9605=c9600F; 
+    partner=51219 obj6384=c6372F; obj3=c5183F; obj40720=c40702F; obj51553=c39507T; obj1401=(c18908F \/ c3580F); obj40985=c18908F; obj51551=c39455F; obj50842=(c18908F \/ c3647F); obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=c18908F; obj21344=c21373T; obj22251=c18908F; obj9142=c18908F; obj5561=c18908F; obj7331=c18908F; obj5520=(c5522F \/ c26971T); obj7398=c18908F; obj6779=c18908F; obj40994=c18908F; 
+    partner=51050 obj5622=c6639T; obj21344=c21373T; obj9142=c9158T; 
+    partner=51044 obj5622=c6639T; obj21344=c21373T; obj9142=c9158T; 
+    partner=51041 obj5622=c6639T; obj21344=c21373T; obj9142=c9158T; 
+    partner=51035 obj5622=c6639T; obj21344=c21373T; obj9142=c9158T; 
+    partner=51014 obj5622=c6639T; obj21344=c21373T; obj9142=c9158T; 
+    partner=51008 obj5622=c6639T; obj21344=c21373T; obj9142=c9158T; 
+    partner=50624 obj6384=c6372F; obj9554=c8756T; obj3=((c8168F \/ c6478F) \/ (c6478F \/ c5183F)); obj40720=c40702F; obj51553=c39507T; obj1401=c3580F; obj40985=(c6579F \/ c6589F); obj51551=c39455F; obj50842=c3647F; obj5622=(c6639T \/ c21373T); obj51772=c38827T; obj50850=c6837F; obj5165=c5139F; obj5666=((c14848T \/ c18041T) \/ c14649T); obj21344=c21373T; obj22251=(c6579F \/ c6589F); obj9142=((c14848T \/ c18041T) \/ c14649T); obj5561=((c14848T \/ c18041T) \/ c14649T); obj7331=((c14848T \/ c18041T) \/ c14649T); obj5520=(c5522F \/ c26971T); obj7398=((c14848T \/ c18041T) \/ c14649T); obj6779=((c14848T \/ c18041T) \/ c14649T); obj40994=(c6579F \/ c6589F); obj9605=c9600F; 
+    partner=50624 obj6384=c6372F; obj9554=c8756T; obj3=((c8168F \/ c6478F) \/ (c6478F \/ c5183F)); obj40720=c40702F; obj51553=c39507T; obj1401=c3580F; obj40985=(c6579F \/ c6589F); obj51551=c39455F; obj50842=c3647F; obj5622=(c6639T \/ c21373T); obj51772=c38827T; obj50850=c6837F; obj5165=c5139F; obj5666=((c14848T \/ c18041T) \/ c14649T); obj21344=c21373T; obj22251=(c6579F \/ c6589F); obj9142=((c14848T \/ c18041T) \/ c14649T); obj5561=((c14848T \/ c18041T) \/ c14649T); obj7331=((c14848T \/ c18041T) \/ c14649T); obj5520=(c5522F \/ c26971T); obj7398=((c14848T \/ c18041T) \/ c14649T); obj6779=((c14848T \/ c18041T) \/ c14649T); obj40994=(c6579F \/ c6589F); obj9605=c9600F; 
+    partner=50488 obj9554=((c9538T \/ c41441F) \/ (c41441F \/ c11934T)); obj6384=c6372F; obj3=c5183F; obj40720=c40702F; obj51553=c39507T; obj1401=c3580F; obj40985=((c14848T \/ c18041T) \/ c14649T); obj5126=(c1769T \/ c2112F); obj51551=c39455F; obj50842=c3647F; obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=((c14848T \/ c18041T) \/ c14649T); obj21344=c21373T; obj22251=((c14848T \/ c18041T) \/ c14649T); obj9142=((c14848T \/ c18041T) \/ c14649T); obj5561=((c14848T \/ c18041T) \/ c14649T); obj7331=((c14848T \/ c18041T) \/ c14649T); obj5520=(c5522F \/ c26971T); obj7398=((c14848T \/ c18041T) \/ c14649T); obj6779=((c14848T \/ c18041T) \/ c14649T); obj40994=((c14848T \/ c18041T) \/ c14649T); obj9605=(c9600F \/ (c41441F \/ c11934T)); 
+    partner=8128 obj6384=c6372F; obj3=((c8168F \/ c6478F) \/ (c6478F \/ c5183F)); obj40720=c40702F; obj51553=c39507T; obj1401=c3580F; obj40985=(c6579F \/ c6589F); obj51551=c39455F; obj50842=c3647F; obj5622=(c6639T \/ c21373T); obj51772=c38827T; obj50850=c6837F; obj5165=c5139F; obj5666=(c6579F \/ c6589F); obj21344=c21373T; obj22251=(c6579F \/ c6589F); obj9142=(c6579F \/ c6589F); obj5561=(c6579F \/ c6589F); obj7331=(c6579F \/ c6589F); obj5520=(c5522F \/ c26971T); obj7398=(c6579F \/ c6589F); obj6779=(c6579F \/ c6589F); obj40994=(c6579F \/ c6589F); 
+    partner=50444 obj6384=c6372F; obj3=c5183F; obj40720=c40702F; obj51553=c39507T; obj1401=(c18695F \/ c3580F); obj40985=c18695F; obj51551=c39455F; obj50842=(c18695F \/ c3647F); obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=c18695F; obj21344=c21373T; obj22251=c18695F; obj9142=c18695F; obj5561=c18695F; obj7331=c18695F; obj5520=(c5522F \/ c26971T); obj7398=c18695F; obj6779=c18695F; obj40994=c18695F; 
+    partner=50334 obj6384=c6372F; obj3=T; obj40720=c40702F; obj51553=c39507T; obj1401=c3580F; obj40985=c6459T; obj49989=c50300F; obj51551=c39455F; obj50842=c3647F; obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=((c14848T \/ c18041T) \/ c14649T); obj21344=c21373T; obj22251=c6459T; obj9142=((c14848T \/ c18041T) \/ c14649T); obj5561=((c14848T \/ c18041T) \/ c14649T); obj19451=((c19502T \/ c20055T) \/ c20015T); obj7331=((c14848T \/ c18041T) \/ c14649T); obj1158=T; obj5520=(c5522F \/ c26971T); obj7398=((c14848T \/ c18041T) \/ c14649T); obj6779=((c14848T \/ c18041T) \/ c14649T); obj40994=c6459T; 
+    partner=42712 obj6384=c6372F; obj3=c5183F; obj40720=c40702F; obj51553=c39507T; obj1401=c3580F; obj40985=((c14848T \/ c18041T) \/ c14649T); obj51551=c39455F; obj50842=c3647F; obj5622=(c6639T \/ c21373T); obj50850=c6837F; obj5165=c5139F; obj5666=((c14848T \/ c18041T) \/ c14649T); obj21344=c21373T; obj22251=((c14848T \/ c18041T) \/ c14649T); obj9142=((c14848T \/ c18041T) \/ c14649T); obj5561=((c14848T \/ c18041T) \/ c14649T); obj7331=((c14848T \/ c18041T) \/ c14649T); obj5520=(c5522F \/ c26971T); obj7398=((c14848T \/ c18041T) \/ c14649T); obj6779=((c14848T \/ c18041T) \/ c14649T); obj40994=((c14848T \/ c18041T) \/ c14649T); 
+  [samplePartners] === Deep diagnostic for 21378 ===
+  [samplePartners] Self condPtsMap (1 entries):
+    obj=21344 guard=c21373F
+  [samplePartners] Diagnostic pointer 40261 bvPartners=2654 refined=0 true=0 false=0 concrete=1
+  [samplePartners] Diagnostic pointer 49270 bvPartners=3424 refined=0 true=0 false=0 concrete=1
+  [samplePartners] Max-reduction pointer: 21378 reduction=2217 true=0 false=0 concrete=1
+  [samplePartners] Refined distribution: 0=9095 1-10=2460 11-100=57 101-1000=0 >1000=1
+  [samplePartners] Done. sampled=15659 totalBvPartners=22343588 totalRefined=5944 refinedPtrs=2518 avgReduction=2.3606 maxReduction=2217 (Z3 SAT: enabled)
+  [DEBUG] Guard types: True=6034 False=0 Concrete=53732
+  [DEBUG] Concrete guard depth histogram:
+    depth=1 count=31739
+    depth=2 count=7657
+    depth=3 count=14336
+  [DEBUG] Pointer 21378 condPtsMap (1 entries):
+    obj=21344 guard=c21373F
+  [DEBUG] Pointer 51557 condPtsMap (21 entries):
+    obj=6384 guard=c6372F
+    obj=3 guard=c5183F
+    obj=40720 guard=c40702F
+    obj=51553 guard=c39507T
+    obj=1401 guard=((c40852F \/ c40722F) \/ c3580F)
+    obj=40985 guard=(c40852F \/ c40722F)
+    obj=51551 guard=c39455F
+    obj=50842 guard=((c40852F \/ c40722F) \/ c3647F)
+    obj=5622 guard=(c6639T \/ c21373T)
+    obj=50850 guard=c6837F
+    obj=5165 guard=c5139F
+    obj=5666 guard=(c40852F \/ c40722F)
+    obj=21344 guard=c21373T
+    obj=22251 guard=(c40852F \/ c40722F)
+    obj=9142 guard=(c40852F \/ c40722F)
+    obj=5561 guard=(c40852F \/ c40722F)
+    obj=7331 guard=(c40852F \/ c40722F)
+    obj=5520 guard=(c5522F \/ c26971T)
+    obj=7398 guard=(c40852F \/ c40722F)
+    obj=6779 guard=(c40852F \/ c40722F)
+    obj=40994 guard=(c40852F \/ c40722F)
+  [DEBUG] alias(21378, 51557) = NoAlias
 
 ========== SingleTrackCondAndersen Statistics ==========
   analysisComplete:    true
-  CondPtsMap nodes:    7301
-  CondPtsMap entries:  37191
-  CondPtsMap avg:      5.09396
-  CondPtsMap max:      25
+  CondPtsMap nodes:    9949
+  CondPtsMap entries:  53732
+  CondPtsMap avg:      5.40074
+  CondPtsMap max:      29
   CondPtsMap min:      1
-  Alias queries:       22305006
-  Alias total time:    40.14s
-  Alias avg time:      0.0017996ms
+  Alias queries:       1
+  Alias total time:    0s
+  Alias avg time:      0ms
 ========================================================
 
