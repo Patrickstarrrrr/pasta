@@ -1,0 +1,153 @@
+
+*********General Stats***************
+################ (program : jq.bc)###############
+AddrsNum            22350
+BBWith2Succ         8621
+BBWith3Succ         151
+CallsNum            2542
+ConstArrayObj       14
+ConstStructObj      25
+ConstantObj         0
+CopysNum            5326
+FIObjNum            1823
+FSObjNum            10162
+FunctionObjs        1582
+GepsNum             24485
+GlobalObjs          95
+HeapObjs            142
+IndCallSites        501
+LoadsNum            48952
+MaxStructSize       854
+NonPtrObj           8268
+ReturnsNum          6115
+StackObjs           10166
+StoresNum           34734
+TotalCallSite       10471
+TotalFieldObjects   5242
+TotalObjects        17228
+TotalPTASVFStmts    89142
+TotalPointers       190323
+TotalSVFStmts       182884
+VarArrayObj         128
+VarStructObj        3407
+----------------Time and memory stats--------------------
+LLVMIRTime          0.313
+SVFIRTime           1.248
+SymbolTableTime     0.089
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : jq.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   417
+MaxNodeInCycle      15
+NodeInCycle         109
+TotalCycle          64
+TotalEdge           16392
+TotalNode           1582
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : jq.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.238979
+AvgIn/OutCopyEdge   0.790479
+AvgIn/OutEdge       1.43833
+AvgIn/OutLoadEdge   0.292517
+AvgIn/OutStoreEdge  0.116353
+AvgPtsSetSize       10.8913
+AvgTopLvlPtsSize    30.3907
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0.548
+SCCMergeTime        0.318
+TotalTime           3.835
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       22350
+CopyProcessed       170800
+DummyFieldPtrs      1056
+FieldObjs           5242
+GepProcessed        50560
+IndCallSites        501
+IndEdgeSolved       6409
+LoadProcessed       550508
+LocalVarInRecur     1520
+MaxInAddrEdge       1
+MaxInCopyEdge       1387
+MaxInLoadEdge       416
+MaxInStoreEdge      589
+MaxNodesInSCC       110
+MaxOutAddrEdge      10366
+MaxOutCopyEdge      2862
+MaxOutLoadEdge      354
+MaxOutStoreEdge     395
+MaxPtsSetSize       183
+MemObjects          17228
+NodesInCycles       2139
+NullPointer         878
+NumOfAddrs          21636
+NumOfCGEdge         108583
+NumOfCGNode         91633
+NumOfCopys          48007
+NumOfFieldExpand    0
+NumOfGeps           23559
+NumOfLoads          26483
+NumOfSCCDetect      12
+NumOfSFRs           0
+NumOfStores         10534
+NumOfValidNode      90535
+NumOfValidObjNode   15975
+Pointers            190323
+PointsToBlkPtr      0
+PointsToConstPtr    5216
+SolveIterations     12
+StoreProcessed      106241
+TotalCycleNum       296
+TotalObjects        17228
+TotalPWCCycleNum    46
+TotalPointers       190323
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : jq.bc)###############
+UniquePointsToSets       21489
+TotalUnions              267088
+PropertyUnions           89046
+UniqueUnions             3219
+LookupUnions             169003
+PreemptiveUnions         5820
+TotalComplements         1118948
+PropertyComplements      1035873
+UniqueComplements        2398
+LookupComplements        78283
+PreemptiveComplements    2394
+TotalIntersections       226123
+PropertyIntersections    219807
+UniqueIntersections      40
+LookupIntersections      1470
+PreemptiveIntersections  4806
+#######################################################
+  [samplePrecision] Collecting top-level vars...
+  [samplePrecision] Sampling 10000 top-level pointers...
+  [samplePrecision] Done. sampled=10000 totalBvSize=294520 totalCondSize=294520 refined=0 totalReduction=0 avgReduction=0 maxReduction=0 extraInCond=0 missingInCond=0
+  [samplePartners] Collecting top-level vars...
+  [samplePartners] Sampling 10000 top-level pointers for alias partner reduction...
+  [samplePartners] Syncing top-level pointers to condPtsMap...
+  [samplePartners] Building reverse points-to map...
+  [samplePartners] Max-reduction pointer: 32964 reduction=2461 true=0 false=0 concrete=158
+  [samplePartners] Refined distribution: 0=3533 1-10=2712 11-100=2 101-1000=2 >1000=1
+  [samplePartners] Done. sampled=10000 totalBvPartners=13168416 totalRefined=6736 refinedPtrs=2717 avgReduction=2.47921 maxReduction=2461 (Z3 SAT: enabled)
+
+========== SingleTrackCondAndersen Statistics ==========
+  analysisComplete:    true
+  CondPtsMap nodes:    40394
+  CondPtsMap entries:  1719044
+  CondPtsMap avg:      42.5569
+  CondPtsMap max:      183
+  CondPtsMap min:      1
+========================================================
+

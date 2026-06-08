@@ -31,9 +31,9 @@ TotalSVFStmts       359906
 VarArrayObj         779
 VarStructObj        2321
 ----------------Time and memory stats--------------------
-LLVMIRTime          1.482
-SVFIRTime           3.286
-SymbolTableTime     0.229
+LLVMIRTime          1.347
+SVFIRTime           3.554
+SymbolTableTime     0.237
 #######################################################
 
 *********PTACallGraph Stats (Andersen analysis)***************
@@ -62,16 +62,16 @@ CopyGepTime         0
 LoadStoreTime       0
 MemoryUsageVmrss    0
 MemoryUsageVmsize   0
-SCCDetectTime       1.844
-SCCMergeTime        5.686
-TotalTime           120.445
+SCCDetectTime       2.349
+SCCMergeTime        6.573
+TotalTime           142.733
 UpdateCGTime        0
 ----------------Numbers stats----------------------------
 AddrProcessed       23765
-CopyProcessed       376555
+CopyProcessed       374134
 DummyFieldPtrs      3054
 FieldObjs           9612
-GepProcessed        214101
+GepProcessed        211565
 IndCallSites        376
 IndEdgeSolved       14391
 LoadProcessed       44176681
@@ -115,38 +115,38 @@ TotalPointers       485043
 ****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
 ################ (program : git.bc)###############
 UniquePointsToSets       145526
-TotalUnions              972164
-PropertyUnions           325124
-UniqueUnions             72905
-LookupUnions             440446
-PreemptiveUnions         133689
+TotalUnions              967212
+PropertyUnions           320167
+UniqueUnions             72899
+LookupUnions             440452
+PreemptiveUnions         133694
 TotalComplements         2772235
 PropertyComplements      2295998
 UniqueComplements        64336
 LookupComplements        347577
 PreemptiveComplements    64324
-TotalIntersections       2297002
-PropertyIntersections    2165882
-UniqueIntersections      187
-LookupIntersections      2149
-PreemptiveIntersections  128784
+TotalIntersections       2297013
+PropertyIntersections    2165798
+UniqueIntersections      193
+LookupIntersections      2227
+PreemptiveIntersections  128795
 #######################################################
   [samplePrecision] Collecting top-level vars...
   [samplePrecision] Sampling 10000 top-level pointers...
-  [samplePrecision] Done. sampled=10000 totalBvSize=4413288 totalCondSize=4413288 refined=0 totalReduction=0 avgReduction=0 maxReduction=0 extraInCond=0 missingInCond=0
+  [samplePrecision] Done. sampled=10000 totalBvSize=4413267 totalCondSize=4413267 refined=0 totalReduction=0 avgReduction=0 maxReduction=0 extraInCond=0 missingInCond=0
   [samplePartners] Collecting top-level vars...
   [samplePartners] Sampling 10000 top-level pointers for alias partner reduction...
   [samplePartners] Syncing top-level pointers to condPtsMap...
   [samplePartners] Building reverse points-to map...
-  [samplePartners] Max-reduction pointer: 309484 reduction=12 true=0 false=0 concrete=1
-  [samplePartners] Refined distribution: 0=8168 1-10=40 11-100=2 101-1000=0 >1000=0
-  [samplePartners] Done. sampled=10000 totalBvPartners=37245260 totalRefined=100 refinedPtrs=42 avgReduction=2.38095 maxReduction=12 (Z3 SAT: enabled)
+  [samplePartners] Max-reduction pointer: 89249 reduction=4223 true=0 false=0 concrete=1
+  [samplePartners] Refined distribution: 0=1968 1-10=435 11-100=5742 101-1000=6 >1000=53
+  [samplePartners] Done. sampled=10000 totalBvPartners=37259434 totalRefined=299684 refinedPtrs=6236 avgReduction=48.0571 maxReduction=4223 (Z3 SAT: enabled)
 
 ========== SingleTrackCondAndersen Statistics ==========
   analysisComplete:    true
-  CondPtsMap nodes:    79501
-  CondPtsMap entries:  37470031
-  CondPtsMap avg:      471.315
+  CondPtsMap nodes:    84886
+  CondPtsMap entries:  46907166
+  CondPtsMap avg:      552.59
   CondPtsMap max:      2007
   CondPtsMap min:      1
 ========================================================

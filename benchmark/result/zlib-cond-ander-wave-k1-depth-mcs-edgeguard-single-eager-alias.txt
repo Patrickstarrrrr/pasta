@@ -1,0 +1,153 @@
+
+*********General Stats***************
+################ (program : zlib.bc)###############
+AddrsNum            1661
+BBWith2Succ         1321
+BBWith3Succ         8
+CallsNum            185
+ConstArrayObj       2
+ConstStructObj      3
+ConstantObj         0
+CopysNum            1717
+FIObjNum            183
+FSObjNum            836
+FunctionObjs        171
+GepsNum             4596
+GlobalObjs          5
+HeapObjs            13
+IndCallSites        55
+LoadsNum            9211
+MaxStructSize       68
+NonPtrObj           700
+ReturnsNum          179
+StackObjs           830
+StoresNum           4458
+TotalCallSite       510
+TotalFieldObjects   44
+TotalObjects        1064
+TotalPTASVFStmts    12007
+TotalPointers       30285
+TotalSVFStmts       28742
+VarArrayObj         8
+VarStructObj        9
+----------------Time and memory stats--------------------
+LLVMIRTime          0.056
+SVFIRTime           0.162
+SymbolTableTime     0.01
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : zlib.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   0
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalEdge           476
+TotalNode           171
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : zlib.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.137631
+AvgIn/OutCopyEdge   0.811051
+AvgIn/OutEdge       1.39129
+AvgIn/OutLoadEdge   0.386354
+AvgIn/OutStoreEdge  0.0562578
+AvgPtsSetSize       1.90612
+AvgTopLvlPtsSize    5.45719
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0.039
+SCCMergeTime        0.007
+TotalTime           0.153
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       1661
+CopyProcessed       9289
+DummyFieldPtrs      70
+FieldObjs           44
+GepProcessed        8214
+IndCallSites        55
+IndEdgeSolved       19
+LoadProcessed       8817
+LocalVarInRecur     0
+MaxInAddrEdge       1
+MaxInCopyEdge       64
+MaxInLoadEdge       47
+MaxInStoreEdge      9
+MaxNodesInSCC       35
+MaxOutAddrEdge      643
+MaxOutCopyEdge      885
+MaxOutLoadEdge      317
+MaxOutStoreEdge     54
+MaxPtsSetSize       11
+MemObjects          1064
+NodesInCycles       205
+NullPointer         364
+NumOfAddrs          1644
+NumOfCGEdge         14975
+NumOfCGNode         12041
+NumOfCopys          5256
+NumOfFieldExpand    0
+NumOfGeps           4432
+NumOfLoads          4615
+NumOfSCCDetect      7
+NumOfSFRs           0
+NumOfStores         672
+NumOfValidNode      11945
+NumOfValidObjNode   1021
+Pointers            30285
+PointsToBlkPtr      0
+PointsToConstPtr    2420
+SolveIterations     7
+StoreProcessed      1210
+TotalCycleNum       22
+TotalObjects        1064
+TotalPWCCycleNum    8
+TotalPointers       30285
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : zlib.bc)###############
+UniquePointsToSets       1222
+TotalUnions              21133
+PropertyUnions           15267
+UniqueUnions             64
+LookupUnions             5691
+PreemptiveUnions         111
+TotalComplements         86590
+PropertyComplements      79602
+UniqueComplements        147
+LookupComplements        6694
+PreemptiveComplements    147
+TotalIntersections       7824
+PropertyIntersections    7530
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  294
+#######################################################
+  [samplePrecision] Collecting top-level vars...
+  [samplePrecision] Sampling 10000 top-level pointers...
+  [samplePrecision] Done. sampled=10000 totalBvSize=54585 totalCondSize=54585 refined=0 totalReduction=0 avgReduction=0 maxReduction=0 extraInCond=0 missingInCond=0
+  [samplePartners] Collecting top-level vars...
+  [samplePartners] Sampling 10000 top-level pointers for alias partner reduction...
+  [samplePartners] Syncing top-level pointers to condPtsMap...
+  [samplePartners] Building reverse points-to map...
+  [samplePartners] Max-reduction pointer: 21601 reduction=18 true=0 false=0 concrete=1
+  [samplePartners] Refined distribution: 0=6367 1-10=51 11-100=1 101-1000=0 >1000=0
+  [samplePartners] Done. sampled=10000 totalBvPartners=35424412 totalRefined=82 refinedPtrs=52 avgReduction=1.57692 maxReduction=18 (Z3 SAT: enabled)
+
+========== SingleTrackCondAndersen Statistics ==========
+  analysisComplete:    true
+  CondPtsMap nodes:    6002
+  CondPtsMap entries:  51465
+  CondPtsMap avg:      8.57464
+  CondPtsMap max:      11
+  CondPtsMap min:      1
+========================================================
+
