@@ -223,6 +223,7 @@ protected:
     mutable u32_t numAliasRefinedToNoAlias; ///< base MayAlias that was refined to NoAlias
     mutable u32_t numAliasTotal;
     mutable u32_t numCondPtsEntries;
+    mutable u32_t numEagerSatCuts;        ///< objects cut by eager SAT filtering
 
     /// Timing counters (ms) for conditional overhead analysis
     mutable double timeCondProp;      // processCopy/Load/Store/Gep conditional logic

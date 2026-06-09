@@ -31,6 +31,7 @@ ConditionalAndersen::ConditionalAndersen(SVFIR* _pag, PTATY type)
       numAliasRefinedToNoAlias(0),
       numAliasTotal(0),
       numCondPtsEntries(0),
+      numEagerSatCuts(0),
       timeCondProp(0.0),
       timeCondAlias(0.0),
       timeCondSCCMerge(0.0),
@@ -858,7 +859,11 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
                 newCond = applyLimits(PathCond::getAnd(cond, guard));
             }
 
-            if (eagerSat && !z3IsSat(newCond)) continue;
+            if (eagerSat && !z3IsSat(newCond))
+            {
+                numEagerSatCuts++;
+                continue;
+            }
 
             if (orMergeCondPts(dst, obj, newCond))
                 condChanged = true;
@@ -870,14 +875,26 @@ bool ConditionalAndersen::processCopy(NodeID node, const ConstraintEdge* edge)
     if (!guard->isTrue())
     {
         const PathCond* limitedGuard = applyLimits(guard);
-        if (!limitedGuard->isFalse() && !(eagerSat && !z3IsSat(limitedGuard)))
+        if (!limitedGuard->isFalse())
         {
-            const PointsTo& pts = getPts(node);
-            for (NodeID obj : pts)
+            if (eagerSat && !z3IsSat(limitedGuard))
             {
-                if (it != condPtsMap.end() && it->second.count(obj)) continue;
-                if (orMergeCondPts(dst, obj, limitedGuard))
-                    condChanged = true;
+                const PointsTo& pts = getPts(node);
+                for (NodeID obj : pts)
+                {
+                    if (it != condPtsMap.end() && it->second.count(obj)) continue;
+                    numEagerSatCuts++;
+                }
+            }
+            else
+            {
+                const PointsTo& pts = getPts(node);
+                for (NodeID obj : pts)
+                {
+                    if (it != condPtsMap.end() && it->second.count(obj)) continue;
+                    if (orMergeCondPts(dst, obj, limitedGuard))
+                        condChanged = true;
+                }
             }
         }
     }
@@ -1009,7 +1026,11 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
             if (og->isFalse()) continue;
 
             const PathCond* g = edgeIsTrue ? og : PathCond::getAnd(og, edgeG);
-            if (eagerSat && !z3IsSat(g)) continue;
+            if (eagerSat && !z3IsSat(g))
+            {
+                numEagerSatCuts++;
+                continue;
+            }
 
             NodeID newField = translateField(o);
             if (orMergeCondPts(dst, newField, g))
@@ -1022,15 +1043,27 @@ bool ConditionalAndersen::processGep(NodeID, const GepCGEdge* edge)
     if (!edgeIsTrue)
     {
         const PathCond* limitedEdgeG = applyLimits(edgeG);
-        if (!limitedEdgeG->isFalse() && !(eagerSat && !z3IsSat(limitedEdgeG)))
+        if (!limitedEdgeG->isFalse())
         {
-            const PointsTo& pts = getPts(src);
-            for (NodeID o : pts)
+            if (eagerSat && !z3IsSat(limitedEdgeG))
             {
-                if (it != condPtsMap.end() && it->second.count(o)) continue;
-                NodeID newField = translateField(o);
-                if (orMergeCondPts(dst, newField, limitedEdgeG))
-                    condChanged = true;
+                const PointsTo& pts = getPts(src);
+                for (NodeID o : pts)
+                {
+                    if (it != condPtsMap.end() && it->second.count(o)) continue;
+                    numEagerSatCuts++;
+                }
+            }
+            else
+            {
+                const PointsTo& pts = getPts(src);
+                for (NodeID o : pts)
+                {
+                    if (it != condPtsMap.end() && it->second.count(o)) continue;
+                    NodeID newField = translateField(o);
+                    if (orMergeCondPts(dst, newField, limitedEdgeG))
+                        condChanged = true;
+                }
             }
         }
     }
@@ -1261,6 +1294,7 @@ void ConditionalAndersen::finalize()
     SVFUtil::outs() << "  Alias refined (May): " << numAliasRefined << "\n";
     SVFUtil::outs() << "  Alias refined (No):  " << numAliasRefinedToNoAlias << "\n";
     SVFUtil::outs() << "  CondPts entries:     " << numCondPtsEntries << "\n";
+    SVFUtil::outs() << "  Eager SAT cuts:      " << numEagerSatCuts << "\n";
     SVFUtil::outs() << "\n  === Conditional Overhead (ms) ===\n";
     SVFUtil::outs() << "  Cond propagation:    " << timeCondProp << "\n";
     SVFUtil::outs() << "  Cond alias query:    " << timeCondAlias << "\n";

@@ -242,8 +242,11 @@ void SingleTrackCondAndersen::finalize()
 
     SVFUtil::outs() << "\n========== SingleTrackCondAndersen Statistics ==========\n";
     SVFUtil::outs() << "  analysisComplete:    true\n";
+    SVFUtil::outs() << "  eagerSat:            " << (eagerSat ? "true" : "false") << "\n";
+    SVFUtil::outs() << "  Z3 SAT checks:       " << numZ3SatChecks << "\n";
     SVFUtil::outs() << "  CondPtsMap nodes:    " << condPtsMapNodes << "\n";
     SVFUtil::outs() << "  CondPtsMap entries:  " << numCondPtsEntries << "\n";
+    SVFUtil::outs() << "  Eager SAT cuts:      " << numEagerSatCuts << "\n";
     if (condPtsMapNodes > 0)
     {
         double avg = static_cast<double>(numCondPtsEntries) / static_cast<double>(condPtsMapNodes);

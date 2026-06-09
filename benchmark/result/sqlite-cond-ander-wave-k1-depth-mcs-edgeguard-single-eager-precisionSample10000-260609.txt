@@ -1,0 +1,232 @@
+
+*********General Stats***************
+################ (program : sqlite.bc)###############
+AddrsNum            21030
+BBWith2Succ         15217
+BBWith3Succ         88
+CallsNum            4929
+ConstArrayObj       40
+ConstStructObj      26
+ConstantObj         0
+CopysNum            13285
+FIObjNum            2838
+FSObjNum            15233
+FunctionObjs        2551
+GepsNum             41257
+GlobalObjs          108
+HeapObjs            85
+IndCallSites        281
+LoadsNum            89540
+MaxStructSize       121
+NonPtrObj           9821
+ReturnsNum          7431
+StackObjs           15327
+StoresNum           36890
+TotalCallSite       13234
+TotalFieldObjects   3837
+TotalObjects        21909
+TotalPTASVFStmts    139774
+TotalPointers       309696
+TotalSVFStmts       278438
+VarArrayObj         99
+VarStructObj        337
+----------------Time and memory stats--------------------
+LLVMIRTime          0.808
+SVFIRTime           2.626
+SymbolTableTime     0.154
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : sqlite.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   18213
+MaxNodeInCycle      1542
+NodeInCycle         1565
+TotalCycle          19
+TotalEdge           28508
+TotalNode           2551
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : sqlite.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.140012
+AvgIn/OutCopyEdge   1.21162
+AvgIn/OutEdge       1.87492
+AvgIn/OutLoadEdge   0.410751
+AvgIn/OutStoreEdge  0.11254
+AvgPtsSetSize       154.148
+AvgTopLvlPtsSize    372.121
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       2.454
+SCCMergeTime        5.685
+TotalTime           155.143
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       21030
+CopyProcessed       609715
+DummyFieldPtrs      624
+FieldObjs           3837
+GepProcessed        311026
+IndCallSites        281
+IndEdgeSolved       15517
+LoadProcessed       25803867
+LocalVarInRecur     4988
+MaxInAddrEdge       1
+MaxInCopyEdge       1525
+MaxInLoadEdge       6044
+MaxInStoreEdge      190
+MaxNodesInSCC       14193
+MaxOutAddrEdge      3043
+MaxOutCopyEdge      20453
+MaxOutLoadEdge      854
+MaxOutStoreEdge     4918
+MaxPtsSetSize       563
+MemObjects          21909
+NodesInCycles       15912
+NullPointer         1287
+NumOfAddrs          18037
+NumOfCGEdge         223500
+NumOfCGNode         130024
+NumOfCopys          115762
+NumOfFieldExpand    0
+NumOfGeps           40325
+NumOfLoads          52915
+NumOfSCCDetect      19
+NumOfSFRs           0
+NumOfStores         14498
+NumOfValidNode      128825
+NumOfValidObjNode   15869
+Pointers            309696
+PointsToBlkPtr      0
+PointsToConstPtr    26612
+SolveIterations     20
+StoreProcessed      3237561
+TotalCycleNum       282
+TotalObjects        21909
+TotalPWCCycleNum    38
+TotalPointers       309696
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : sqlite.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   18759
+MaxNodeInCycle      1543
+NodeInCycle         1566
+TotalCycle          19
+TotalEdge           29779
+TotalNode           2551
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : sqlite.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.139933
+AvgIn/OutCopyEdge   0.991835
+AvgIn/OutEdge       1.65541
+AvgIn/OutLoadEdge   0.411058
+AvgIn/OutStoreEdge  0.112586
+AvgPtsSetSize       153.722
+AvgTopLvlPtsSize    376.127
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       2.885
+SCCMergeTime        5.843
+TotalTime           179.838
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       21030
+CopyProcessed       762013
+DummyFieldPtrs      624
+FieldObjs           1864
+GepProcessed        384958
+IndCallSites        281
+IndEdgeSolved       16788
+LoadProcessed       33016375
+LocalVarInRecur     5007
+MaxInAddrEdge       1
+MaxInCopyEdge       1518
+MaxInLoadEdge       6114
+MaxInStoreEdge      190
+MaxNodesInSCC       14193
+MaxOutAddrEdge      3043
+MaxOutCopyEdge      20468
+MaxOutLoadEdge      854
+MaxOutStoreEdge     4968
+MaxPtsSetSize       568
+MemObjects          21909
+NodesInCycles       1721
+NullPointer         1273
+NumOfAddrs          18012
+NumOfCGEdge         195071
+NumOfCGNode         129917
+NumOfCopys          87345
+NumOfFieldExpand    0
+NumOfGeps           40323
+NumOfLoads          52911
+NumOfSCCDetect      22
+NumOfSFRs           0
+NumOfStores         14492
+NumOfValidNode      128719
+NumOfValidObjNode   15830
+Pointers            309696
+PointsToBlkPtr      0
+PointsToConstPtr    53238
+SolveIterations     22
+StoreProcessed      3749090
+TotalCycleNum       282
+TotalObjects        21909
+TotalPWCCycleNum    37
+TotalPointers       309696
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : sqlite.bc)###############
+UniquePointsToSets       35205
+TotalUnions              1285696
+PropertyUnions           184237
+UniqueUnions             11184
+LookupUnions             1069461
+PreemptiveUnions         20814
+TotalComplements         3047429
+PropertyComplements      2099123
+UniqueComplements        10242
+LookupComplements        927823
+PreemptiveComplements    10241
+TotalIntersections       2249845
+PropertyIntersections    2226055
+UniqueIntersections      189
+LookupIntersections      3014
+PreemptiveIntersections  20587
+#######################################################
+  [samplePrecision] Collecting top-level vars...
+  [samplePrecision] Sampling 10000 top-level pointers...
+  [samplePrecision] Done. sampled=10000 totalBvSize=3729193 totalCondSize=3729193 refined=0 totalReduction=0 avgReduction=0 maxReduction=0 extraInCond=0 missingInCond=0
+  [samplePartners] Collecting top-level vars...
+  [samplePartners] Sampling 10000 top-level pointers for alias partner reduction...
+  [samplePartners] Syncing top-level pointers to condPtsMap...
+  [samplePartners] Building reverse points-to map...
+  [samplePartners] Max-reduction pointer: 292129 reduction=5 true=0 false=0 concrete=5
+  [samplePartners] Refined distribution: 0=7915 1-10=12 11-100=0 101-1000=0 >1000=0
+  [samplePartners] Done. sampled=10000 totalBvPartners=56808350 totalRefined=18 refinedPtrs=12 avgReduction=1.5 maxReduction=5 (Z3 SAT: enabled)
+
+========== SingleTrackCondAndersen Statistics ==========
+  analysisComplete:    true
+  eagerSat:            true
+  Z3 SAT checks:       99468812
+  CondPtsMap nodes:    87088
+  CondPtsMap entries:  36253309
+  Eager SAT cuts:      0
+  CondPtsMap avg:      416.284
+  CondPtsMap max:      568
+  CondPtsMap min:      1
+========================================================
+

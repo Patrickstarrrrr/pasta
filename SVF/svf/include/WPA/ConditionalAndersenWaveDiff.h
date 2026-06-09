@@ -251,6 +251,7 @@ protected:
     mutable u32_t numAliasRefinedToNoAlias; ///< base MayAlias that was refined to NoAlias
     mutable u32_t numAliasTotal;
     mutable u32_t numCondPtsEntries;
+    mutable u32_t numEagerSatCuts;        ///< objects cut by eager SAT filtering
 
     // Diff-pts performance counters
     mutable u32_t numDiffPtsHits;      // processCopy/GEP used diff objs

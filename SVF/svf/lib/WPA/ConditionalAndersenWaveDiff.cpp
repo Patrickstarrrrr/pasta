@@ -33,6 +33,7 @@ ConditionalAndersenWaveDiff::ConditionalAndersenWaveDiff(SVFIR* _pag, PTATY type
       numAliasRefinedToNoAlias(0),
       numAliasTotal(0),
       numCondPtsEntries(0),
+      numEagerSatCuts(0),
       timeCondProp(0.0),
       timeCondAlias(0.0),
       timeCondSCCMerge(0.0),
@@ -1043,6 +1044,7 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
                 // Mark as False (instead of skipping) so that ensureNodeSynced
                 // later knows this object was explicitly filtered and will not
                 // overwrite it with True.
+                numEagerSatCuts++;
                 orMergeCondPts(dst, obj, PathCond::getFalse());
                 continue;
             }
@@ -1076,6 +1078,7 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
 
             if (eagerSat && !z3IsSat(newCond))
             {
+                numEagerSatCuts++;
                 orMergeCondPts(dst, obj, PathCond::getFalse());
                 continue;
             }
@@ -1090,15 +1093,26 @@ bool ConditionalAndersenWaveDiff::processCopy(NodeID node, const ConstraintEdge*
     if (!guard->isTrue())
     {
         const PathCond* limitedGuard = applyLimits(guard);
-        if (!limitedGuard->isTrue() && !limitedGuard->isFalse() &&
-            !(eagerSat && !z3IsSat(limitedGuard)))
+        if (!limitedGuard->isTrue() && !limitedGuard->isFalse())
         {
-            const PointsTo& pts = getPts(node);
-            for (NodeID obj : pts)
+            if (eagerSat && !z3IsSat(limitedGuard))
             {
-                if (it != condPtsMap.end() && it->second.count(obj)) continue;
-                if (orMergeCondPts(dst, obj, limitedGuard))
-                    condChanged = true;
+                const PointsTo& pts = getPts(node);
+                for (NodeID obj : pts)
+                {
+                    if (it != condPtsMap.end() && it->second.count(obj)) continue;
+                    numEagerSatCuts++;
+                }
+            }
+            else
+            {
+                const PointsTo& pts = getPts(node);
+                for (NodeID obj : pts)
+                {
+                    if (it != condPtsMap.end() && it->second.count(obj)) continue;
+                    if (orMergeCondPts(dst, obj, limitedGuard))
+                        condChanged = true;
+                }
             }
         }
     }
@@ -1262,6 +1276,7 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
                 continue; // True guard is implicit; do not erase existing entry
             if (eagerSat && !z3IsSat(g))
             {
+                numEagerSatCuts++;
                 orMergeCondPts(dst, newField, PathCond::getFalse());
                 continue;
             }
@@ -1284,21 +1299,38 @@ bool ConditionalAndersenWaveDiff::processGep(NodeID, const GepCGEdge* edge)
     if (!edgeIsTrue)
     {
         const PathCond* limitedEdgeG = applyLimits(edgeG);
-        if (!limitedEdgeG->isTrue() && !limitedEdgeG->isFalse() &&
-            !(eagerSat && !z3IsSat(limitedEdgeG)))
+        if (!limitedEdgeG->isTrue() && !limitedEdgeG->isFalse())
         {
-            const PointsTo& pts = getPts(src);
-            for (NodeID o : pts)
+            if (eagerSat && !z3IsSat(limitedEdgeG))
             {
-                if (it != condPtsMap.end() && it->second.count(o)) continue;
-                NodeID newField = translateFieldLite(o);
+                const PointsTo& pts = getPts(src);
+                for (NodeID o : pts)
+                {
+                    if (it != condPtsMap.end() && it->second.count(o)) continue;
+                    NodeID newField = translateFieldLite(o);
 
-                // Skip if bitvector never propagated this field object.
-                if (!Andersen::getPts(dst).test(newField))
-                    continue;
+                    // Skip if bitvector never propagated this field object.
+                    if (!Andersen::getPts(dst).test(newField))
+                        continue;
 
-                if (orMergeCondPts(dst, newField, limitedEdgeG))
-                    condChanged = true;
+                    numEagerSatCuts++;
+                }
+            }
+            else
+            {
+                const PointsTo& pts = getPts(src);
+                for (NodeID o : pts)
+                {
+                    if (it != condPtsMap.end() && it->second.count(o)) continue;
+                    NodeID newField = translateFieldLite(o);
+
+                    // Skip if bitvector never propagated this field object.
+                    if (!Andersen::getPts(dst).test(newField))
+                        continue;
+
+                    if (orMergeCondPts(dst, newField, limitedEdgeG))
+                        condChanged = true;
+                }
             }
         }
     }
@@ -1518,6 +1550,7 @@ void ConditionalAndersenWaveDiff::finalize()
     SVFUtil::outs() << "  Alias refined (May): " << numAliasRefined << "\n";
     SVFUtil::outs() << "  Alias refined (No):  " << numAliasRefinedToNoAlias << "\n";
     SVFUtil::outs() << "  CondPts entries:     " << numCondPtsEntries << "\n";
+    SVFUtil::outs() << "  Eager SAT cuts:      " << numEagerSatCuts << "\n";
     SVFUtil::outs() << "\n  === Conditional Overhead (ms) ===\n";
     SVFUtil::outs() << "  Cond propagation:    " << timeCondProp << "\n";
     SVFUtil::outs() << "  Cond alias query:    " << timeCondAlias << "\n";

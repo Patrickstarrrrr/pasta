@@ -12,28 +12,28 @@ CopysNum            3534
 FIObjNum            2883
 FSObjNum            13455
 FunctionObjs        2663
-GepsNum             52009
+GepsNum             51125
 GlobalObjs          373
 HeapObjs            68
 IndCallSites        90
-LoadsNum            83022
+LoadsNum            82580
 MaxStructSize       431
-NonPtrObj           7796
+NonPtrObj           7800
 ReturnsNum          5829
 StackObjs           13234
-StoresNum           41361
+StoresNum           40919
 TotalCallSite       13942
 TotalFieldObjects   3151
 TotalObjects        19490
-TotalPTASVFStmts    173133
-TotalPointers       303904
-TotalSVFStmts       276225
+TotalPTASVFStmts    171365
+TotalPointers       302578
+TotalSVFStmts       274457
 VarArrayObj         121
 VarStructObj        456
 ----------------Time and memory stats--------------------
-LLVMIRTime          0.646
-SVFIRTime           2.202
-SymbolTableTime     0.17
+LLVMIRTime          0.591
+SVFIRTime           1.986
+SymbolTableTime     0.175
 #######################################################
 
 *********PTACallGraph Stats (Andersen analysis)***************
@@ -50,104 +50,104 @@ TotalNode           2663
 *********Andersen Pointer Analysis Stats***************
 ################ (program : tmux.bc)###############
 ----------------Time and memory stats--------------------
-AvgIn/OutAddrEdge   0.163681
-AvgIn/OutCopyEdge   0.895982
-AvgIn/OutEdge       1.60164
-AvgIn/OutLoadEdge   0.384891
-AvgIn/OutStoreEdge  0.157091
-AvgPtsSetSize       101.8
-AvgTopLvlPtsSize    210.933
+AvgIn/OutAddrEdge   0.164648
+AvgIn/OutCopyEdge   0.894649
+AvgIn/OutEdge       1.59861
+AvgIn/OutLoadEdge   0.384231
+AvgIn/OutStoreEdge  0.155083
+AvgPtsSetSize       101.308
+AvgTopLvlPtsSize    211.225
 CollapseTime        0
 CopyGepTime         0
 LoadStoreTime       0
 MemoryUsageVmrss    0
 MemoryUsageVmsize   0
-SCCDetectTime       1.912
-SCCMergeTime        5.302
-TotalTime           68.763
+SCCDetectTime       1.875
+SCCMergeTime        5.183
+TotalTime           66.647
 UpdateCGTime        0
 ----------------Numbers stats----------------------------
 AddrProcessed       26789
-CopyProcessed       688199
+CopyProcessed       700519
 DummyFieldPtrs      605
 FieldObjs           3151
-GepProcessed        413898
+GepProcessed        426922
 IndCallSites        90
 IndEdgeSolved       2328
-LoadProcessed       25006315
+LoadProcessed       25005876
 LocalVarInRecur     1036
 MaxInAddrEdge       1
-MaxInCopyEdge       2330
-MaxInLoadEdge       8178
+MaxInCopyEdge       2327
+MaxInLoadEdge       7745
 MaxInStoreEdge      664
 MaxNodesInSCC       201
 MaxOutAddrEdge      10452
-MaxOutCopyEdge      21299
+MaxOutCopyEdge      21296
 MaxOutLoadEdge      171
-MaxOutStoreEdge     8715
+MaxOutStoreEdge     8282
 MaxPtsSetSize       456
 MemObjects          19490
 NodesInCycles       1199
-NullPointer         1225
+NullPointer         1219
 NumOfAddrs          24787
-NumOfCGEdge         217758
-NumOfCGNode         152907
-NumOfCopys          84209
+NumOfCGEdge         215876
+NumOfCGNode         152017
+NumOfCopys          84095
 NumOfFieldExpand    0
-NumOfGeps           51474
-NumOfLoads          58286
+NumOfGeps           50590
+NumOfLoads          57844
 NumOfSCCDetect      19
 NumOfSFRs           0
-NumOfStores         23789
-NumOfValidNode      151435
-NumOfValidObjNode   16070
-Pointers            303904
+NumOfStores         23347
+NumOfValidNode      150545
+NumOfValidObjNode   16073
+Pointers            302578
 PointsToBlkPtr      0
-PointsToConstPtr    29117
+PointsToConstPtr    28681
 SolveIterations     19
-StoreProcessed      3041154
+StoreProcessed      3029228
 TotalCycleNum       152
 TotalObjects        19490
 TotalPWCCycleNum    17
-TotalPointers       303904
+TotalPointers       302578
 #######################################################
 
 ****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
 ################ (program : tmux.bc)###############
-UniquePointsToSets       35866
-TotalUnions              1196646
-PropertyUnions           249320
-UniqueUnions             12806
-LookupUnions             910485
-PreemptiveUnions         24035
-TotalComplements         3013041
-PropertyComplements      2211304
-UniqueComplements        10421
-LookupComplements        780896
-PreemptiveComplements    10420
-TotalIntersections       2427768
-PropertyIntersections    2406812
-UniqueIntersections      28
-LookupIntersections      64
-PreemptiveIntersections  20864
+UniquePointsToSets       35774
+TotalUnions              1221402
+PropertyUnions           279024
+UniqueUnions             12746
+LookupUnions             905719
+PreemptiveUnions         23913
+TotalComplements         2994722
+PropertyComplements      2197877
+UniqueComplements        10358
+LookupComplements        776130
+PreemptiveComplements    10357
+TotalIntersections       2425399
+PropertyIntersections    2404578
+UniqueIntersections      27
+LookupIntersections      58
+PreemptiveIntersections  20736
 #######################################################
   [samplePrecision] Collecting top-level vars...
   [samplePrecision] Sampling 10000 top-level pointers...
-  [samplePrecision] Done. sampled=10000 totalBvSize=2129908 totalCondSize=2129908 refined=0 totalReduction=0 avgReduction=0 maxReduction=0 extraInCond=0 missingInCond=0
+  [samplePrecision] Done. sampled=10000 totalBvSize=2105292 totalCondSize=2105292 refined=0 totalReduction=0 avgReduction=0 maxReduction=0 extraInCond=0 missingInCond=0
   [samplePartners] Collecting top-level vars...
   [samplePartners] Sampling 10000 top-level pointers for alias partner reduction...
   [samplePartners] Syncing top-level pointers to condPtsMap...
   [samplePartners] Building reverse points-to map...
-  [samplePartners] Max-reduction pointer: 244418 reduction=1 true=0 false=0 concrete=1
-  [samplePartners] Refined distribution: 0=8184 1-10=4 11-100=0 101-1000=0 >1000=0
-  [samplePartners] Done. sampled=10000 totalBvPartners=59836378 totalRefined=4 refinedPtrs=4 avgReduction=1 maxReduction=1 (Z3 SAT: enabled)
+  [samplePartners] Max-reduction pointer: 207020 reduction=1345 true=0 false=0 concrete=336
+  [samplePartners] Refined distribution: 0=6826 1-10=403 11-100=959 101-1000=31 >1000=2
+  [samplePartners] Done. sampled=10000 totalBvPartners=58886362 totalRefined=51492 refinedPtrs=1395 avgReduction=36.9118 maxReduction=1345 (Z3 SAT: enabled)
 
 ========== SingleTrackCondAndersen Statistics ==========
   analysisComplete:    true
-  CondPtsMap nodes:    102819
-  CondPtsMap entries:  21835189
-  CondPtsMap avg:      212.365
-  CondPtsMap max:      412
+  CondPtsMap nodes:    102416
+  CondPtsMap entries:  22495516
+  CondPtsMap avg:      219.648
+  CondPtsMap max:      426
   CondPtsMap min:      1
 ========================================================
 
