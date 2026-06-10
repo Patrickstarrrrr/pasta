@@ -1,0 +1,240 @@
+vcall gep idx not constantint
+vcall gep idx not constantint
+vcall gep idx not constantint
+vcall gep idx not constantint
+vcall gep idx not constantint
+vcall gep idx not constantint
+vcall gep idx not constantint
+vcall gep idx not constantint
+
+*********General Stats***************
+################ (program : nginx.bc)###############
+AddrsNum            6950
+BBWith2Succ         11130
+BBWith3Succ         312
+CallsNum            1183
+ConstArrayObj       116
+ConstStructObj      125
+ConstantObj         0
+CopysNum            2539
+FIObjNum            1646
+FSObjNum            676
+FunctionObjs        1304
+GepsNum             39074
+GlobalObjs          475
+HeapObjs            16
+IndCallSites        331
+LoadsNum            27271
+MaxStructSize       159
+NonPtrObj           2227
+ReturnsNum          2498
+StackObjs           527
+StoresNum           25089
+TotalCallSite       8294
+TotalFieldObjects   4764
+TotalObjects        7087
+TotalPTASVFStmts    81520
+TotalPointers       168417
+TotalSVFStmts       151043
+VarArrayObj         132
+VarStructObj        542
+----------------Time and memory stats--------------------
+LLVMIRTime          0.472
+SVFIRTime           1.025
+SymbolTableTime     0.066
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : nginx.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   29189
+MaxNodeInCycle      675
+NodeInCycle         681
+TotalCycle          7
+TotalEdge           45905
+TotalNode           1304
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : nginx.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.100503
+AvgIn/OutCopyEdge   1.58152
+AvgIn/OutEdge       2.16759
+AvgIn/OutLoadEdge   0.273422
+AvgIn/OutStoreEdge  0.212146
+AvgPtsSetSize       237.822
+AvgTopLvlPtsSize    540.601
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0.896
+SCCMergeTime        5.02
+TotalTime           237.528
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       6950
+CopyProcessed       165636
+DummyFieldPtrs      1289
+FieldObjs           4764
+GepProcessed        275168
+IndCallSites        331
+IndEdgeSolved       37928
+LoadProcessed       87758879
+LocalVarInRecur     279
+MaxInAddrEdge       1
+MaxInCopyEdge       2606
+MaxInLoadEdge       7815
+MaxInStoreEdge      79
+MaxNodesInSCC       11736
+MaxOutAddrEdge      4629
+MaxOutCopyEdge      13046
+MaxOutLoadEdge      186
+MaxOutStoreEdge     7453
+MaxPtsSetSize       882
+MemObjects          7087
+NodesInCycles       12857
+NullPointer         1405
+NumOfAddrs          6090
+NumOfCGEdge         125255
+NumOfCGNode         62273
+NumOfCopys          57999
+NumOfFieldExpand    0
+NumOfGeps           37833
+NumOfLoads          16568
+NumOfSCCDetect      19
+NumOfSFRs           0
+NumOfStores         12855
+NumOfValidNode      60595
+NumOfValidObjNode   2216
+Pointers            168417
+PointsToBlkPtr      0
+PointsToConstPtr    26312
+SolveIterations     20
+StoreProcessed      31853958
+TotalCycleNum       387
+TotalObjects        7087
+TotalPWCCycleNum    34
+TotalPointers       168417
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : nginx.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   35519
+MaxNodeInCycle      680
+NodeInCycle         686
+TotalCycle          7
+TotalEdge           53757
+TotalNode           1304
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : nginx.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.100639
+AvgIn/OutCopyEdge   1.10652
+AvgIn/OutEdge       1.69344
+AvgIn/OutLoadEdge   0.274038
+AvgIn/OutStoreEdge  0.212246
+AvgPtsSetSize       236.324
+AvgTopLvlPtsSize    560.9
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       1.141
+SCCMergeTime        5.143
+TotalTime           331.099
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       6950
+CopyProcessed       242252
+DummyFieldPtrs      1289
+FieldObjs           1935
+GepProcessed        373295
+IndCallSites        331
+IndEdgeSolved       45780
+LoadProcessed       106896508
+LocalVarInRecur     294
+MaxInAddrEdge       1
+MaxInCopyEdge       2501
+MaxInLoadEdge       7946
+MaxInStoreEdge      79
+MaxNodesInSCC       11736
+MaxOutAddrEdge      4629
+MaxOutCopyEdge      13384
+MaxOutLoadEdge      196
+MaxOutStoreEdge     7581
+MaxPtsSetSize       893
+MemObjects          7087
+NodesInCycles       1024
+NullPointer         941
+NumOfAddrs          6075
+NumOfCGEdge         96148
+NumOfCGNode         61965
+NumOfCopys          28988
+NumOfFieldExpand    0
+NumOfGeps           37806
+NumOfLoads          16542
+NumOfSCCDetect      26
+NumOfSFRs           0
+NumOfStores         12812
+NumOfValidNode      60364
+NumOfValidObjNode   2193
+Pointers            168417
+PointsToBlkPtr      0
+PointsToConstPtr    53088
+SolveIterations     26
+StoreProcessed      35917882
+TotalCycleNum       371
+TotalObjects        7087
+TotalPWCCycleNum    33
+TotalPointers       168417
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : nginx.bc)###############
+UniquePointsToSets       13038
+TotalUnions              657269
+PropertyUnions           145154
+UniqueUnions             7785
+LookupUnions             491395
+PreemptiveUnions         12935
+TotalComplements         1701014
+PropertyComplements      1265871
+UniqueComplements        6391
+LookupComplements        422361
+PreemptiveComplements    6391
+TotalIntersections       2562506
+PropertyIntersections    2549295
+UniqueIntersections      49
+LookupIntersections      351
+PreemptiveIntersections  12811
+#######################################################
+  [samplePrecision] Collecting top-level vars...
+  [samplePrecision] Sampling 10000 top-level pointers...
+  [samplePrecision] Done. sampled=10000 totalBvSize=5667761 totalCondSize=5666330 refined=10 totalReduction=1431 avgReduction=143.1 maxReduction=684 extraInCond=0 missingInCond=1431
+  [samplePartners] Collecting top-level vars...
+  [samplePartners] Sampling 10000 top-level pointers for alias partner reduction...
+  [samplePartners] Syncing top-level pointers to condPtsMap...
+  [samplePartners] Building reverse points-to map...
+  [samplePartners] Max-reduction pointer: 81465 reduction=535 true=0 false=684 concrete=170
+  [samplePartners] Refined distribution: 0=8420 1-10=609 11-100=3 101-1000=2 >1000=0
+  [samplePartners] Done. sampled=10000 totalBvPartners=73172270 totalRefined=2320 refinedPtrs=614 avgReduction=3.7785 maxReduction=535 (Z3 SAT: enabled)
+
+========== SingleTrackCondAndersen Statistics ==========
+  analysisComplete:    true
+  eagerSat:            true
+  Z3 SAT checks:       131253629
+  CondPtsMap nodes:    45511
+  CondPtsMap entries:  29575702
+  Eager SAT cuts:      34659
+  CondPtsMap avg:      649.858
+  CondPtsMap max:      893
+  CondPtsMap min:      1
+========================================================
+
