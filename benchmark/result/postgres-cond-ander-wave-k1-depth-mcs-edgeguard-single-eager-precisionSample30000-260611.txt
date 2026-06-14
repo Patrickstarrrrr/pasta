@@ -1,0 +1,2 @@
+vcall gep idx not constantint
+[1;31mError [1;0m/Users/jiayi/PASTA/SVF/svf-llvm/lib/ObjTypeInference.cpp:626: callbase does not return:   %100 = tail call ptr @lz4_decompress_datum(ptr noundef nonnull %0) #117 

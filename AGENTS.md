@@ -1,6 +1,6 @@
 # PASTA / SVF Conditional Andersen — Agent Context
 
-> Last updated: 2026-06-08
+> Last updated: 2026-06-09
 
 ## Project Structure
 
@@ -12,7 +12,16 @@
   - `SVF/svf/lib/WPA/` — implementations
   - `SVF/svf/include/Util/` — PathCond, FastGuard
 - **Benchmarks**:
-  - `~/PASTA/benchmark/bc/jq.bc`
+  - `~/PASTA/benchmark/bc/ffmpeg.bc` (44MB, 新增)
+  - `~/PASTA/benchmark/bc/postgres.bc` (16MB, 新增)
+  - `~/PASTA/benchmark/bc/git.bc` (13MB)
+  - `~/PASTA/benchmark/bc/redis.bc` (8.7MB, 新增)
+  - `~/PASTA/benchmark/bc/vim.bc` (8.3MB)
+  - `~/PASTA/benchmark/bc/tmux.bc` (7.4MB)
+  - `~/PASTA/benchmark/bc/sqlite.bc` (6.7MB)
+  - `~/PASTA/benchmark/bc/nginx.bc` (6MB, 新增)
+  - `~/PASTA/benchmark/bc/jq.bc` (3.3MB)
+  - `~/PASTA/benchmark/bc/curl.bc` (1.5MB, 新增)
   - `~/TASA/benchmarks/BCs/file.bc`
   - `~/TASA/benchmarks/BCs/git.bc` (13MB)
 
@@ -24,6 +33,37 @@
 | `ConditionalAndersenWaveDiff` | `ConditionalAndersenWaveDiff.h/cpp` | Conditional propagation with wave diff. Core of guard propagation. |
 | `PathCond` | `PathCond.h` | AST: True, False, Atom, And, Or. `depth()`, `isPureAndChain()`, `getAnd()`, `getOr()`. |
 | `FastGuard` | `FastGuard.cpp` | DNF-based SAT checking backend. |
+
+## Statistics Added
+
+### Eager SAT Cut Counter (`numEagerSatCuts`)
+Added a counter to track how many objects are filtered out by eager SAT checking during propagation.
+
+**Files modified**:
+- `SVF/svf/include/WPA/ConditionalAndersen.h` — added `mutable u32_t numEagerSatCuts`
+- `SVF/svf/include/WPA/ConditionalAndersenWaveDiff.h` — added `mutable u32_t numEagerSatCuts`
+- `SVF/svf/lib/WPA/ConditionalAndersen.cpp` — initialization, accumulation at 4 locations, output in stats
+- `SVF/svf/lib/WPA/ConditionalAndersenWaveDiff.cpp` — initialization, accumulation at 5 locations, output in stats
+- `SVF/svf/lib/WPA/SingleTrackCondAndersen.cpp` — output in `SingleTrackCondAndersen Statistics`
+
+**Output format**:
+```
+========== SingleTrackCondAndersen Statistics ==========
+  analysisComplete:    true
+  eagerSat:            true
+  Z3 SAT checks:       79046041
+  CondPtsMap nodes:    49274
+  CondPtsMap entries:  45365905
+  Eager SAT cuts:      128217    <-- 新增统计
+  ...
+```
+
+**Cut locations** (two types):
+1. **Single-object cut**: `processCopy`/`processGep` per-object propagation — `newCond` is unsat → skip
+2. **Batch cut**: backfill path — `limitedGuard` is unsat → skip all objects in `pts` not yet in `condPtsMap`
+
+### Build Status
+Successfully rebuilt after adding `numEagerSatCuts`. All `wpa`/`saber` targets built successfully.
 
 ## Fixes Applied (Non-Monotonic Alias Precision)
 
