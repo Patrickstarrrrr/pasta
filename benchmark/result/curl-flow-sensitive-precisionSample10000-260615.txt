@@ -1,0 +1,345 @@
+
+*********General Stats***************
+################ (program : curl.bc)###############
+AddrsNum            8578
+BBWith2Succ         11599
+BBWith3Succ         428
+CallsNum            2072
+ConstArrayObj       54
+ConstStructObj      33
+ConstantObj         0
+CopysNum            2721
+FIObjNum            2000
+FSObjNum            980
+FunctionObjs        1336
+GepsNum             21241
+GlobalObjs          167
+HeapObjs            512
+IndCallSites        1449
+LoadsNum            17267
+MaxStructSize       460
+NonPtrObj           2348
+ReturnsNum          4061
+StackObjs           965
+StoresNum           15102
+TotalCallSite       12190
+TotalFieldObjects   866
+TotalObjects        3847
+TotalPTASVFStmts    51775
+TotalPointers       123645
+TotalSVFStmts       116274
+VarArrayObj         249
+VarStructObj        186
+----------------Time and memory stats--------------------
+LLVMIRTime          0.135
+SVFIRTime           0.663
+SymbolTableTime     0.049
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : curl.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   7506
+MaxNodeInCycle      384
+NodeInCycle         400
+TotalCycle          13
+TotalEdge           22298
+TotalNode           1336
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : curl.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.181253
+AvgIn/OutCopyEdge   1.30013
+AvgIn/OutEdge       1.85936
+AvgIn/OutLoadEdge   0.223707
+AvgIn/OutStoreEdge  0.154274
+AvgPtsSetSize       143.585
+AvgTopLvlPtsSize    389.977
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0
+SCCMergeTime        0
+TotalTime           27.085
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       8578
+CopyProcessed       123467
+DummyFieldPtrs      526
+FieldObjs           866
+GepProcessed        121837
+IndCallSites        1449
+IndEdgeSolved       11504
+LoadProcessed       39668583
+LocalVarInRecur     99
+MaxInAddrEdge       1
+MaxInCopyEdge       1577
+MaxInLoadEdge       2691
+MaxInStoreEdge      264
+MaxNodesInSCC       69
+MaxOutAddrEdge      5906
+MaxOutCopyEdge      7891
+MaxOutLoadEdge      871
+MaxOutStoreEdge     2412
+MaxPtsSetSize       822
+MemObjects          3847
+NodesInCycles       1094
+NullPointer         1208
+NumOfAddrs          7988
+NumOfCGEdge         73956
+NumOfCGNode         45327
+NumOfCopys          36758
+NumOfFieldExpand    0
+NumOfGeps           20540
+NumOfLoads          9859
+NumOfSCCDetect      18
+NumOfSFRs           0
+NumOfStores         6799
+NumOfValidNode      44071
+NumOfValidObjNode   2387
+Pointers            123645
+PointsToBlkPtr      0
+PointsToConstPtr    12556
+SolveIterations     18
+StoreProcessed      6665873
+TotalCycleNum       298
+TotalObjects        3847
+TotalPWCCycleNum    26
+TotalPointers       123645
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : curl.bc)###############
+UniquePointsToSets       19770
+TotalUnions              302761
+PropertyUnions           70621
+UniqueUnions             12889
+LookupUnions             197409
+PreemptiveUnions         21842
+TotalComplements         880476
+PropertyComplements      699031
+UniqueComplements        10818
+LookupComplements        159821
+PreemptiveComplements    10806
+TotalIntersections       925560
+PropertyIntersections    902173
+UniqueIntersections      346
+LookupIntersections      1125
+PreemptiveIntersections  21916
+#######################################################
+
+*********Memory SSA Statistics***************
+################ (program : curl.bc)###############
+----------------Time and memory stats--------------------
+AverageRegSize      78.5354
+GenMUCHITime        0.313
+GenRegionTime       21.302
+InsertPHITime       0.132
+SSARenameTime       0.038
+TotalMSSATime       21.785
+----------------Numbers stats----------------------------
+BBHasMSSAPhi        3655
+CSChiNode           19882
+CSHasChi            4384
+CSHasMu             5454
+CSMuNode            34080
+FunEntryChi         4637
+FunHasEntryChi      992
+FunHasRetMu         1163
+FunRetMu            4637
+LoadHasMu           10021
+LoadMuNode          31053
+MSSAPhi             26736
+MaxRegSize          786
+MemRegions          1485
+StoreChiNode        27032
+StoreHasChi         4887
+#######################################################
+
+*********SVFG Statistics***************
+################ (program : curl.bc)###############
+----------------Time and memory stats--------------------
+ATNodeTime          0.123
+AvgWeight           79.7136
+ConnDirEdgeTime     0
+ConnIndEdgeTime     1.241
+OptTime             0
+TLNodeTime          0
+TotalTime           1.364
+----------------Numbers stats----------------------------
+ActualIn            34080
+ActualOut           19882
+ActualParam         18620
+ActualRet           1244
+Addr                8578
+AvgInDegree         2
+AvgIndInDeg         2
+AvgIndOutDeg        2
+AvgOutDegree        2
+Copy                191
+DirectCallEdge      12422
+DirectEdge          82419
+DirectRetEdge       776
+FormalIn            4637
+FormalOut           4637
+FormalParam         2312
+FormalRet           123
+Gep                 21241
+IndCallEdge         36653
+IndRetEdge          21919
+IndirectEdge        241619
+IndirectEdgeLabels  19260309
+Load                10021
+MSSAPhi             26736
+MaxInDegree         2596
+MaxIndInDeg         2596
+MaxIndOutDeg        2596
+MaxOutDegree        2596
+PHI                 2372
+Store               7013
+TotalEdge           324038
+TotalNode           161688
+#######################################################
+  [fs-samplePrecision] Collecting top-level vars...
+  [fs-samplePrecision] Sampling 10000 top-level pointers...
+  [fs-samplePrecision] Done. sampled=10000 totalAndersenSize=3899216 totalFlowSensitiveSize=134464 refined=6560 totalReduction=3764776 avgReduction=573.899 maxReduction=794
+  [fs-samplePartners] Collecting top-level vars...
+  [fs-samplePartners] Sampling 10000 top-level pointers for alias partner reduction...
+  [fs-samplePartners] Building reverse points-to map...
+  [fs-samplePartners] Refined distribution: 0=422 1-10=116 11-100=204 101-1000=87 >1000=7816
+  [fs-samplePartners] Done. sampled=10000 totalAndersenPartners=55445402 totalRefined=51315008 refinedPtrs=8223 avgReduction=6240.42 maxReduction=7827
+
+*********PTACallGraph Stats (Flow-sensitive analysis)***************
+################ (program : curl.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   38
+FIObjNum            2001
+FSObjNum            980
+MaxNodeInCycle      5
+NodeInCycle         27
+TotalCycle          16
+TotalEdge           11539
+TotalNode           1336
+#######################################################
+
+*********Flow-Sensitive Pointer Analysis Statistics***************
+################ (program : curl.bc)###############
+----------------Time and memory stats--------------------
+AddrTime            0
+AverageSCCSize      154.989
+AvgAddrTakenVarPts  138.412
+AvgINPtsSize        0
+AvgOUTPtsSize       0
+AvgPtsSize          13.3131
+AvgTopLvlPtsSize    13.3131
+CopyTime            0
+DirectPropaTime     0
+GepTime             0
+IndirectPropaTime   0
+LoadTime            0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+PhiTime             0
+ProcessTime         0
+PropagationTime     0
+SCCTime             0
+SolveTime           107.634
+StoreTime           0
+Strong/WeakUpdTime  0
+TotalTime           287.606
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AI_SNodesHaveIN     0
+AI_SNodesHaveOUT    0
+AO_SNodesHaveIN     0
+AO_SNodesHaveOUT    0
+CopysNum            191
+DummyFieldPtrs      526
+FI_SNodesHaveIN     0
+FI_SNodesHaveOUT    0
+FO_SNodesHaveIN     0
+FO_SNodesHaveOUT    0
+FieldObjs           882
+IndEdgeSolved       745
+LD_SNodesHaveIN     0
+LD_SNodesHaveOUT    0
+LocalVarInRecur     56
+MaxAddrTakenVarPts  206
+MaxINPtsSize        0
+MaxOUTPtsSize       0
+MaxPtsSize          247
+MaxSCCSize          78646
+MaxTopLvlPtsSize    247
+MemObjects          3847
+NullPointer         15453
+NumOfAddrTakenVar   61992
+NumOfNodesInSCC     81059
+NumOfSCC            523
+PHI_SNodesHaveIN    0
+PHI_SNodesHaveOUT   0
+Pointers            123645
+PointsToBlkPtr      1852
+PointsToConstPtr    0
+PotentialVarHaveIN  0
+PotentialVarHaveOUT 0
+ProcessedAParam     0
+ProcessedAddr       25734
+ProcessedCopy       770
+ProcessedFRet       0
+ProcessedGep        107228
+ProcessedLoad       195718
+ProcessedMSSANode   1251723
+ProcessedPhi        20231
+ProcessedStore      74440
+SNodesHaveIN        0
+SNodesHaveOUT       0
+ST_SNodesHaveIN     0
+ST_SNodesHaveOUT    0
+SolveIterations     3
+StoresNum           7013
+StrongUpdates       450
+TotalObjects        3847
+TotalPointers       123645
+VarHaveEmptyIN      0
+VarHaveEmptyOUT     0
+VarHaveIN           0
+VarHaveIN_AI        0
+VarHaveIN_AO        0
+VarHaveIN_FI        0
+VarHaveIN_FO        0
+VarHaveIN_LD        0
+VarHaveIN_PHI       0
+VarHaveIN_ST        0
+VarHaveOUT          0
+VarHaveOUT_AI       0
+VarHaveOUT_AO       0
+VarHaveOUT_FI       0
+VarHaveOUT_FO       0
+VarHaveOUT_LD       0
+VarHaveOUT_PHI      0
+VarHaveOUT_ST       0
+#######################################################
+
+****Persistent Points-To Cache Statistics: flow-sensitive analysis bitvector****
+################ (program : curl.bc)###############
+UniquePointsToSets       25994
+TotalUnions              305188321
+PropertyUnions           255291470
+UniqueUnions             209330
+LookupUnions             49422033
+PreemptiveUnions         265488
+TotalComplements         0
+PropertyComplements      0
+UniqueComplements        0
+LookupComplements        0
+PreemptiveComplements    0
+TotalIntersections       0
+PropertyIntersections    0
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  0
+#######################################################

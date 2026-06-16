@@ -342,7 +342,11 @@ void SVFG::connectIndirectSVFGEdges()
                 if(LOADMU* mu = SVFUtil::dyn_cast<LOADMU>(*it))
                 {
                     NodeID def = getDef(mu->getMRVer());
-                    addIntraIndirectVFEdge(def,nodeId, mu->getMRVer()->getMR()->getPointsTo());
+                    addIntraIndirectVFEdge(def,nodeId, mu->getMRVer()->getMR()->getPointsTo()
+#ifdef SVF_ENABLE_SPAS
+                                           , *mu->getCond()
+#endif
+                                          );
                 }
             }
         }
@@ -354,7 +358,11 @@ void SVFG::connectIndirectSVFGEdges()
                 if(STORECHI* chi = SVFUtil::dyn_cast<STORECHI>(*it))
                 {
                     NodeID def = getDef(chi->getOpVer());
-                    addIntraIndirectVFEdge(def,nodeId, chi->getOpVer()->getMR()->getPointsTo());
+                    addIntraIndirectVFEdge(def,nodeId, chi->getOpVer()->getMR()->getPointsTo()
+#ifdef SVF_ENABLE_SPAS
+                                           , *chi->getOpVerGuard()
+#endif
+                                          );
                 }
             }
         }
@@ -393,13 +401,21 @@ void SVFG::connectIndirectSVFGEdges()
                 }
             }
             NodeID def = getDef(formalOut->getMRVer());
-            addIntraIndirectVFEdge(def,nodeId, formalOut->getMRVer()->getMR()->getPointsTo());
+            addIntraIndirectVFEdge(def,nodeId, formalOut->getMRVer()->getMR()->getPointsTo()
+#ifdef SVF_ENABLE_SPAS
+                                   , Guard::getTrue()
+#endif
+                                  );
         }
         else if(const ActualINSVFGNode* actualIn = SVFUtil::dyn_cast<ActualINSVFGNode>(node))
         {
             const MRVer* ver = actualIn->getMRVer();
             NodeID def = getDef(ver);
-            addIntraIndirectVFEdge(def,nodeId, ver->getMR()->getPointsTo());
+            addIntraIndirectVFEdge(def,nodeId, ver->getMR()->getPointsTo()
+#ifdef SVF_ENABLE_SPAS
+                                   , Guard::getTrue()
+#endif
+                                  );
         }
         else if(SVFUtil::isa<ActualOUTSVFGNode>(node))
         {
@@ -407,12 +423,19 @@ void SVFG::connectIndirectSVFGEdges()
         }
         else if(const MSSAPHISVFGNode* phiNode = SVFUtil::dyn_cast<MSSAPHISVFGNode>(node))
         {
+#ifdef SVF_ENABLE_SPAS
+            const MemSSA::PHI* phi = SVFUtil::dyn_cast<MemSSA::PHI>(phiNode->getResVer()->getDef());
+#endif
             for (MemSSA::PHI::OPVers::const_iterator it = phiNode->opVerBegin(), eit = phiNode->opVerEnd();
                     it != eit; it++)
             {
                 const MRVer* op = it->second;
                 NodeID def = getDef(op);
-                addIntraIndirectVFEdge(def,nodeId, op->getMR()->getPointsTo());
+                addIntraIndirectVFEdge(def,nodeId, op->getMR()->getPointsTo()
+#ifdef SVF_ENABLE_SPAS
+                                       , phi ? *phi->getOpCond(it->first) : Guard::getTrue()
+#endif
+                                      );
             }
         }
     }
@@ -460,7 +483,11 @@ void SVFG::connectFromGlobalToProgEntry()
 /*
  *  Add def-use edges of a memory region between two statements
  */
-SVFGEdge* SVFG::addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts)
+SVFGEdge* SVFG::addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts
+#ifdef SVF_ENABLE_SPAS
+        , const Guard& guard
+#endif
+                                        )
 {
     SVFGNode* srcNode = getSVFGNode(srcId);
     SVFGNode* dstNode = getSVFGNode(dstId);
@@ -468,12 +495,24 @@ SVFGEdge* SVFG::addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS&
     if(SVFGEdge* edge = hasIntraVFGEdge(srcNode,dstNode,SVFGEdge::IntraIndirectVF))
     {
         assert(SVFUtil::isa<IndirectSVFGEdge>(edge) && "this should be a indirect value flow edge!");
-        return (SVFUtil::cast<IndirectSVFGEdge>(edge)->addPointsTo(cpts) ? edge : nullptr);
+        IndirectSVFGEdge* indEdge = SVFUtil::cast<IndirectSVFGEdge>(edge);
+        bool changed = indEdge->addPointsTo(cpts);
+#ifdef SVF_ENABLE_SPAS
+        if (guard != indEdge->getGuard())
+        {
+            indEdge->setGuard(guard | indEdge->getGuard());
+            changed = true;
+        }
+#endif
+        return (changed ? edge : nullptr);
     }
     else
     {
         IntraIndSVFGEdge* indirectEdge = new IntraIndSVFGEdge(srcNode,dstNode);
         indirectEdge->addPointsTo(cpts);
+#ifdef SVF_ENABLE_SPAS
+        indirectEdge->setGuard(guard);
+#endif
         return (addSVFGEdge(indirectEdge) ? indirectEdge : nullptr);
     }
 }
@@ -482,19 +521,35 @@ SVFGEdge* SVFG::addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS&
 /*!
  * Add def-use edges of a memory region between two may-happen-in-parallel statements for multithreaded program
  */
-SVFGEdge* SVFG::addThreadMHPIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts)
+SVFGEdge* SVFG::addThreadMHPIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts
+#ifdef SVF_ENABLE_SPAS
+        , const Guard& guard
+#endif
+                                           )
 {
     SVFGNode* srcNode = getSVFGNode(srcId);
     SVFGNode* dstNode = getSVFGNode(dstId);
     if(SVFGEdge* edge = hasThreadVFGEdge(srcNode,dstNode,SVFGEdge::TheadMHPIndirectVF))
     {
         assert(SVFUtil::isa<IndirectSVFGEdge>(edge) && "this should be a indirect value flow edge!");
-        return (SVFUtil::cast<IndirectSVFGEdge>(edge)->addPointsTo(cpts) ? edge : nullptr);
+        IndirectSVFGEdge* indEdge = SVFUtil::cast<IndirectSVFGEdge>(edge);
+        bool changed = indEdge->addPointsTo(cpts);
+#ifdef SVF_ENABLE_SPAS
+        if (guard != indEdge->getGuard())
+        {
+            indEdge->setGuard(guard | indEdge->getGuard());
+            changed = true;
+        }
+#endif
+        return (changed ? edge : nullptr);
     }
     else
     {
         ThreadMHPIndSVFGEdge* indirectEdge = new ThreadMHPIndSVFGEdge(srcNode,dstNode);
         indirectEdge->addPointsTo(cpts);
+#ifdef SVF_ENABLE_SPAS
+        indirectEdge->setGuard(guard);
+#endif
         return (addSVFGEdge(indirectEdge) ? indirectEdge : nullptr);
     }
 }
@@ -502,19 +557,35 @@ SVFGEdge* SVFG::addThreadMHPIndirectVFEdge(NodeID srcId, NodeID dstId, const Nod
 /*
  *  Add def-use call edges of a memory region between two statements
  */
-SVFGEdge* SVFG::addCallIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId)
+SVFGEdge* SVFG::addCallIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId
+#ifdef SVF_ENABLE_SPAS
+        , const Guard& guard
+#endif
+                                       )
 {
     SVFGNode* srcNode = getSVFGNode(srcId);
     SVFGNode* dstNode = getSVFGNode(dstId);
     if(SVFGEdge* edge = hasInterVFGEdge(srcNode,dstNode,SVFGEdge::CallIndVF,csId))
     {
         assert(SVFUtil::isa<CallIndSVFGEdge>(edge) && "this should be a indirect value flow edge!");
-        return (SVFUtil::cast<CallIndSVFGEdge>(edge)->addPointsTo(cpts) ? edge : nullptr);
+        IndirectSVFGEdge* indEdge = SVFUtil::cast<IndirectSVFGEdge>(edge);
+        bool changed = indEdge->addPointsTo(cpts);
+#ifdef SVF_ENABLE_SPAS
+        if (guard != indEdge->getGuard())
+        {
+            indEdge->setGuard(guard | indEdge->getGuard());
+            changed = true;
+        }
+#endif
+        return (changed ? edge : nullptr);
     }
     else
     {
         CallIndSVFGEdge* callEdge = new CallIndSVFGEdge(srcNode,dstNode,csId);
         callEdge->addPointsTo(cpts);
+#ifdef SVF_ENABLE_SPAS
+        callEdge->setGuard(guard);
+#endif
         return (addSVFGEdge(callEdge) ? callEdge : nullptr);
     }
 }
@@ -522,19 +593,35 @@ SVFGEdge* SVFG::addCallIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& 
 /*
  *  Add def-use return edges of a memory region between two statements
  */
-SVFGEdge* SVFG::addRetIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId)
+SVFGEdge* SVFG::addRetIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId
+#ifdef SVF_ENABLE_SPAS
+        , const Guard& guard
+#endif
+                                      )
 {
     SVFGNode* srcNode = getSVFGNode(srcId);
     SVFGNode* dstNode = getSVFGNode(dstId);
     if(SVFGEdge* edge = hasInterVFGEdge(srcNode,dstNode,SVFGEdge::RetIndVF,csId))
     {
         assert(SVFUtil::isa<RetIndSVFGEdge>(edge) && "this should be a indirect value flow edge!");
-        return (SVFUtil::cast<RetIndSVFGEdge>(edge)->addPointsTo(cpts) ? edge : nullptr);
+        IndirectSVFGEdge* indEdge = SVFUtil::cast<IndirectSVFGEdge>(edge);
+        bool changed = indEdge->addPointsTo(cpts);
+#ifdef SVF_ENABLE_SPAS
+        if (guard != indEdge->getGuard())
+        {
+            indEdge->setGuard(guard | indEdge->getGuard());
+            changed = true;
+        }
+#endif
+        return (changed ? edge : nullptr);
     }
     else
     {
         RetIndSVFGEdge* retEdge = new RetIndSVFGEdge(srcNode,dstNode,csId);
         retEdge->addPointsTo(cpts);
+#ifdef SVF_ENABLE_SPAS
+        retEdge->setGuard(guard);
+#endif
         return (addSVFGEdge(retEdge) ? retEdge : nullptr);
     }
 }
@@ -549,7 +636,12 @@ SVFGEdge* SVFG::addInterIndirectVFCallEdge(const ActualINSVFGNode* src, const Fo
     if(cpts1.intersects(cpts2))
     {
         cpts1 &= cpts2;
+#ifdef SVF_ENABLE_SPAS
+        Guard ctx = Guard::atom(Guard::ContextAtom, csId, true);
+        return addCallIndirectVFEdge(src->getId(),dst->getId(),cpts1,csId, ctx);
+#else
         return addCallIndirectVFEdge(src->getId(),dst->getId(),cpts1,csId);
+#endif
     }
     return nullptr;
 }
@@ -565,7 +657,12 @@ SVFGEdge* SVFG::addInterIndirectVFRetEdge(const FormalOUTSVFGNode* src, const Ac
     if(cpts1.intersects(cpts2))
     {
         cpts1 &= cpts2;
+#ifdef SVF_ENABLE_SPAS
+        Guard ctx = Guard::atom(Guard::ContextAtom, csId, true);
+        return addRetIndirectVFEdge(src->getId(),dst->getId(),cpts1,csId, ctx);
+#else
         return addRetIndirectVFEdge(src->getId(),dst->getId(),cpts1,csId);
+#endif
     }
     return nullptr;
 }

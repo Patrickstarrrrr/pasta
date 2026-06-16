@@ -32,6 +32,9 @@
 
 #include "MSSA/MemSSA.h"
 #include "Graphs/VFGEdge.h"
+#ifdef SVF_ENABLE_SPAS
+#include "Util/Guard.h"
+#endif
 
 namespace SVF
 {
@@ -46,11 +49,26 @@ public:
     typedef Set<const MRVer*> MRVerSet;
 private:
     NodeBS cpts;
+#ifdef SVF_ENABLE_SPAS
+    Guard guard;
+#endif
 public:
     /// Constructor
     IndirectSVFGEdge(VFGNode* s, VFGNode* d, GEdgeFlag k): VFGEdge(s,d,k)
     {
     }
+#ifdef SVF_ENABLE_SPAS
+    /// Return the path/context guard under which this edge propagates.
+    inline const Guard& getGuard() const
+    {
+        return guard;
+    }
+    /// Set the path/context guard.
+    inline void setGuard(const Guard& g)
+    {
+        guard = g;
+    }
+#endif
     /// Handle memory region
     //@{
     inline bool addPointsTo(const NodeBS& c)

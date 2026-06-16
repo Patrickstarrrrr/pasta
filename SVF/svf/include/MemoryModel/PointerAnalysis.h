@@ -80,6 +80,9 @@ public:
         CFLFSCI_WPA,		///< Flow-insensitive, context-sensitive CFL-reachability-based analysis
         CFLFSCS_WPA,	///< Flow-, context-, CFL-reachability-based analysis
         TypeCPP_WPA, ///<  Type-based analysis for C++
+#ifdef SVF_ENABLE_SPAS
+        PathS_FSSPARSE_WPA, ///< Path-sensitive sparse flow-sensitive WPA
+#endif
 
         // Demand driven analysis
         FieldS_DDA,		///< Field sensitive DDA

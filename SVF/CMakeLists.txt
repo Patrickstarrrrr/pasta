@@ -93,6 +93,7 @@ option(SVF_EXPORT_DYNAMIC "Export all (not only the actually used) symbols to dy
 option(SVF_ENABLE_ASSERTIONS "Always enable debugging assertions, also if the build type is a release build")
 option(SVF_ENABLE_RTTI "Adds -fno-rtti to disable runtime type information (RTTI)" ON)
 option(SVF_ENABLE_EXCEPTIONS "Adds -fno-exceptions to disable exception handling" ON)
+option(SVF_ENABLE_SPAS "Enable SPAS path-sensitive flow-sensitive analysis (requires CUDD)" OFF)
 
 # If building dynamic libraries, always enable PIC
 if(SVF_SHARED_LIBS AND NOT SVF_USE_PIC)
@@ -211,6 +212,17 @@ message(
 
 # Find the local FindZ3.cmake package; internally finds system Z3; falls back to manual search
 find_package(Z3 REQUIRED)
+
+# =================================================================================
+# SVF SPAS / CUDD dependency finding
+# =================================================================================
+
+if(SVF_ENABLE_SPAS)
+  find_package(CUDD REQUIRED)
+  message(STATUS "SPAS support enabled; CUDD: ${CUDD_LIBRARIES}")
+else()
+  message(STATUS "SPAS support disabled (use -DSVF_ENABLE_SPAS=ON to enable)")
+endif()
 message(
   STATUS
     "Using Z3 package:
@@ -263,6 +275,12 @@ target_compile_definitions(SvfFlags INTERFACE $<BUILD_INTERFACE:SVF_INSTALL_EXTA
 
 # Add Z3 as a public dependency on the interface to ensure any users inherit the dependency
 target_link_libraries(SvfFlags INTERFACE ${Z3_LIBRARIES})
+
+# Add CUDD / SPAS macro when SPAS is enabled.
+if(SVF_ENABLE_SPAS)
+  target_link_libraries(SvfFlags INTERFACE ${CUDD_LIBRARIES})
+  target_compile_definitions(SvfFlags INTERFACE SVF_ENABLE_SPAS=1)
+endif()
 
 # Ensure the interface library is exposed during installation
 install(TARGETS SvfFlags EXPORT SVFTargets)

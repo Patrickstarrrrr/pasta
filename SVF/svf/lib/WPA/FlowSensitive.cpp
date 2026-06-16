@@ -33,6 +33,11 @@
 #include "WPA/Andersen.h"
 #include "MemoryModel/PointsTo.h"
 
+#include <algorithm>
+#include <random>
+#include <unordered_map>
+#include <unordered_set>
+
 using namespace SVF;
 using namespace SVFUtil;
 
@@ -197,6 +202,13 @@ void FlowSensitive::finalize()
             NodeIDAllocator::Clusterer::evaluate(candidate.second, allPts, stats, true);
             NodeIDAllocator::Clusterer::printStats("post-main: candidate " + SVFUtil::hclustMethodToString(candidate.first), stats);
         }
+    }
+
+    // Optional precision comparison against Andersen baseline.
+    if (precisionSampleSize > 0)
+    {
+        samplePrecisionGain(precisionSampleSize);
+        sampleAliasPartnerReduction(precisionSampleSize);
     }
 
     BVDataPTAImpl::finalize();
@@ -881,4 +893,213 @@ void FlowSensitive::countAliases(Set<std::pair<NodeID, NodeID>> cmp, unsigned *m
         }
     }
 
+}
+
+PointsTo FlowSensitive::getOverallPts(NodeID var)
+{
+    // FlowSensitive stores the resolved points-to sets for top-level variables
+    // in the top-level PTData (ptD). Indirect flow via loads is merged into
+    // ptD by updateTLVPts, so getPts(var) already reflects the full
+    // flow-sensitive result for a top-level variable.
+    return getPts(var);
+}
+
+void FlowSensitive::samplePrecisionGain(u32_t sampleSize)
+{
+    outs() << "  [fs-samplePrecision] Collecting top-level vars...\n";
+    std::vector<NodeID> topVars;
+    const auto& varMap = pag->getSVFVarMap();
+    for (const auto& p : varMap)
+    {
+        if (pag->isValidTopLevelPtr(p.second))
+            topVars.push_back(p.first);
+    }
+    if (topVars.empty())
+    {
+        outs() << "  [fs-samplePrecision] No top-level vars, skipping.\n";
+        return;
+    }
+
+    std::sort(topVars.begin(), topVars.end());
+    std::mt19937 rng(42);
+    if (topVars.size() > sampleSize)
+    {
+        std::shuffle(topVars.begin(), topVars.end(), rng);
+        topVars.resize(sampleSize);
+    }
+
+    u32_t sampled = static_cast<u32_t>(topVars.size());
+    outs() << "  [fs-samplePrecision] Sampling " << sampled
+           << " top-level pointers...\n";
+
+    u64_t totalBvSize = 0;
+    u64_t totalFsSize = 0;
+    u64_t refinedCount = 0;
+    u64_t totalReduction = 0;
+    u64_t maxReduction = 0;
+
+    if (!ander)
+    {
+        outs() << "  [fs-samplePrecision] No Andersen baseline available, skipping.\n";
+        return;
+    }
+
+    // Andersen collapses each SCC into a single representative points-to set.
+    // Aggregate FlowSensitive points-to sets over the same SCC so the
+    // comparison is apples-to-apples.
+    std::unordered_map<NodeID, std::vector<NodeID>> sccMembers;
+    for (NodeID v : topVars)
+        sccMembers[ander->sccRepNode(v)].push_back(v);
+
+    for (NodeID v : topVars)
+    {
+        size_t bvSize = ander->getPts(v).count();
+
+        PointsTo fsAgg;
+        for (NodeID q : sccMembers[ander->sccRepNode(v)])
+            fsAgg |= getOverallPts(q);
+        size_t fsSize = fsAgg.count();
+
+        totalBvSize += bvSize;
+        totalFsSize += fsSize;
+
+        if (fsSize < bvSize)
+        {
+            refinedCount++;
+            u64_t reduction = static_cast<u64_t>(bvSize - fsSize);
+            totalReduction += reduction;
+            if (reduction > maxReduction)
+                maxReduction = reduction;
+        }
+    }
+
+    double avgReduction = (refinedCount > 0)
+        ? (static_cast<double>(totalReduction) / static_cast<double>(refinedCount))
+        : 0.0;
+
+    outs() << "  [fs-samplePrecision] Done. sampled=" << sampled
+           << " totalAndersenSize=" << totalBvSize
+           << " totalFlowSensitiveSize=" << totalFsSize
+           << " refined=" << refinedCount
+           << " totalReduction=" << totalReduction
+           << " avgReduction=" << avgReduction
+           << " maxReduction=" << maxReduction << "\n";
+}
+
+void FlowSensitive::sampleAliasPartnerReduction(u32_t sampleSize)
+{
+    outs() << "  [fs-samplePartners] Collecting top-level vars...\n";
+    std::vector<NodeID> topVars;
+    const auto& varMap = pag->getSVFVarMap();
+    for (const auto& p : varMap)
+    {
+        if (pag->isValidTopLevelPtr(p.second))
+            topVars.push_back(p.first);
+    }
+    if (topVars.empty())
+    {
+        outs() << "  [fs-samplePartners] No top-level vars, skipping.\n";
+        return;
+    }
+
+    if (!ander)
+    {
+        outs() << "  [fs-samplePartners] No Andersen baseline available, skipping.\n";
+        return;
+    }
+
+    std::mt19937 rng(42);
+    if (topVars.size() > sampleSize)
+    {
+        std::shuffle(topVars.begin(), topVars.end(), rng);
+        topVars.resize(sampleSize);
+    }
+
+    outs() << "  [fs-samplePartners] Sampling " << topVars.size()
+           << " top-level pointers for alias partner reduction...\n";
+
+    // Build reverse points-to map (object -> top-level pointers) using Andersen baseline.
+    outs() << "  [fs-samplePartners] Building reverse points-to map...\n";
+    std::unordered_map<NodeID, std::vector<NodeID>> revPts;
+    for (NodeID v : topVars)
+    {
+        for (NodeID o : ander->getPts(v))
+            revPts[o].push_back(v);
+    }
+
+    u64_t totalBvPartners = 0;
+    u64_t totalRefined = 0;
+    u64_t refinedPtrCount = 0;
+    u64_t totalReduction = 0;
+    u64_t maxReduction = 0;
+
+    u64_t bucket0 = 0, bucket1_10 = 0, bucket11_100 = 0, bucket101_1000 = 0, bucket1001plus = 0;
+
+    for (NodeID p : topVars)
+    {
+        // Collect all Andersen alias partners: pointers sharing at least one object.
+        std::unordered_set<NodeID> bvPartners;
+        for (NodeID o : ander->getPts(p))
+        {
+            auto it = revPts.find(o);
+            if (it != revPts.end())
+            {
+                for (NodeID q : it->second)
+                    if (q != p)
+                        bvPartners.insert(q);
+            }
+        }
+
+        if (bvPartners.empty())
+            continue;
+
+        // Check which partners are refined to NoAlias by FlowSensitive.
+        // Use each analyzer's own alias() method so that SCC handling is
+        // consistent (Andersen collapses SCCs, FlowSensitive does not).
+        u64_t refinedForP = 0;
+        for (NodeID q : bvPartners)
+        {
+            if (alias(p, q) == AliasResult::NoAlias)
+                refinedForP++;
+        }
+
+        u64_t bvCount = bvPartners.size();
+        totalBvPartners += bvCount;
+        totalRefined += refinedForP;
+
+        if (refinedForP > 0)
+        {
+            refinedPtrCount++;
+            totalReduction += refinedForP;
+            if (refinedForP > maxReduction)
+                maxReduction = refinedForP;
+            if (refinedForP <= 10) bucket1_10++;
+            else if (refinedForP <= 100) bucket11_100++;
+            else if (refinedForP <= 1000) bucket101_1000++;
+            else bucket1001plus++;
+        }
+        else
+        {
+            bucket0++;
+        }
+    }
+
+    outs() << "  [fs-samplePartners] Refined distribution: 0=" << bucket0
+           << " 1-10=" << bucket1_10
+           << " 11-100=" << bucket11_100
+           << " 101-1000=" << bucket101_1000
+           << " >1000=" << bucket1001plus << "\n";
+
+    outs() << "  [fs-samplePartners] Done. sampled=" << topVars.size()
+           << " totalAndersenPartners=" << totalBvPartners
+           << " totalRefined=" << totalRefined;
+    if (refinedPtrCount > 0)
+    {
+        double avgReduction = static_cast<double>(totalReduction)
+                              / static_cast<double>(refinedPtrCount);
+        outs() << " refinedPtrs=" << refinedPtrCount
+               << " avgReduction=" << avgReduction
+               << " maxReduction=" << maxReduction;
+    }
+    outs() << "\n";
 }

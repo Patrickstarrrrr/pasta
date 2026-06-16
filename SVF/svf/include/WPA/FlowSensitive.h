@@ -60,6 +60,7 @@ public:
     explicit FlowSensitive(SVFIR* _pag, PTATY type = FSSPARSE_WPA) : WPASVFGFSSolver(), BVDataPTAImpl(_pag, type)
     {
         svfg = nullptr;
+        precisionSampleSize = Options::FlowSensitivePrecisionSample();
         solveTime = sccTime = processTime = propagationTime = updateTime = 0;
         addrTime = copyTime = gepTime = loadTime = storeTime = phiTime = 0;
         updateCallGraphTime = directPropaTime = indirectPropaTime = 0;
@@ -216,7 +217,7 @@ protected:
     /// Handle various constraints
     //@{
     void processNode(NodeID nodeId) override;
-    bool processSVFGNode(SVFGNode* node);
+    virtual bool processSVFGNode(SVFGNode* node);
     virtual bool processAddr(const AddrSVFGNode* addr);
     virtual bool processCopy(const CopySVFGNode* copy);
     virtual bool processPhi(const PHISVFGNode* phi);
@@ -273,9 +274,23 @@ protected:
     /// Sets the global best mapping as a plain mapping, i.e. n -> n.
     virtual void plainMap(void) const;
 
+    /// Sample top-level pointers and report per-pointer precision gain over Andersen
+    void samplePrecisionGain(u32_t sampleSize);
+
+    /// Sample top-level pointers and report alias partner reduction over Andersen
+    void sampleAliasPartnerReduction(u32_t sampleSize);
+
+    /// Return the overall points-to set of a PAG node across all DF IN/OUT sets
+    /// and the top-level PTData. This is needed because FlowSensitive stores
+    /// indirect flow (loads/stores) in DFPTData, not in ptD.
+    PointsTo getOverallPts(NodeID var);
+
     static std::unique_ptr<FlowSensitive> fspta;
     SVFGBuilder memSSA;
     AndersenWaveDiff *ander;
+
+    /// Baseline precision-sample size (0 = disable)
+    u32_t precisionSampleSize;
 
     /// Save candidate mappings for evaluation's sake.
     std::vector<std::pair<hclust_fast_methods, std::vector<NodeID>>> candidateMappings;

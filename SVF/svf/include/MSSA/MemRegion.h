@@ -39,6 +39,9 @@
 #include "Graphs/SCC.h"
 #include "SVFIR/SVFIR.h"
 #include "Util/WorkList.h"
+#ifdef SVF_ENABLE_SPAS
+#include "Util/Guard.h"
+#endif
 
 #include <set>
 
@@ -56,7 +59,13 @@ class MemRegion
 {
 
 public:
+#ifdef SVF_ENABLE_SPAS
+    typedef const Guard* Condition;
+    static inline const Guard* getTrueCond() { return Guard::getTruePtr(); }
+#else
     typedef bool Condition;
+    static inline bool getTrueCond() { return true; }
+#endif
 private:
     /// region ID 0 is reserved
     static u32_t totalMRNum;

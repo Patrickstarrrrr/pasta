@@ -42,6 +42,9 @@
 #include "WPA/ConditionalAndersenWaveDiff.h"
 #include "WPA/SingleTrackCondAndersen.h"
 #include "WPA/FlowSensitive.h"
+#ifdef SVF_ENABLE_SPAS
+#include "WPA/PathSensitiveFlowSensitive.h"
+#endif
 #include "WPA/VersionedFlowSensitive.h"
 #include "WPA/TypeAnalysis.h"
 #include "WPA/Steensgaard.h"
@@ -114,6 +117,11 @@ void WPAPass::runPointerAnalysis(SVFIR* pag, u32_t kind)
     case PointerAnalysis::FSSPARSE_WPA:
         _pta = new FlowSensitive(pag);
         break;
+#ifdef SVF_ENABLE_SPAS
+    case PointerAnalysis::PathS_FSSPARSE_WPA:
+        _pta = new PathSensitiveFlowSensitive(pag);
+        break;
+#endif
     case PointerAnalysis::VFS_WPA:
         _pta = new VersionedFlowSensitive(pag);
         break;

@@ -172,7 +172,7 @@ private:
 public:
     /// Constructor/Destructor for MU
     //@{
-    LoadMU(const SVFBasicBlock* b,const LoadStmt* i, const MemRegion* m, Cond c = true) :
+    LoadMU(const SVFBasicBlock* b,const LoadStmt* i, const MemRegion* m, Cond c = MemRegion::getTrueCond()) :
         MSSAMU<Cond>(MSSAMU<Cond>::LoadMSSAMU,m,c), inst(i), bb(b)
     {
     }
@@ -227,7 +227,7 @@ private:
 public:
     /// Constructor/Destructor for MU
     //@{
-    CallMU(const CallICFGNode* cs, const MemRegion* m, Cond c = true) :
+    CallMU(const CallICFGNode* cs, const MemRegion* m, Cond c = MemRegion::getTrueCond()) :
         MSSAMU<Cond>(MSSAMU<Cond>::CallMSSAMU,m,c), callsite(cs)
     {
     }
@@ -281,7 +281,7 @@ private:
 public:
     /// Constructor/Destructor for MU
     //@{
-    RetMU(const FunObjVar* f, const MemRegion* m, Cond c = true) :
+    RetMU(const FunObjVar* f, const MemRegion* m, Cond c = MemRegion::getTrueCond()) :
         MSSAMU<Cond>(MSSAMU<Cond>::RetMSSAMU,m,c), fun(f)
     {
     }
@@ -398,12 +398,13 @@ class MSSACHI : public MSSADEF
 
 private:
     MRVer* opVer;
+    Cond opVerGuard;
     Cond cond;
 public:
     typedef typename MSSADEF::DEFTYPE CHITYPE;
     /// Constructor/Destructor for MSSACHI
     //@{
-    MSSACHI(CHITYPE t, const MemRegion* m, Cond c): MSSADEF(t,m), opVer(nullptr), cond(c)
+    MSSACHI(CHITYPE t, const MemRegion* m, Cond c): MSSADEF(t,m), opVer(nullptr), opVerGuard(MemRegion::getTrueCond()), cond(c)
     {
 
     }
@@ -411,10 +412,11 @@ public:
     //@}
 
     /// Set operand ver
-    inline void setOpVer(MRVer* v)
+    inline void setOpVer(MRVer* v, Cond g = MemRegion::getTrueCond())
     {
         assert(v->getMR() == this->getMR() && "inserting different memory region?");
         opVer = v;
+        opVerGuard = g;
     }
 
     /// Get operand ver
@@ -422,6 +424,12 @@ public:
     {
         assert(opVer!=nullptr && "version is nullptr, did not rename?");
         return opVer;
+    }
+
+    /// Get operand guard
+    inline Cond getOpVerGuard() const
+    {
+        return opVerGuard;
     }
 
     /// Get condition
@@ -466,7 +474,7 @@ private:
 public:
     /// Constructors for StoreCHI
     //@{
-    StoreCHI(const SVFBasicBlock* b, const StoreStmt* i, const MemRegion* m, Cond c = true) :
+    StoreCHI(const SVFBasicBlock* b, const StoreStmt* i, const MemRegion* m, Cond c = MemRegion::getTrueCond()) :
         MSSACHI<Cond>(MSSADEF::StoreMSSACHI,m,c), bb(b), inst(i)
     {
     }
@@ -525,7 +533,7 @@ private:
 public:
     /// Constructors for CallCHI
     //@{
-    CallCHI(const CallICFGNode* cs, const MemRegion* m, Cond c = true) :
+    CallCHI(const CallICFGNode* cs, const MemRegion* m, Cond c = MemRegion::getTrueCond()) :
         MSSACHI<Cond>(MSSADEF::CallMSSACHI,m,c), callsite(cs)
     {
     }
@@ -582,7 +590,7 @@ private:
 public:
     /// Constructors for EntryCHI
     //@{
-    EntryCHI(const FunObjVar* f, const MemRegion* m, Cond c = true) :
+    EntryCHI(const FunObjVar* f, const MemRegion* m, Cond c = MemRegion::getTrueCond()) :
         MSSACHI<Cond>(MSSADEF::EntryMSSACHI,m,c),fun(f)
     {
     }
@@ -634,11 +642,12 @@ public:
 private:
     const SVFBasicBlock* bb;
     OPVers opVers;
+    Map<u32_t, Cond> opConds;
     Cond cond;
 public:
     /// Constructors for PHI
     //@{
-    MSSAPHI(const SVFBasicBlock* b, const MemRegion* m, Cond c = true) :
+    MSSAPHI(const SVFBasicBlock* b, const MemRegion* m, Cond c = MemRegion::getTrueCond()) :
         MSSADEF(MSSADEF::SSAPHI,m), bb(b), cond(c)
     {
     }
@@ -647,11 +656,12 @@ public:
     }
     //@}
 
-    /// Set operand ver
-    inline void setOpVer(const MRVer* v, u32_t pos)
+    /// Set operand ver with its incoming guard.
+    inline void setOpVer(const MRVer* v, u32_t pos, Cond g = MemRegion::getTrueCond())
     {
         assert(v->getMR() == this->getMR() && "inserting different memory region?");
         opVers[pos] = v;
+        opConds[pos] = g;
     }
 
     /// Get operand ver
@@ -660,6 +670,15 @@ public:
         OPVers::const_iterator it = opVers.find(pos);
         assert(it!=opVers.end() && "version is nullptr, did not rename?");
         return it->second;
+    }
+
+    /// Get operand guard
+    inline Cond getOpCond(u32_t pos) const
+    {
+        auto it = opConds.find(pos);
+        if (it != opConds.end())
+            return it->second;
+        return MemRegion::getTrueCond();
     }
 
     /// Get the number of operand ver

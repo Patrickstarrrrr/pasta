@@ -148,6 +148,14 @@ public:
     static const Option<bool> SingleTrackAliasSat;          // use Z3 SAT in alias sampling
     static const Option<u32_t> SingleTrackPrecisionSample;  // per-pointer precision sample size (0 = disable)
 
+    // FlowSensitive baseline statistics
+    static const Option<u32_t> FlowSensitivePrecisionSample;  // per-pointer precision sample size vs Andersen (0 = disable)
+
+    // PathSensitiveFlowSensitive (SPAS)
+    static const Option<s32_t> PsfsKLimit;          // guard support-size limit (-1 = unlimited)
+    static const Option<bool> PsfsUseDepthLimit;    // enable guard-size capping
+    static const Option<bool> PsfsRefine;           // iterate k=1..PsfsKLimit
+
     // SABER
     static const Option<bool> SaberCondAnder;
 

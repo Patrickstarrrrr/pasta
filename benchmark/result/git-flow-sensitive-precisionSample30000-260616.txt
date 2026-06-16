@@ -1,0 +1,206 @@
+
+*********General Stats***************
+################ (program : git.bc)###############
+AddrsNum            23765
+BBWith2Succ         35184
+BBWith3Succ         674
+CallsNum            5905
+ConstArrayObj       207
+ConstStructObj      307
+ConstantObj         0
+CopysNum            20772
+FIObjNum            5100
+FSObjNum            4474
+FunctionObjs        3424
+GepsNum             68108
+GlobalObjs          1738
+HeapObjs            292
+IndCallSites        376
+LoadsNum            50235
+MaxStructSize       272
+NonPtrObj           8596
+ReturnsNum          13761
+StackObjs           4120
+StoresNum           39593
+TotalCallSite       44179
+TotalFieldObjects   9612
+TotalObjects        19187
+TotalPTASVFStmts    158724
+TotalPointers       485043
+TotalSVFStmts       359906
+VarArrayObj         779
+VarStructObj        2321
+----------------Time and memory stats--------------------
+LLVMIRTime          1.59
+SVFIRTime           3.726
+SymbolTableTime     0.257
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : git.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   5335
+MaxNodeInCycle      569
+NodeInCycle         664
+TotalCycle          71
+TotalEdge           58324
+TotalNode           3424
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : git.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.147542
+AvgIn/OutCopyEdge   1.19084
+AvgIn/OutEdge       1.58827
+AvgIn/OutLoadEdge   0.145942
+AvgIn/OutStoreEdge  0.103943
+AvgPtsSetSize       135.099
+AvgTopLvlPtsSize    448.786
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0
+SCCMergeTime        0
+TotalTime           110.927
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       23765
+CopyProcessed       360052
+DummyFieldPtrs      3054
+FieldObjs           9612
+GepProcessed        197350
+IndCallSites        376
+IndEdgeSolved       14391
+LoadProcessed       44176681
+LocalVarInRecur     923
+MaxInAddrEdge       1
+MaxInCopyEdge       6286
+MaxInLoadEdge       3313
+MaxInStoreEdge      118
+MaxNodesInSCC       51
+MaxOutAddrEdge      14192
+MaxOutCopyEdge      15308
+MaxOutLoadEdge      356
+MaxOutStoreEdge     2737
+MaxPtsSetSize       2007
+MemObjects          19187
+NodesInCycles       3301
+NullPointer         1190
+NumOfAddrs          22030
+NumOfCGEdge         215119
+NumOfCGNode         154150
+NumOfCopys          111476
+NumOfFieldExpand    0
+NumOfGeps           66332
+NumOfLoads          21791
+NumOfSCCDetect      16
+NumOfSFRs           0
+NumOfStores         15520
+NumOfValidNode      149313
+NumOfValidObjNode   13178
+Pointers            485043
+PointsToBlkPtr      0
+PointsToConstPtr    20931
+SolveIterations     16
+StoreProcessed      7221339
+TotalCycleNum       1043
+TotalObjects        19187
+TotalPWCCycleNum    104
+TotalPointers       485043
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : git.bc)###############
+UniquePointsToSets       145525
+TotalUnions              938913
+PropertyUnions           291870
+UniqueUnions             72899
+LookupUnions             440452
+PreemptiveUnions         133692
+TotalComplements         2772235
+PropertyComplements      2295998
+UniqueComplements        64336
+LookupComplements        347577
+PreemptiveComplements    64324
+TotalIntersections       2297011
+PropertyIntersections    2165883
+UniqueIntersections      198
+LookupIntersections      2137
+PreemptiveIntersections  128793
+#######################################################
+
+*********Memory SSA Statistics***************
+################ (program : git.bc)###############
+----------------Time and memory stats--------------------
+AverageRegSize      117.737
+GenMUCHITime        2.077
+GenRegionTime       232.74
+InsertPHITime       0.846
+SSARenameTime       0.197
+TotalMSSATime       235.877
+----------------Numbers stats----------------------------
+BBHasMSSAPhi        10206
+CSChiNode           195723
+CSHasChi            15648
+CSHasMu             21411
+CSMuNode            300012
+FunEntryChi         37160
+FunHasEntryChi      2889
+FunHasRetMu         3171
+FunRetMu            36952
+LoadHasMu           22070
+LoadMuNode          50341
+MSSAPhi             144932
+MaxRegSize          2007
+MemRegions          12620
+StoreChiNode        21259
+StoreHasChi         13037
+#######################################################
+
+*********SVFG Statistics***************
+################ (program : git.bc)###############
+----------------Time and memory stats--------------------
+ATNodeTime          1.34
+AvgWeight           83.209
+ConnDirEdgeTime     0
+ConnIndEdgeTime     27.794
+OptTime             0
+TLNodeTime          0
+TotalTime           29.134
+----------------Numbers stats----------------------------
+ActualIn            300012
+ActualOut           195723
+ActualParam         65733
+ActualRet           6566
+Addr                23765
+AvgInDegree         1
+AvgIndInDeg         1
+AvgIndOutDeg        1
+AvgOutDegree        1
+Copy                10756
+DirectCallEdge      40428
+DirectEdge          260505
+DirectRetEdge       6159
+FormalIn            37160
+FormalOut           36952
+FormalParam         6376
+FormalRet           527
+Gep                 68108
+IndCallEdge         350394
+IndRetEdge          222010
+IndirectEdge        1315483
+IndirectEdgeLabels  109460059
+Load                22070
+MSSAPhi             144932
+MaxInDegree         6351
+MaxIndInDeg         6351
+MaxIndOutDeg        6351
+MaxOutDegree        6351
+PHI                 7489
+Store               15789
+TotalEdge           1575988
+TotalNode           941959
+#######################################################

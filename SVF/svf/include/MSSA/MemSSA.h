@@ -213,26 +213,26 @@ private:
     }
     inline void AddLoadMU(const SVFBasicBlock* bb, const LoadStmt* load, const MemRegion* mr)
     {
-        LOADMU* mu = new LOADMU(bb,load, mr);
+        LOADMU* mu = new LOADMU(bb,load, mr, getNodeGuard(load->getICFGNode()));
         load2MuSetMap[load].insert(mu);
         collectRegUses(mr);
     }
     inline void AddStoreCHI(const SVFBasicBlock* bb, const StoreStmt* store, const MemRegion* mr)
     {
-        STORECHI* chi = new STORECHI(bb,store, mr);
+        STORECHI* chi = new STORECHI(bb,store, mr, getNodeGuard(store->getICFGNode()));
         store2ChiSetMap[store].insert(chi);
         collectRegUses(mr);
         collectRegDefs(bb,mr);
     }
     inline void AddCallSiteMU(const CallICFGNode* cs, const MemRegion* mr)
     {
-        CALLMU* mu = new CALLMU(cs, mr);
+        CALLMU* mu = new CALLMU(cs, mr, getNodeGuard(cs));
         callsiteToMuSetMap[cs].insert(mu);
         collectRegUses(mr);
     }
     inline void AddCallSiteCHI(const CallICFGNode* cs, const MemRegion* mr)
     {
-        CALLCHI* chi = new CALLCHI(cs, mr);
+        CALLCHI* chi = new CALLCHI(cs, mr, getNodeGuard(cs));
         callsiteToChiSetMap[cs].insert(chi);
         collectRegUses(mr);
         collectRegDefs(chi->getBasicBlock(),mr);
@@ -241,6 +241,9 @@ private:
     {
         bb2PhiSetMap[bb].insert(new PHI(bb, mr));
     }
+
+    /// Compute path guard under which an ICFG node executes.
+    Condition getNodeGuard(const ICFGNode* node) const;
     //@}
 
     /// Rename mus, chis and phis
@@ -263,7 +266,7 @@ private:
                 cit != ecit; ++cit)
         {
             CHI* chi = (*cit);
-            chi->setOpVer(getTopStackVer(chi->getMR()));
+            chi->setOpVer(getTopStackVer(chi->getMR()), chi->getCond());
             chi->setResVer(newSSAName(chi->getMR(),chi));
             memRegs.push_back(chi->getMR());
         }
@@ -282,15 +285,18 @@ private:
     }
 
     /// Rename operands (RHS) of phis
-    inline void RenamePhiOps(const PHISet& phiSet, u32_t pos, MRVector&)
+    inline void RenamePhiOps(const PHISet& phiSet, u32_t pos, const SVFBasicBlock* phiBB, MRVector&)
     {
         for (PHISet::const_iterator iter = phiSet.begin(), eiter = phiSet.end();
                 iter != eiter; ++iter)
         {
             PHI* phi = *iter;
-            phi->setOpVer(getTopStackVer(phi->getMR()), pos);
+            phi->setOpVer(getTopStackVer(phi->getMR()), pos, getEdgeGuard(phiBB, pos));
         }
     }
+
+    /// Compute the path guard of the pos-th incoming edge of bb.
+    Condition getEdgeGuard(const SVFBasicBlock* bb, u32_t pos) const;
     //@}
 
 public:

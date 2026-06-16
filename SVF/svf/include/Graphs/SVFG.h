@@ -291,10 +291,26 @@ public:
 protected:
     /// Add indirect def-use edges of a memory region between two statements,
     //@{
-    SVFGEdge* addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts);
-    SVFGEdge* addCallIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId);
-    SVFGEdge* addRetIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId);
-    SVFGEdge* addThreadMHPIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts);
+    SVFGEdge* addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts
+#ifdef SVF_ENABLE_SPAS
+                                     , const Guard& guard = Guard::getTrue()
+#endif
+                                    );
+    SVFGEdge* addCallIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId
+#ifdef SVF_ENABLE_SPAS
+                                    , const Guard& guard = Guard::getTrue()
+#endif
+                                   );
+    SVFGEdge* addRetIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId
+#ifdef SVF_ENABLE_SPAS
+                                   , const Guard& guard = Guard::getTrue()
+#endif
+                                  );
+    SVFGEdge* addThreadMHPIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts
+#ifdef SVF_ENABLE_SPAS
+                                        , const Guard& guard = Guard::getTrue()
+#endif
+                                       );
     //@}
 
     /// Add inter VF edge from callsite mu to function entry chi

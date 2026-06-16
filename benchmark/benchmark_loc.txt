@@ -1,0 +1,17 @@
+# Benchmark LoC Summary
+# Generated: 2026-06-15
+# Tool: cloc (C language only, --timeout 0)
+# Note: ffmpeg and postgres were built but removed because they are oversized
+#       or trigger SVF errors. Added perl (single project) and redis_nginx
+#       (merged bitcode of redis+nginx).
+
+name            C_LOC      bitcode_size  status
+redis           170782     8.7M          kept
+nginx           139175     6.0M          kept
+curl            167400     1.5M          kept
+unbound         128338     6.9M          built, not added to suite
+lighttpd        82819      2.3M          built, not added to suite
+perl            510191     14M           NEW replacement for ffmpeg
+redis_nginx     309957     15M           NEW merged replacement for postgres
+ffmpeg          1111418    44M           REMOVED (oversized)
+postgres        1070678    16M           REMOVED (SVF error)

@@ -38,7 +38,7 @@
 #include <cmath>
 #include <utility>
 
-#define epsilon std::numeric_limits<double>::epsilon();
+constexpr double epsilon = std::numeric_limits<double>::epsilon();
 namespace SVF
 {
 

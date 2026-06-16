@@ -32,6 +32,9 @@
 #include "Util/Options.h"
 #include "Graphs/VFG.h"
 #include "Util/SVFUtil.h"
+#ifdef SVF_ENABLE_SPAS
+#include "Util/Guard.h"
+#endif
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -676,6 +679,9 @@ VFGEdge* VFG::addCallEdge(NodeID srcId, NodeID dstId, CallSiteID csId)
     else
     {
         CallDirSVFGEdge* callEdge = new CallDirSVFGEdge(srcNode,dstNode,csId);
+#ifdef SVF_ENABLE_SPAS
+        callEdge->setGuard(Guard::atom(Guard::ContextAtom, csId, true));
+#endif
         return (addVFGEdge(callEdge) ? callEdge : nullptr);
     }
 }
@@ -696,6 +702,9 @@ VFGEdge* VFG::addRetEdge(NodeID srcId, NodeID dstId, CallSiteID csId)
     else
     {
         RetDirSVFGEdge* retEdge = new RetDirSVFGEdge(srcNode,dstNode,csId);
+#ifdef SVF_ENABLE_SPAS
+        retEdge->setGuard(Guard::atom(Guard::ContextAtom, csId, true));
+#endif
         return (addVFGEdge(retEdge) ? retEdge : nullptr);
     }
 }

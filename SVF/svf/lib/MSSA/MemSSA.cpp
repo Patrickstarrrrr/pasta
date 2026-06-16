@@ -33,6 +33,7 @@
 #include "Graphs/SVFGStat.h"
 #include "Graphs/CallGraph.h"
 #include "SVFIR/SVFVariables.h"
+#include "MemoryModel/PointerAnalysisImpl.h"
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -319,7 +320,7 @@ void MemSSA::SSARenameBB(const SVFBasicBlock& bb)
     {
         u32_t pos = bb.getBBPredecessorPos(succ);
         if (hasPHISet(succ))
-            RenamePhiOps(getPHISet(succ),pos,memRegs);
+            RenamePhiOps(getPHISet(succ),pos,succ,memRegs);
     }
 
     // for succ basic block in dominator tree
@@ -703,3 +704,69 @@ void MemSSA::dumpMSSA(OutStream& Out)
         }
     }
 }
+
+
+#ifdef SVF_ENABLE_SPAS
+MemSSA::Condition MemSSA::getNodeGuard(const ICFGNode* node) const
+{
+    if (!node)
+        return Guard::getTruePtr();
+
+    // The guard of a statement is the guard of its basic-block entry, because
+    // intra-block ICFG edges are unconditional.
+    const SVFBasicBlock* bb = node->getBB();
+    if (!bb)
+        return Guard::getTruePtr();
+    const ICFGNode* entry = bb->front();
+    if (!entry)
+        return Guard::getTruePtr();
+
+    Guard g = Guard::getFalse();
+    bool hasGuard = false;
+    for (const auto& edge : entry->getInEdges())
+    {
+        if (const IntraCFGEdge* intra = SVFUtil::dyn_cast<IntraCFGEdge>(edge))
+        {
+            if (intra->getCondition())
+            {
+                bool trueBranch = (intra->getSuccessorCondValue() != 0);
+                Guard atom = Guard::atom(Guard::PathAtom, intra->getCondition()->getId(), trueBranch);
+                g = hasGuard ? (g | atom) : atom;
+                hasGuard = true;
+            }
+        }
+    }
+    return hasGuard ? Guard::intern(g) : Guard::getTruePtr();
+}
+
+MemSSA::Condition MemSSA::getEdgeGuard(const SVFBasicBlock* bb, u32_t pos) const
+{
+    const std::vector<const SVFBasicBlock*>& preds = bb->getPredecessors();
+    if (pos >= preds.size())
+        return Guard::getTruePtr();
+    const SVFBasicBlock* pred = preds[pos];
+    const ICFGEdge* edge = pta->getPAG()->getICFG()->getICFGEdge(
+                               pred->getICFGNodeList().back(), bb->getICFGNodeList().front(), ICFGEdge::IntraCF);
+    if (!edge)
+        return Guard::getTruePtr();
+    if (const IntraCFGEdge* intra = SVFUtil::dyn_cast<IntraCFGEdge>(edge))
+    {
+        if (intra->getCondition())
+        {
+            bool trueBranch = (intra->getSuccessorCondValue() != 0);
+            return Guard::intern(Guard::atom(Guard::PathAtom, intra->getCondition()->getId(), trueBranch));
+        }
+    }
+    return Guard::getTruePtr();
+}
+#else
+MemSSA::Condition MemSSA::getNodeGuard(const ICFGNode*) const
+{
+    return MemRegion::getTrueCond();
+}
+
+MemSSA::Condition MemSSA::getEdgeGuard(const SVFBasicBlock*, u32_t) const
+{
+    return MemRegion::getTrueCond();
+}
+#endif

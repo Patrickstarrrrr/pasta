@@ -65,7 +65,11 @@ BVDataPTAImpl::BVDataPTAImpl(SVFIR* p, PointerAnalysis::PTATY type, bool alias_c
         else if (Options::ptDataBacking() == PTBackingType::Persistent) ptD = std::make_unique<PersDiffPTDataTy>(getPtCache(), false);
         else assert(false && "BVDataPTAImpl::BVDataPTAImpl: unexpected points-to backing type!");
     }
-    else if (type == FSSPARSE_WPA)
+    else if (type == FSSPARSE_WPA
+#ifdef SVF_ENABLE_SPAS
+             || type == PathS_FSSPARSE_WPA
+#endif
+            )
     {
         if (Options::INCDFPTData())
         {

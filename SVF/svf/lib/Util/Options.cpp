@@ -408,6 +408,31 @@ const Option<u32_t> Options::SingleTrackPrecisionSample(
     0
 );
 
+const Option<u32_t> Options::FlowSensitivePrecisionSample(
+    "fs-precision-sample",
+    "number of top-level pointers to sample for FlowSensitive precision comparison with Andersen (0 = disable)",
+    0
+);
+
+// PathSensitiveFlowSensitive (SPAS)
+const Option<s32_t> Options::PsfsKLimit(
+    "psfs-k",
+    "SPAS guard support-size limit (-1 = unlimited, 0 = cap all non-trivial guards)",
+    -1
+);
+
+const Option<bool> Options::PsfsUseDepthLimit(
+    "psfs-use-depth-limit",
+    "Enable guard-size capping in SPAS",
+    false
+);
+
+const Option<bool> Options::PsfsRefine(
+    "psfs-refine",
+    "Iterate SPAS with increasing k from 1 to psfs-k",
+    false
+);
+
 const Option<bool> Options::SaberCondAnder(
     "saber-cond-ander",
     "use ConditionalAndersen as the base PTA for SABER",
@@ -787,6 +812,9 @@ OptionMultiple<PointerAnalysis::PTATY> Options::PASelected(
     {PointerAnalysis::Steensgaard_WPA, "steens", "Steensgaard's pointer analysis"},
     // Disabled till further work is done.
     {PointerAnalysis::FSSPARSE_WPA, "fspta", "Sparse flow sensitive pointer analysis"},
+#ifdef SVF_ENABLE_SPAS
+    {PointerAnalysis::PathS_FSSPARSE_WPA, "psfspta", "Path-sensitive sparse flow-sensitive pointer analysis"},
+#endif
     {PointerAnalysis::VFS_WPA, "vfspta", "Versioned sparse flow-sensitive points-to analysis"},
     {PointerAnalysis::TypeCPP_WPA, "type", "Type-based fast analysis for Callgraph, SVFIR and CHA"},
 }

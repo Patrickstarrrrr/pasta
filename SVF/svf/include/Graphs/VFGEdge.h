@@ -144,8 +144,23 @@ class DirectSVFGEdge : public VFGEdge
 public:
     /// Constructor
     DirectSVFGEdge(VFGNode* s, VFGNode* d, GEdgeFlag k): VFGEdge(s,d,k)
+#ifdef SVF_ENABLE_SPAS
+        , guard(Guard::getTrue())
+#endif
     {
     }
+#ifdef SVF_ENABLE_SPAS
+    /// Return the path/context guard under which this direct edge propagates.
+    inline const Guard& getGuard() const
+    {
+        return guard;
+    }
+    /// Set the path/context guard.
+    inline void setGuard(const Guard& g)
+    {
+        guard = g;
+    }
+#endif
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
     //@{
     static inline bool classof(const DirectSVFGEdge *)
@@ -166,6 +181,12 @@ public:
     }
     //@}
 
+protected:
+#ifdef SVF_ENABLE_SPAS
+    Guard guard;
+#endif
+
+public:
     virtual const std::string toString() const;
 };
 
