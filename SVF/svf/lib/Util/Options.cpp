@@ -433,6 +433,18 @@ const Option<bool> Options::PsfsRefine(
     false
 );
 
+const Option<u32_t> Options::PsfsPrecisionSample(
+    "psfs-precision-sample",
+    "Number of top-level pointers to sample for SPAS precision comparison with Andersen (0 = disable)",
+    0
+);
+
+const Option<u32_t> Options::PsfsAliasSample(
+    "psfs-alias-sample",
+    "Number of alias pairs to sample for SPAS alias refinement comparison with Andersen (0 = disable)",
+    0
+);
+
 const Option<bool> Options::SaberCondAnder(
     "saber-cond-ander",
     "use ConditionalAndersen as the base PTA for SABER",

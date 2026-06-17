@@ -8,6 +8,8 @@
 
 #include "WPA/PathSensitiveFlowSensitive.h"
 #include "Graphs/SVFGEdge.h"
+#include <algorithm>
+#include <random>
 #include "Graphs/VFGNode.h"
 #include "MSSA/MemSSA.h"
 #include "SVFIR/SVFStatements.h"
@@ -25,6 +27,25 @@ void PathSensitiveFlowSensitive::initialize()
     FlowSensitive::initialize();
 
     condDFPTData = new CondDFPTDataTy();
+    initDirectEdgeGuards();
+}
+
+void PathSensitiveFlowSensitive::initDirectEdgeGuards()
+{
+    for (auto it = svfg->begin(), eit = svfg->end(); it != eit; ++it)
+    {
+        SVFGNode* src = it->second;
+        for (SVFGEdge* edge : src->getOutEdges())
+        {
+            if (DirectSVFGEdge* de = SVFUtil::dyn_cast<DirectSVFGEdge>(edge))
+            {
+                // Call/return direct edges already carry call-site context atoms.
+                if (SVFUtil::isa<CallDirSVFGEdge, RetDirSVFGEdge>(de))
+                    continue;
+                de->setGuard(capGuard(getNodeGuard(de->getDstNode())));
+            }
+        }
+    }
 }
 
 void PathSensitiveFlowSensitive::finalize()
@@ -35,6 +56,11 @@ void PathSensitiveFlowSensitive::finalize()
         condDFPTData->dump();
         SVFUtil::outs() << "===== end dump =====\n";
     }
+
+    if (Options::PsfsPrecisionSample() > 0)
+        samplePrecisionGain(Options::PsfsPrecisionSample());
+    if (Options::PsfsAliasSample() > 0)
+        sampleAliasRefinement(Options::PsfsAliasSample());
 
     FlowSensitive::finalize();
 }
@@ -78,17 +104,31 @@ Guard PathSensitiveFlowSensitive::getEdgeGuard(const IndirectSVFGEdge* edge) con
     return edge->getGuard();
 }
 
-Guard PathSensitiveFlowSensitive::getFunctionContextGuard(const FunObjVar* fun) const
+Guard PathSensitiveFlowSensitive::getFunctionContextGuard(const FunObjVar* fun, NodeID obj) const
 {
-    auto it = funContextGuard.find(fun);
-    return (it == funContextGuard.end()) ? Guard::getTrue() : it->second;
+    auto it = funObjContextGuard.find(fun);
+    if (it == funObjContextGuard.end())
+        return Guard::getTrue();
+    auto jt = it->second.find(obj);
+    return (jt == it->second.end()) ? Guard::getTrue() : jt->second;
 }
 
-void PathSensitiveFlowSensitive::absorbContextAtom(const FunObjVar* fun, const Guard& ctx)
+Guard PathSensitiveFlowSensitive::getFunctionContextGuard(const FunObjVar* fun) const
+{
+    auto it = funObjContextGuard.find(fun);
+    if (it == funObjContextGuard.end())
+        return Guard::getTrue();
+    Guard g = Guard::getFalse();
+    for (const auto& pair : it->second)
+        g = g | pair.second;
+    return g;
+}
+
+void PathSensitiveFlowSensitive::absorbContextAtom(const FunObjVar* fun, NodeID obj, const Guard& ctx)
 {
     if (ctx.isTrue() || ctx.isFalse())
         return;
-    Guard& g = funContextGuard[fun];
+    Guard& g = funObjContextGuard[fun][obj];
     g = g | ctx;
 }
 
@@ -492,12 +532,14 @@ bool PathSensitiveFlowSensitive::processStore(const StoreSVFGNode* store)
     const FunObjVar* fun = store->getICFGNode() && store->getICFGNode()->getBB()
                             ? store->getICFGNode()->getBB()->getParent()
                             : nullptr;
-    Guard storeGuard = capGuard(branchGuard & getFunctionContextGuard(fun));
 
     auto updateTarget = [&](NodeID obj, const Guard& objGuard, bool forceSU)
     {
         if (pag->isConstantObj(obj))
             return;
+
+        Guard ctxGuard = fun ? getFunctionContextGuard(fun, obj) : Guard::getTrue();
+        Guard storeGuard = capGuard(branchGuard & ctxGuard);
 
         const CondDFPTDataTy::GuardPtsMap& srcMap = condDFPTData->getCondInPtsSet(store->getId(), srcVar);
         if (!srcMap.empty())
@@ -695,9 +737,15 @@ bool PathSensitiveFlowSensitive::propAlongIndirectEdge(const IndirectSVFGEdge* e
 
     if (const CallIndSVFGEdge* callEdge = SVFUtil::dyn_cast<CallIndSVFGEdge>(edge))
     {
-        (void)callEdge;
         if (const FormalINSVFGNode* fIn = SVFUtil::dyn_cast<FormalINSVFGNode>(dst))
-            absorbContextAtom(fIn->getFun(), edgeGuard);
+        {
+            const FunObjVar* fun = fIn->getFun();
+            NodeID csId = callEdge->getCallSiteId();
+            callSiteToCallee[csId] = fun;
+            funCallSites[fun].insert(csId);
+            for (NodeID ptd : pts)
+                absorbContextAtom(fun, ptd, edgeGuard);
+        }
     }
 
     double end = stat->getClk();
@@ -712,13 +760,62 @@ bool PathSensitiveFlowSensitive::propVarPtsFromSrcToDst(NodeID var, const SVFGNo
 
 AliasResult PathSensitiveFlowSensitive::alias(NodeID node1, NodeID node2)
 {
+    // First try location-sensitive alias: both pointers must have a fact at the
+    // same program point (OUT location).  This avoids false positives from
+    // combining points-to facts that live at different, mutually-unreachable
+    // definitions.
+    Set<CondDFPTDataTy::LocID> locs1;
+    Set<CondDFPTDataTy::LocID> locs2;
+    condDFPTData->collectLocationsForVar(node1, locs1);
+    condDFPTData->collectLocationsForVar(node2, locs2);
+
+    auto mayAliasUnderGuard = [&](const Guard& g1, const PointsTo& s1,
+                                   const Guard& g2, const PointsTo& s2) -> bool
+    {
+        Guard base = g1 & g2;
+        Guard combined = base & getAliasContextConstraint(base);
+        if (!combined.isSat())
+            return false;
+        PointsTo inter = s1;
+        inter &= s2;
+        if (inter.empty())
+            return false;
+        expandFIObjs(inter, inter);
+        if (inter.test(0) || inter.test(pag->getBlkPtr()))
+            return true;
+        for (NodeID o : inter)
+        {
+            (void)o;
+            return true;
+        }
+        return false;
+    };
+
+    for (CondDFPTDataTy::LocID loc : locs1)
+    {
+        if (!locs2.count(loc))
+            continue;
+
+        const CondDFPTDataTy::GuardPtsMap& pts1 = condDFPTData->getCondOutPtsSet(loc, node1);
+        const CondDFPTDataTy::GuardPtsMap& pts2 = condDFPTData->getCondOutPtsSet(loc, node2);
+        for (const auto& p1 : pts1)
+        {
+            for (const auto& p2 : pts2)
+            {
+                if (mayAliasUnderGuard(p1.first, p1.second, p2.first, p2.second))
+                    return MayAlias;
+            }
+        }
+    }
+
+    // If no common location proves alias, fall back to the global (and less
+    // precise) cross-location check for soundness.  This only happens when one
+    // or both variables have no conditional OUT facts at shared program points.
     std::vector<std::pair<Guard, PointsTo>> pts1;
     std::vector<std::pair<Guard, PointsTo>> pts2;
     condDFPTData->collectAllOutPtsForVar(node1, pts1);
     condDFPTData->collectAllOutPtsForVar(node2, pts2);
 
-    // If either pointer has no conditional data, fall back to the unconditional
-    // bitvector alias check for soundness.
     if (pts1.empty() || pts2.empty())
         return FlowSensitive::alias(node1, node2);
 
@@ -726,27 +823,140 @@ AliasResult PathSensitiveFlowSensitive::alias(NodeID node1, NodeID node2)
     {
         for (const auto& p2 : pts2)
         {
-            Guard combined = p1.first & p2.first;
-            if (!combined.isSat())
-                continue;
-
-            PointsTo inter = p1.second;
-            inter &= p2.second;
-            if (!inter.empty())
-            {
-                expandFIObjs(inter, inter);
-                if (inter.test(0) || inter.test(pag->getBlkPtr()))
-                    return MayAlias;
-                for (NodeID o : inter)
-                {
-                    (void)o;
-                    return MayAlias;
-                }
-            }
+            if (mayAliasUnderGuard(p1.first, p1.second, p2.first, p2.second))
+                return MayAlias;
         }
     }
 
     return NoAlias;
+}
+
+PointsTo PathSensitiveFlowSensitive::getOverallCondPtsAllLocations(NodeID var) const
+{
+    PointsTo overall;
+    Set<CondDFPTDataTy::LocID> locs;
+    condDFPTData->collectLocationsForVar(var, locs);
+    for (CondDFPTDataTy::LocID loc : locs)
+    {
+        for (const auto& pair : condDFPTData->getCondOutPtsSet(loc, var))
+            overall |= pair.second;
+    }
+    return overall;
+}
+
+void PathSensitiveFlowSensitive::samplePrecisionGain(u32_t sampleSize)
+{
+    SVFUtil::outs() << "  [psfs-sample-precision] Collecting top-level pointers...\n";
+    std::vector<NodeID> topVars;
+    for (const auto& p : pag->getSVFVarMap())
+    {
+        if (pag->isValidTopLevelPtr(p.second))
+            topVars.push_back(p.first);
+    }
+
+    std::sort(topVars.begin(), topVars.end());
+    std::mt19937 rng(42);
+    if (topVars.size() > sampleSize)
+    {
+        std::shuffle(topVars.begin(), topVars.end(), rng);
+        topVars.resize(sampleSize);
+    }
+
+    u32_t sampled = static_cast<u32_t>(topVars.size());
+    SVFUtil::outs() << "  [psfs-sample-precision] Sampled " << sampled << " pointers.\n";
+
+    if (!ander)
+    {
+        SVFUtil::outs() << "  [psfs-sample-precision] No Andersen baseline, skipping.\n";
+        return;
+    }
+
+    u64_t totalAnder = 0;
+    u64_t totalPsfs = 0;
+    u64_t refinedCount = 0;
+    u64_t totalReduction = 0;
+    u64_t maxReduction = 0;
+
+    for (NodeID v : topVars)
+    {
+        size_t anderSize = ander->getPts(v).count();
+        PointsTo psfsPts = getOverallCondPtsAllLocations(v);
+        size_t psfsSize = psfsPts.count();
+
+        totalAnder += anderSize;
+        totalPsfs += psfsSize;
+
+        if (psfsSize < anderSize)
+        {
+            refinedCount++;
+            u64_t reduction = static_cast<u64_t>(anderSize - psfsSize);
+            totalReduction += reduction;
+            if (reduction > maxReduction)
+                maxReduction = reduction;
+        }
+    }
+
+    double avgReduction = (refinedCount > 0)
+                          ? (static_cast<double>(totalReduction) / static_cast<double>(refinedCount))
+                          : 0.0;
+
+    SVFUtil::outs() << "  [psfs-sample-precision] totalAndersen=" << totalAnder
+                    << " totalPsfs=" << totalPsfs
+                    << " refined=" << refinedCount
+                    << " totalReduction=" << totalReduction
+                    << " avgReduction=" << avgReduction
+                    << " maxReduction=" << maxReduction
+                    << "\n";
+}
+
+void PathSensitiveFlowSensitive::sampleAliasRefinement(u32_t sampleSize)
+{
+    SVFUtil::outs() << "  [psfs-sample-alias] Collecting top-level pointers...\n";
+    std::vector<NodeID> topVars;
+    for (const auto& p : pag->getSVFVarMap())
+    {
+        if (pag->isValidTopLevelPtr(p.second))
+            topVars.push_back(p.first);
+    }
+
+    if (topVars.size() < 2 || !ander)
+    {
+        SVFUtil::outs() << "  [psfs-sample-alias] Not enough pointers or no Andersen baseline, skipping.\n";
+        return;
+    }
+
+    std::sort(topVars.begin(), topVars.end());
+    std::mt19937 rng(42);
+
+    u32_t mayAliasAnder = 0;
+    u32_t refinedNoAlias = 0;
+    u32_t checked = 0;
+
+    // Sample pairs uniformly without pre-generating all pairs for large programs.
+    std::uniform_int_distribution<size_t> dist(0, topVars.size() - 1);
+    while (checked < sampleSize)
+    {
+        NodeID a = topVars[dist(rng)];
+        NodeID b = topVars[dist(rng)];
+        if (a == b)
+            continue;
+        if (a > b)
+            std::swap(a, b);
+        checked++;
+
+        AliasResult ar = ander->alias(a, b);
+        if (ar != MayAlias)
+            continue;
+        mayAliasAnder++;
+
+        if (alias(a, b) == NoAlias)
+            refinedNoAlias++;
+    }
+
+    SVFUtil::outs() << "  [psfs-sample-alias] checked=" << checked
+                    << " anderMayAlias=" << mayAliasAnder
+                    << " refinedToNoAlias=" << refinedNoAlias
+                    << "\n";
 }
 
 Guard PathSensitiveFlowSensitive::capGuard(const Guard& g) const
@@ -777,12 +987,128 @@ void PathSensitiveFlowSensitive::solveOnce()
     FlowSensitive::solveConstraints();
 }
 
+void PathSensitiveFlowSensitive::computeFunctionSummary(s32_t k)
+{
+    Map<NodeID, CondDFPTDataTy::CondPtsMap>& memSummary = funMemSummaryByK[k];
+    Map<NodeID, CondDFPTDataTy::CondPtsMap>& retSummary = funRetSummaryByK[k];
+    memSummary.clear();
+    retSummary.clear();
+
+    for (auto it = svfg->begin(), eit = svfg->end(); it != eit; ++it)
+    {
+        SVFGNode* node = it->second;
+        if (FormalOUTSVFGNode* fOut = SVFUtil::dyn_cast<FormalOUTSVFGNode>(node))
+        {
+            NodeID loc = fOut->getId();
+            for (NodeID obj : fOut->getPointsTo())
+            {
+                const CondDFPTDataTy::GuardPtsMap& pts = condDFPTData->getCondOutPtsSet(loc, obj);
+                if (!pts.empty())
+                    memSummary[loc][obj] = pts;
+            }
+        }
+        else if (FormalRetSVFGNode* fRet = SVFUtil::dyn_cast<FormalRetSVFGNode>(node))
+        {
+            NodeID loc = fRet->getId();
+            NodeID retVar = fRet->getRet()->getId();
+            const CondDFPTDataTy::GuardPtsMap& pts = condDFPTData->getCondOutPtsSet(loc, retVar);
+            if (!pts.empty())
+                retSummary[loc][retVar] = pts;
+        }
+    }
+
+    buildContextExclusivityConstraints();
+}
+
+void PathSensitiveFlowSensitive::seedFunctionSummary(s32_t k)
+{
+    auto memIt = funMemSummaryByK.find(k);
+    if (memIt != funMemSummaryByK.end())
+    {
+        for (const auto& locPair : memIt->second)
+        {
+            NodeID loc = locPair.first;
+            for (const auto& varPair : locPair.second)
+            {
+                NodeID obj = varPair.first;
+                for (const auto& guardPair : varPair.second)
+                    condDFPTData->unionCondInPts(loc, obj, guardPair.first, guardPair.second);
+            }
+        }
+    }
+
+    auto retIt = funRetSummaryByK.find(k);
+    if (retIt != funRetSummaryByK.end())
+    {
+        for (const auto& locPair : retIt->second)
+        {
+            NodeID loc = locPair.first;
+            for (const auto& varPair : locPair.second)
+            {
+                NodeID retVar = varPair.first;
+                for (const auto& guardPair : varPair.second)
+                    condDFPTData->unionCondOutPts(loc, retVar, guardPair.first, guardPair.second);
+            }
+        }
+    }
+}
+
+void PathSensitiveFlowSensitive::buildContextExclusivityConstraints()
+{
+    funContextExclusivity.clear();
+    for (const auto& pair : funCallSites)
+    {
+        const FunObjVar* fun = pair.first;
+        const Set<NodeID>& sites = pair.second;
+        if (sites.size() <= 1)
+            continue;
+
+        Guard constraint = Guard::getTrue();
+        for (auto it1 = sites.begin(); it1 != sites.end(); ++it1)
+        {
+            auto it2 = it1;
+            ++it2;
+            for (; it2 != sites.end(); ++it2)
+            {
+                Guard a1 = Guard::atom(Guard::ContextAtom, *it1, true);
+                Guard a2 = Guard::atom(Guard::ContextAtom, *it2, true);
+                constraint = constraint & ((!a1) | (!a2));
+            }
+        }
+        funContextExclusivity[fun] = constraint;
+    }
+}
+
+Guard PathSensitiveFlowSensitive::getAliasContextConstraint(const Guard& g) const
+{
+    Guard constraint = Guard::getTrue();
+    for (const auto& pair : funCallSites)
+    {
+        const FunObjVar* fun = pair.first;
+        const Set<NodeID>& sites = pair.second;
+
+        Guard disj = Guard::getFalse();
+        for (NodeID cs : sites)
+            disj = disj | Guard::atom(Guard::ContextAtom, cs, true);
+
+        if ((g & disj).isSat())
+        {
+            auto it = funContextExclusivity.find(fun);
+            if (it != funContextExclusivity.end())
+                constraint = constraint & it->second;
+        }
+    }
+    return constraint;
+}
+
 void PathSensitiveFlowSensitive::solveConstraints()
 {
     if (!useRefinement || kLimit <= 0)
     {
         currentK = kLimit;
         solveOnce();
+        if (useRefinement)
+            computeFunctionSummary(currentK);
         return;
     }
 
@@ -793,14 +1119,22 @@ void PathSensitiveFlowSensitive::solveConstraints()
     {
         currentK = k;
         condDFPTData->clear();
-        funContextGuard.clear();
+        funObjContextGuard.clear();
+        if (k > 1)
+            seedFunctionSummary(k - 1);
         SVFUtil::outs() << "[psfs] refinement iteration k=" << k << "\n";
 
         double start = stat->getClk(true);
         solveOnce();
         double end = stat->getClk(true);
         double iterTime = (end - start) / TIMEINTERVAL;
-        SVFUtil::outs() << "[psfs] k=" << k << " time=" << iterTime << "s\n";
+        SVFUtil::outs() << "[psfs] k=" << k
+                        << " time=" << iterTime << "s"
+                        << " inEntries=" << condDFPTData->numInEntries()
+                        << " outEntries=" << condDFPTData->numOutEntries()
+                        << "\n";
+
+        computeFunctionSummary(k);
     }
 }
 

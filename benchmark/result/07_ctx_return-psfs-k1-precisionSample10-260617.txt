@@ -1,0 +1,344 @@
+
+*********General Stats***************
+################ (program : 07_ctx_return.bc)###############
+AddrsNum            13
+BBWith2Succ         0
+BBWith3Succ         0
+CallsNum            1
+ConstArrayObj       0
+ConstStructObj      0
+ConstantObj         0
+CopysNum            1
+FIObjNum            4
+FSObjNum            8
+FunctionObjs        3
+GepsNum             0
+GlobalObjs          2
+HeapObjs            1
+IndCallSites        0
+LoadsNum            5
+MaxStructSize       0
+NonPtrObj           8
+ReturnsNum          2
+StackObjs           6
+StoresNum           8
+TotalCallSite       2
+TotalFieldObjects   0
+TotalObjects        13
+TotalPTASVFStmts    25
+TotalPointers       45
+TotalSVFStmts       33
+VarArrayObj         0
+VarStructObj        0
+----------------Time and memory stats--------------------
+LLVMIRTime          0.007
+SVFIRTime           0.001
+SymbolTableTime     0
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : 07_ctx_return.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   0
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalEdge           2
+TotalNode           3
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : 07_ctx_return.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.371429
+AvgIn/OutCopyEdge   0.371429
+AvgIn/OutEdge       0.942857
+AvgIn/OutLoadEdge   0.0857143
+AvgIn/OutStoreEdge  0.114286
+AvgPtsSetSize       0.568966
+AvgTopLvlPtsSize    1.25
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0
+SCCMergeTime        0
+TotalTime           0.001
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       13
+CopyProcessed       11
+DummyFieldPtrs      0
+FieldObjs           0
+GepProcessed        0
+IndCallSites        0
+IndEdgeSolved       0
+LoadProcessed       3
+LocalVarInRecur     0
+MaxInAddrEdge       1
+MaxInCopyEdge       2
+MaxInLoadEdge       1
+MaxInStoreEdge      1
+MaxNodesInSCC       0
+MaxOutAddrEdge      2
+MaxOutCopyEdge      2
+MaxOutLoadEdge      1
+MaxOutStoreEdge     1
+MaxPtsSetSize       2
+MemObjects          13
+NodesInCycles       0
+NullPointer         0
+NumOfAddrs          13
+NumOfCGEdge         20
+NumOfCGNode         36
+NumOfCopys          13
+NumOfFieldExpand    0
+NumOfGeps           0
+NumOfLoads          3
+NumOfSCCDetect      2
+NumOfSFRs           0
+NumOfStores         4
+NumOfValidNode      35
+NumOfValidObjNode   12
+Pointers            45
+PointsToBlkPtr      0
+PointsToConstPtr    0
+SolveIterations     2
+StoreProcessed      4
+TotalCycleNum       0
+TotalObjects        13
+TotalPWCCycleNum    0
+TotalPointers       45
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : 07_ctx_return.bc)###############
+UniquePointsToSets       14
+TotalUnions              26
+PropertyUnions           23
+UniqueUnions             1
+LookupUnions             0
+PreemptiveUnions         2
+TotalComplements         72
+PropertyComplements      72
+UniqueComplements        0
+LookupComplements        0
+PreemptiveComplements    0
+TotalIntersections       7
+PropertyIntersections    7
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  0
+#######################################################
+
+*********Memory SSA Statistics***************
+################ (program : 07_ctx_return.bc)###############
+----------------Time and memory stats--------------------
+AverageRegSize      1
+GenMUCHITime        0.001
+GenRegionTime       0
+InsertPHITime       0
+SSARenameTime       0
+TotalMSSATime       0.001
+----------------Numbers stats----------------------------
+BBHasMSSAPhi        0
+CSChiNode           0
+CSHasChi            0
+CSHasMu             0
+CSMuNode            0
+FunEntryChi         4
+FunHasEntryChi      2
+FunHasRetMu         2
+FunRetMu            4
+LoadHasMu           3
+LoadMuNode          3
+MSSAPhi             0
+MaxRegSize          1
+MemRegions          4
+StoreChiNode        4
+StoreHasChi         4
+#######################################################
+
+*********SVFG Statistics***************
+################ (program : 07_ctx_return.bc)###############
+----------------Time and memory stats--------------------
+ATNodeTime          0
+AvgWeight           1
+ConnDirEdgeTime     0
+ConnIndEdgeTime     0
+OptTime             0
+TLNodeTime          0
+TotalTime           0
+----------------Numbers stats----------------------------
+ActualIn            0
+ActualOut           0
+ActualParam         2
+ActualRet           2
+Addr                13
+AvgInDegree         0
+AvgIndInDeg         1
+AvgIndOutDeg        1
+AvgOutDegree        0
+Copy                1
+DirectCallEdge      2
+DirectEdge          20
+DirectRetEdge       2
+FormalIn            4
+FormalOut           4
+FormalParam         2
+FormalRet           1
+Gep                 0
+IndCallEdge         0
+IndRetEdge          0
+IndirectEdge        11
+IndirectEdgeLabels  11
+Load                3
+MSSAPhi             0
+MaxInDegree         3
+MaxIndInDeg         1
+MaxIndOutDeg        2
+MaxOutDegree        2
+PHI                 1
+Store               4
+TotalEdge           31
+TotalNode           38
+#######################################################
+[psfs] refinement iteration k=1
+[psfs] k=1 time=0.001s inEntries=44 outEntries=49
+  [psfs-sample-precision] Collecting top-level pointers...
+  [psfs-sample-precision] Sampled 10 pointers.
+  [psfs-sample-precision] totalAndersen=11 totalPsfs=11 refined=0 totalReduction=0 avgReduction=0 maxReduction=0
+  [psfs-sample-alias] Collecting top-level pointers...
+  [psfs-sample-alias] checked=10 anderMayAlias=2 refinedToNoAlias=0
+
+*********PTACallGraph Stats***************
+################ (program : 07_ctx_return.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   0
+FIObjNum            5
+FSObjNum            8
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalEdge           2
+TotalNode           3
+#######################################################
+
+*********Flow-Sensitive Pointer Analysis Statistics***************
+################ (program : 07_ctx_return.bc)###############
+----------------Time and memory stats--------------------
+AddrTime            0
+AverageSCCSize      0
+AvgAddrTakenVarPts  0
+AvgINPtsSize        0
+AvgOUTPtsSize       0
+AvgPtsSize          0.95
+AvgTopLvlPtsSize    0.95
+CopyTime            0
+DirectPropaTime     0
+GepTime             0
+IndirectPropaTime   0
+LoadTime            0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+PhiTime             0
+ProcessTime         0
+PropagationTime     0
+SCCTime             0
+SolveTime           0.001
+StoreTime           0
+Strong/WeakUpdTime  0
+TotalTime           0.004
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AI_SNodesHaveIN     0
+AI_SNodesHaveOUT    0
+AO_SNodesHaveIN     0
+AO_SNodesHaveOUT    0
+CopysNum            1
+DummyFieldPtrs      0
+FI_SNodesHaveIN     0
+FI_SNodesHaveOUT    0
+FO_SNodesHaveIN     0
+FO_SNodesHaveOUT    0
+FieldObjs           0
+IndEdgeSolved       0
+LD_SNodesHaveIN     0
+LD_SNodesHaveOUT    0
+LocalVarInRecur     0
+MaxAddrTakenVarPts  0
+MaxINPtsSize        0
+MaxOUTPtsSize       0
+MaxPtsSize          2
+MaxSCCSize          1
+MaxTopLvlPtsSize    2
+MemObjects          13
+NullPointer         0
+NumOfAddrTakenVar   4
+NumOfNodesInSCC     0
+NumOfSCC            0
+PHI_SNodesHaveIN    0
+PHI_SNodesHaveOUT   0
+Pointers            45
+PointsToBlkPtr      0
+PointsToConstPtr    0
+PotentialVarHaveIN  0
+PotentialVarHaveOUT 0
+ProcessedAParam     0
+ProcessedAddr       13
+ProcessedCopy       1
+ProcessedFRet       0
+ProcessedGep        0
+ProcessedLoad       9
+ProcessedMSSANode   11
+ProcessedPhi        2
+ProcessedStore      11
+SNodesHaveIN        0
+SNodesHaveOUT       0
+ST_SNodesHaveIN     0
+ST_SNodesHaveOUT    0
+SolveIterations     1
+StoresNum           4
+StrongUpdates       0
+TotalObjects        13
+TotalPointers       45
+VarHaveEmptyIN      0
+VarHaveEmptyOUT     0
+VarHaveIN           0
+VarHaveIN_AI        0
+VarHaveIN_AO        0
+VarHaveIN_FI        0
+VarHaveIN_FO        0
+VarHaveIN_LD        0
+VarHaveIN_PHI       0
+VarHaveIN_ST        0
+VarHaveOUT          0
+VarHaveOUT_AI       0
+VarHaveOUT_AO       0
+VarHaveOUT_FI       0
+VarHaveOUT_FO       0
+VarHaveOUT_LD       0
+VarHaveOUT_PHI      0
+VarHaveOUT_ST       0
+#######################################################
+
+****Persistent Points-To Cache Statistics: bitvector****
+################ (program : 07_ctx_return.bc)###############
+UniquePointsToSets       14
+TotalUnions              17
+PropertyUnions           17
+UniqueUnions             0
+LookupUnions             0
+PreemptiveUnions         0
+TotalComplements         0
+PropertyComplements      0
+UniqueComplements        0
+LookupComplements        0
+PreemptiveComplements    0
+TotalIntersections       0
+PropertyIntersections    0
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  0
+#######################################################

@@ -100,8 +100,17 @@ protected:
     /// Path-sensitive alias query.
     AliasResult alias(NodeID node1, NodeID node2) override;
 
+    /// Sample top-level pointers and compare their conditional points-to size with Andersen.
+    void samplePrecisionGain(u32_t sampleSize);
+
+    /// Sample alias pairs and count how many Andersen MayAlias pairs are refined to NoAlias by SPAS.
+    void sampleAliasRefinement(u32_t sampleSize);
+
     /// Guard of an SVFG node (conjunction of branch conditions on the path).
     virtual Guard getNodeGuard(const SVFGNode* node) const;
+
+    /// Set path guards on intra-procedural direct SVFG edges after construction.
+    virtual void initDirectEdgeGuards();
 
     /// Guard of an indirect SVFG edge.
     virtual Guard getEdgeGuard(const IndirectSVFGEdge* edge) const;
@@ -110,17 +119,23 @@ protected:
     void applyStoreUpdate(CondDFPTDataTy::LocID loc, NodeID obj, const Guard& guard,
                           const PointsTo& pts, bool strongUpdate);
 
-    /// Disjunction of calling-context atoms that may activate @p fun.
+    /// Disjunction of calling-context atoms that may activate @p fun for @p obj.
+    virtual Guard getFunctionContextGuard(const FunObjVar* fun, NodeID obj) const;
+
+    /// Disjunction of calling-context atoms that may activate @p fun (any object).
     virtual Guard getFunctionContextGuard(const FunObjVar* fun) const;
 
-    /// Absorb a new context atom into the function's active-context guard.
-    virtual void absorbContextAtom(const FunObjVar* fun, const Guard& ctx);
+    /// Absorb a new context atom into the function's active-context guard for @p obj.
+    virtual void absorbContextAtom(const FunObjVar* fun, NodeID obj, const Guard& ctx);
 
     /// Return the edge guard for the pos-th predecessor of a PHI node.
     virtual Guard getPhiOperandGuard(const PHISVFGNode* phi, u32_t pos) const;
 
     /// Return the unconditional union of conditional facts for @p var at @p loc.
     PointsTo getOverallCondPts(CondDFPTDataTy::LocID loc, NodeID var) const;
+
+    /// Return the unconditional union of conditional facts for @p var across all OUT locations.
+    PointsTo getOverallCondPtsAllLocations(NodeID var) const;
 
     /// Cap a guard to the current k-limit; returns @p g if within budget, else True.
     Guard capGuard(const Guard& g) const;
@@ -130,6 +145,18 @@ protected:
 
     /// Solve once with the current kLimit.
     void solveOnce();
+
+    /// Compute per-function conditional memory summary after solving at level @p k.
+    void computeFunctionSummary(s32_t k);
+
+    /// Seed the conditional store from the level-@p k summary before solving.
+    void seedFunctionSummary(s32_t k);
+
+    /// Build context-atom exclusivity constraints for functions reached from multiple call sites.
+    void buildContextExclusivityConstraints();
+
+    /// Return the subset of exclusivity constraints relevant to guard @p g.
+    Guard getAliasContextConstraint(const Guard& g) const;
 
     /// Conditional data-flow points-to data.
     CondDFPTDataTy* condDFPTData;
@@ -146,8 +173,25 @@ protected:
     /// Current k during a refinement iteration.
     s32_t currentK;
 
-    /// Active calling-context guard per function (disjunction of context atoms).
-    Map<const FunObjVar*, Guard> funContextGuard;
+    /// Active calling-context guard per function and per address-taken object.
+    Map<const FunObjVar*, Map<NodeID, Guard>> funObjContextGuard;
+
+    /// Per-k conditional memory summaries at FormalOUT SVFG nodes.
+    /// Key: k level -> FormalOUT node id -> (object -> guard -> points-to).
+    Map<s32_t, Map<NodeID, CondDFPTDataTy::CondPtsMap>> funMemSummaryByK;
+
+    /// Per-k conditional top-level return-value summaries at FormalRet SVFG nodes.
+    /// Key: k level -> FormalRet node id -> (return var -> guard -> points-to).
+    Map<s32_t, Map<NodeID, CondDFPTDataTy::CondPtsMap>> funRetSummaryByK;
+
+    /// Call sites that may activate each function.
+    Map<const FunObjVar*, Set<NodeID>> funCallSites;
+
+    /// Reverse map: call-site ID -> callee function.
+    Map<NodeID, const FunObjVar*> callSiteToCallee;
+
+    /// At-most-one exclusivity constraint per function over its call-site context atoms.
+    Map<const FunObjVar*, Guard> funContextExclusivity;
 
     /// Cached top-level points-to (unconditional) used for top-level vars.
     /// Address-taken vars use condDFPTData.

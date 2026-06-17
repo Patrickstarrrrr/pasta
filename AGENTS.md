@@ -243,15 +243,17 @@ This guarantees that a normal SVF build is byte-for-byte identical to the pre-SP
 - Fixed `MemSSA::getNodeGuard` / `PathSensitiveFlowSensitive::getNodeGuard` to compute the guard of a statement from its basic-block entry (branch conditions live on inter-block ICFG edges, not on intra-block statement edges).
 - Added `run_spas.sh` for batch evaluation.
 
-### Phase 2 — Context Sensitivity (DONE)
+### Phase 2 — Context Sensitivity / Guarded Value-Flow Edges (DONE)
 
 - `Guard` now maintains a BDD cube of all context-atom variables and supports:
   - `withoutContextAtoms()` / `isContextIndependent()` for context stripping.
 - `SVFG::addInterIndirectVFCallEdge` / `addInterIndirectVFRetEdge` tag interprocedural indirect edges with a `ContextAtom` guard derived from the `CallSiteID`.
-- `DirectSVFGEdge` (SPAS only) now carries a `Guard` field; `CallDirSVFGEdge` / `RetDirSVFGEdge` are tagged with a context atom for their call site.
+- `DirectSVFGEdge` (SPAS only) now carries a `Guard` field:
+  - `CallDirSVFGEdge` / `RetDirSVFGEdge` are tagged with a context atom for their call site.
+  - Intra-procedural direct edges are tagged with the path guard of their destination SVFG node (`initDirectEdgeGuards`), so every top-level def-use value-flow is guarded by the condition under which the use is reached.
 - `PathSensitiveFlowSensitive::propAlongDirectEdge` propagates actual/formal parameters and returns under the call-site context guard, separating top-level values by call site.
 - `PathSensitiveFlowSensitive` stores top-level pointer facts in `CondDFPTData` alongside address-taken facts; `ptD` is kept only as an unconditional fallback for SVF internals.
-- `PathSensitiveFlowSensitive` maintains an active-context guard per function (`funContextGuard`) and ANDs it into store guards, so address-taken effects inside a callee are tagged with the calling contexts that may reach it.
+- `PathSensitiveFlowSensitive` maintains a **per-function, per-object** active-context guard (`funObjContextGuard`).  A store to object `o` inside a callee is only tagged with the disjunction of call-site context atoms for call sites that may actually read/write `o`, rather than conflating all contexts for all objects.
 
 ### Phase 3 — Level-by-Level Refinement & Guard-Aware Strong Updates (DONE)
 
@@ -263,6 +265,12 @@ This guarantees that a normal SVF build is byte-for-byte identical to the pre-SP
 - `PathSensitiveFlowSensitive::solveConstraints` overrides the base solver to support the refinement loop: each level clears the conditional store and re-solves with the current `k`; the unconditional fallback `ptD` is kept monotonic so call-graph refinement remains sound.
 - All guard combinations in `processCopy`/`processGep`/`processPhi`/`processLoad`/`processStore`/`propAlongDirectEdge`/`propAlongIndirectEdge` are passed through `capGuard`, which weakens guards exceeding `k` to `True`.
 - `processStore` now performs **guard-aware strong updates**: a store target is treated as a singleton (and therefore strong-updatable under that guard) when the conditional points-to set of the destination pointer is a single object under the incoming guard, rather than relying on the unconditional singleton check.
+- `PathSensitiveFlowSensitive::alias()` is now **location-sensitive**: it first checks whether the two pointers can alias at a common program point (a shared OUT location).  Only when no common location proves alias does it fall back to the less precise global cross-location check.
+- Added **conditional function summaries**:
+  - **Memory summary** (`funMemSummaryByK`): after each refinement level `k`, the conditional OUT facts at every `FormalOUT` SVFG node are captured.  Before solving level `k+1`, they are seeded back into the conditional `IN` sets of the corresponding `FormalOUT` nodes.
+  - **Top-level return-value summary** (`funRetSummaryByK`): after each level `k`, the conditional OUT facts at every `FormalRet` SVFG node are captured.  Before level `k+1`, they are seeded into the conditional `OUT` sets of the corresponding `FormalRet` nodes.
+  Both summaries avoid rediscovering callee effects from scratch at each refinement level.
+- Added **context-atom exclusivity constraints** in `alias()`: call-site context atoms for the same callee were treated as independent BDD variables, which could make two mutually-exclusive calling contexts appear simultaneously satisfiable.  `PathSensitiveFlowSensitive` now records which call sites activate each function (`funCallSites` / `callSiteToCallee`) and builds pairwise `at-most-one` constraints over those atoms.  `alias()` conjoins the relevant constraints before checking satisfiability, filtering false may-aliases caused by impossible context combinations.
 
 ### SPAS CLI Options
 
@@ -271,6 +279,8 @@ This guarantees that a normal SVF build is byte-for-byte identical to the pre-SP
 | `-psfs-k` | `-1` | Guard support-size limit (`-1` = unlimited) |
 | `-psfs-use-depth-limit` | `false` | Weaken guards whose support size exceeds `-psfs-k` to `True` |
 | `-psfs-refine` | `false` | Iterate the analysis for `k = 1 .. psfs-k` |
+| `-psfs-precision-sample` | `0` | Sample top-level pointers and report pts-size reduction vs Andersen |
+| `-psfs-alias-sample` | `0` | Sample alias pairs and report Andersen MayAlias refined to NoAlias |
 
 ### Micro-Benchmarks
 
@@ -306,4 +316,10 @@ make -j$(sysctl -n hw.ncpu)
 # Level-by-level refinement example (k = 1..3)
 ~/PASTA/SVF/build/bin/wpa -psfspta -psfs-use-depth-limit -psfs-k=3 -psfs-refine \
     -stat=true -extapi=~/PASTA/SVF/build/lib/extapi.bc <bc>
+
+# Batch run SPAS with k=1,3,5 and sampling (outputs to benchmark/result)
+~/PASTA/run_spas.sh 1000 ./benchmark/bc/git.bc ./benchmark/bc/perl.bc
+
+# Compare precision across k values
+~/PASTA/compare_spas_refinement.sh 3 <bc1> [<bc2> ...]
 ```

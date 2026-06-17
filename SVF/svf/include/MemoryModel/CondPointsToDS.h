@@ -234,6 +234,36 @@ public:
         }
     }
 
+    /// Collect every location in the OUT map that has conditional facts for @p var.
+    inline void collectLocationsForVar(const Key& var, Set<LocID>& locs) const
+    {
+        for (const auto& locPair : dfOutPtsMap)
+        {
+            if (locPair.second.find(var) != locPair.second.end())
+                locs.insert(locPair.first);
+        }
+    }
+
+    /// Return the number of (loc, var, guard) entries in the OUT map.
+    inline u32_t numOutEntries() const
+    {
+        u32_t n = 0;
+        for (const auto& locPair : dfOutPtsMap)
+            for (const auto& varPair : locPair.second)
+                n += static_cast<u32_t>(varPair.second.size());
+        return n;
+    }
+
+    /// Return the number of (loc, var, guard) entries in the IN map.
+    inline u32_t numInEntries() const
+    {
+        u32_t n = 0;
+        for (const auto& locPair : dfInPtsMap)
+            for (const auto& varPair : locPair.second)
+                n += static_cast<u32_t>(varPair.second.size());
+        return n;
+    }
+
     /// Dump the conditional points-to map (for debugging).
     void dump() const
     {

@@ -155,6 +155,8 @@ public:
     static const Option<s32_t> PsfsKLimit;          // guard support-size limit (-1 = unlimited)
     static const Option<bool> PsfsUseDepthLimit;    // enable guard-size capping
     static const Option<bool> PsfsRefine;           // iterate k=1..PsfsKLimit
+    static const Option<u32_t> PsfsPrecisionSample; // sample top-level pointers for pts-size vs Andersen
+    static const Option<u32_t> PsfsAliasSample;     // sample alias pairs for refinement vs Andersen
 
     // SABER
     static const Option<bool> SaberCondAnder;
