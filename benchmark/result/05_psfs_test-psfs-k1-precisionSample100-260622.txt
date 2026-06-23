@@ -1,0 +1,344 @@
+
+*********General Stats***************
+################ (program : 05_psfs_test.bc)###############
+AddrsNum            14
+BBWith2Succ         1
+BBWith3Succ         0
+CallsNum            0
+ConstArrayObj       0
+ConstStructObj      0
+ConstantObj         0
+CopysNum            1
+FIObjNum            3
+FSObjNum            8
+FunctionObjs        2
+GepsNum             0
+GlobalObjs          2
+HeapObjs            2
+IndCallSites        0
+LoadsNum            9
+MaxStructSize       0
+NonPtrObj           7
+ReturnsNum          0
+StackObjs           5
+StoresNum           10
+TotalCallSite       1
+TotalFieldObjects   0
+TotalObjects        12
+TotalPTASVFStmts    28
+TotalPointers       44
+TotalSVFStmts       39
+VarArrayObj         0
+VarStructObj        0
+----------------Time and memory stats--------------------
+LLVMIRTime          0.007
+SVFIRTime           0.001
+SymbolTableTime     0
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : 05_psfs_test.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   0
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalEdge           1
+TotalNode           2
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : 05_psfs_test.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.4
+AvgIn/OutCopyEdge   0.4
+AvgIn/OutEdge       1.17143
+AvgIn/OutLoadEdge   0.2
+AvgIn/OutStoreEdge  0.171429
+AvgPtsSetSize       0.517857
+AvgTopLvlPtsSize    1.05263
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0
+SCCMergeTime        0
+TotalTime           0.001
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       14
+CopyProcessed       12
+DummyFieldPtrs      0
+FieldObjs           0
+GepProcessed        0
+IndCallSites        0
+IndEdgeSolved       0
+LoadProcessed       7
+LocalVarInRecur     0
+MaxInAddrEdge       1
+MaxInCopyEdge       2
+MaxInLoadEdge       1
+MaxInStoreEdge      2
+MaxNodesInSCC       0
+MaxOutAddrEdge      4
+MaxOutCopyEdge      4
+MaxOutLoadEdge      4
+MaxOutStoreEdge     1
+MaxPtsSetSize       2
+MemObjects          12
+NodesInCycles       0
+NullPointer         0
+NumOfAddrs          14
+NumOfCGEdge         27
+NumOfCGNode         37
+NumOfCopys          14
+NumOfFieldExpand    0
+NumOfGeps           0
+NumOfLoads          7
+NumOfSCCDetect      3
+NumOfSFRs           0
+NumOfStores         6
+NumOfValidNode      35
+NumOfValidObjNode   11
+Pointers            44
+PointsToBlkPtr      0
+PointsToConstPtr    0
+SolveIterations     3
+StoreProcessed      6
+TotalCycleNum       0
+TotalObjects        12
+TotalPWCCycleNum    0
+TotalPointers       44
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : 05_psfs_test.bc)###############
+UniquePointsToSets       13
+TotalUnions              28
+PropertyUnions           25
+UniqueUnions             1
+LookupUnions             0
+PreemptiveUnions         2
+TotalComplements         111
+PropertyComplements      111
+UniqueComplements        0
+LookupComplements        0
+PreemptiveComplements    0
+TotalIntersections       13
+PropertyIntersections    13
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  0
+#######################################################
+
+*********Memory SSA Statistics***************
+################ (program : 05_psfs_test.bc)###############
+----------------Time and memory stats--------------------
+AverageRegSize      1
+GenMUCHITime        0.001
+GenRegionTime       0
+InsertPHITime       0
+SSARenameTime       0
+TotalMSSATime       0.001
+----------------Numbers stats----------------------------
+BBHasMSSAPhi        1
+CSChiNode           1
+CSHasChi            1
+CSHasMu             1
+CSMuNode            1
+FunEntryChi         4
+FunHasEntryChi      1
+FunHasRetMu         1
+FunRetMu            4
+LoadHasMu           7
+LoadMuNode          7
+MSSAPhi             2
+MaxRegSize          1
+MemRegions          4
+StoreChiNode        6
+StoreHasChi         6
+#######################################################
+
+*********SVFG Statistics***************
+################ (program : 05_psfs_test.bc)###############
+----------------Time and memory stats--------------------
+ATNodeTime          0
+AvgWeight           1
+ConnDirEdgeTime     0
+ConnIndEdgeTime     0
+OptTime             0
+TLNodeTime          0
+TotalTime           0
+----------------Numbers stats----------------------------
+ActualIn            1
+ActualOut           1
+ActualParam         0
+ActualRet           0
+Addr                14
+AvgInDegree         1
+AvgIndInDeg         1
+AvgIndOutDeg        1
+AvgOutDegree        1
+Copy                1
+DirectCallEdge      0
+DirectEdge          20
+DirectRetEdge       0
+FormalIn            4
+FormalOut           4
+FormalParam         1
+FormalRet           0
+Gep                 0
+IndCallEdge         0
+IndRetEdge          0
+IndirectEdge        22
+IndirectEdgeLabels  22
+Load                7
+MSSAPhi             2
+MaxInDegree         3
+MaxIndInDeg         2
+MaxIndOutDeg        5
+MaxOutDegree        5
+PHI                 0
+Store               6
+TotalEdge           42
+TotalNode           42
+#######################################################
+[psfs] refinement iteration k=1
+[psfs] k=1 time=0s inEntries=35 outEntries=38
+  [psfs-sample-precision] Collecting top-level pointers...
+  [psfs-sample-precision] Sampled 19 pointers.
+  [psfs-sample-precision] totalAndersen=20 totalPsfs=18 refined=2 totalReduction=2 avgReduction=1 maxReduction=1
+  [psfs-sample-alias] Collecting top-level pointers...
+  [psfs-sample-alias] checked=100 anderMayAlias=10 refinedToNoAlias=3
+
+*********PTACallGraph Stats***************
+################ (program : 05_psfs_test.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   0
+FIObjNum            4
+FSObjNum            8
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalEdge           1
+TotalNode           2
+#######################################################
+
+*********Flow-Sensitive Pointer Analysis Statistics***************
+################ (program : 05_psfs_test.bc)###############
+----------------Time and memory stats--------------------
+AddrTime            0
+AverageSCCSize      0
+AvgAddrTakenVarPts  0
+AvgINPtsSize        0
+AvgOUTPtsSize       0
+AvgPtsSize          0.947368
+AvgTopLvlPtsSize    0.947368
+CopyTime            0
+DirectPropaTime     0
+GepTime             0
+IndirectPropaTime   0
+LoadTime            0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+PhiTime             0
+ProcessTime         0
+PropagationTime     0
+SCCTime             0
+SolveTime           0
+StoreTime           0
+Strong/WeakUpdTime  0
+TotalTime           0.004
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AI_SNodesHaveIN     0
+AI_SNodesHaveOUT    0
+AO_SNodesHaveIN     0
+AO_SNodesHaveOUT    0
+CopysNum            1
+DummyFieldPtrs      0
+FI_SNodesHaveIN     0
+FI_SNodesHaveOUT    0
+FO_SNodesHaveIN     0
+FO_SNodesHaveOUT    0
+FieldObjs           0
+IndEdgeSolved       0
+LD_SNodesHaveIN     0
+LD_SNodesHaveOUT    0
+LocalVarInRecur     0
+MaxAddrTakenVarPts  0
+MaxINPtsSize        0
+MaxOUTPtsSize       0
+MaxPtsSize          2
+MaxSCCSize          1
+MaxTopLvlPtsSize    2
+MemObjects          12
+NullPointer         0
+NumOfAddrTakenVar   6
+NumOfNodesInSCC     0
+NumOfSCC            0
+PHI_SNodesHaveIN    0
+PHI_SNodesHaveOUT   0
+Pointers            44
+PointsToBlkPtr      0
+PointsToConstPtr    0
+PotentialVarHaveIN  0
+PotentialVarHaveOUT 0
+ProcessedAParam     0
+ProcessedAddr       14
+ProcessedCopy       1
+ProcessedFRet       0
+ProcessedGep        0
+ProcessedLoad       19
+ProcessedMSSANode   17
+ProcessedPhi        0
+ProcessedStore      16
+SNodesHaveIN        0
+SNodesHaveOUT       0
+ST_SNodesHaveIN     0
+ST_SNodesHaveOUT    0
+SolveIterations     1
+StoresNum           6
+StrongUpdates       0
+TotalObjects        12
+TotalPointers       44
+VarHaveEmptyIN      0
+VarHaveEmptyOUT     0
+VarHaveIN           0
+VarHaveIN_AI        0
+VarHaveIN_AO        0
+VarHaveIN_FI        0
+VarHaveIN_FO        0
+VarHaveIN_LD        0
+VarHaveIN_PHI       0
+VarHaveIN_ST        0
+VarHaveOUT          0
+VarHaveOUT_AI       0
+VarHaveOUT_AO       0
+VarHaveOUT_FI       0
+VarHaveOUT_FO       0
+VarHaveOUT_LD       0
+VarHaveOUT_PHI      0
+VarHaveOUT_ST       0
+#######################################################
+
+****Persistent Points-To Cache Statistics: bitvector****
+################ (program : 05_psfs_test.bc)###############
+UniquePointsToSets       13
+TotalUnions              21
+PropertyUnions           21
+UniqueUnions             0
+LookupUnions             0
+PreemptiveUnions         0
+TotalComplements         0
+PropertyComplements      0
+UniqueComplements        0
+LookupComplements        0
+PreemptiveComplements    0
+TotalIntersections       0
+PropertyIntersections    0
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  0
+#######################################################

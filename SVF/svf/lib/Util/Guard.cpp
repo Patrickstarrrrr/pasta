@@ -104,33 +104,35 @@ const Guard* Guard::intern(const Guard& g)
 
 Guard Guard::atom(AtomKind kind, NodeID id, bool trueBranch)
 {
-    return Guard(Manager::get().atom(kind, id, trueBranch));
+    return Guard(Manager::get().atom(kind, id, trueBranch), kind == ContextAtom);
 }
 
 Guard Guard::operator&(const Guard& other) const
 {
-    return Guard(bdd * other.bdd);
+    return Guard(bdd * other.bdd, hasCtxAtom || other.hasCtxAtom);
 }
 
 Guard Guard::operator|(const Guard& other) const
 {
-    return Guard(bdd + other.bdd);
+    return Guard(bdd + other.bdd, hasCtxAtom || other.hasCtxAtom);
 }
 
 Guard Guard::operator!() const
 {
-    return Guard(!bdd);
+    return Guard(!bdd, hasCtxAtom);
 }
 
 Guard& Guard::operator&=(const Guard& other)
 {
     bdd = bdd * other.bdd;
+    hasCtxAtom = hasCtxAtom || other.hasCtxAtom;
     return *this;
 }
 
 Guard& Guard::operator|=(const Guard& other)
 {
     bdd = bdd + other.bdd;
+    hasCtxAtom = hasCtxAtom || other.hasCtxAtom;
     return *this;
 }
 
@@ -158,12 +160,12 @@ bool Guard::implies(const Guard& other) const
 
 Guard Guard::withoutContextAtoms() const
 {
-    return Guard(bdd.ExistAbstract(Manager::get().contextCube()));
+    return Guard(bdd.ExistAbstract(Manager::get().contextCube()), false);
 }
 
 bool Guard::isContextIndependent() const
 {
-    return (*this) == withoutContextAtoms();
+    return !hasCtxAtom;
 }
 
 bool Guard::operator==(const Guard& other) const

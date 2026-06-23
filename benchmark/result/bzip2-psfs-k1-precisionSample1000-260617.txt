@@ -1,0 +1,344 @@
+
+*********General Stats***************
+################ (program : bzip2.bc)###############
+AddrsNum            679
+BBWith2Succ         793
+BBWith3Succ         3
+CallsNum            102
+ConstArrayObj       0
+ConstStructObj      0
+ConstantObj         0
+CopysNum            1788
+FIObjNum            55
+FSObjNum            462
+FunctionObjs        51
+GepsNum             3847
+GlobalObjs          3
+HeapObjs            2
+IndCallSites        20
+LoadsNum            8006
+MaxStructSize       64
+NonPtrObj           422
+ReturnsNum          41
+StackObjs           461
+StoresNum           2579
+TotalCallSite       196
+TotalFieldObjects   26
+TotalObjects        544
+TotalPTASVFStmts    8097
+TotalPointers       23471
+TotalSVFStmts       21954
+VarArrayObj         26
+VarStructObj        2
+----------------Time and memory stats--------------------
+LLVMIRTime          0.043
+SVFIRTime           0.604
+SymbolTableTime     0.109
+#######################################################
+
+*********PTACallGraph Stats (Andersen analysis)***************
+################ (program : bzip2.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   0
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalEdge           196
+TotalNode           51
+#######################################################
+
+*********Andersen Pointer Analysis Stats***************
+################ (program : bzip2.bc)###############
+----------------Time and memory stats--------------------
+AvgIn/OutAddrEdge   0.0810157
+AvgIn/OutCopyEdge   1.00593
+AvgIn/OutEdge       1.50859
+AvgIn/OutLoadEdge   0.398912
+AvgIn/OutStoreEdge  0.0227328
+AvgPtsSetSize       1.45792
+AvgTopLvlPtsSize    4.44662
+CollapseTime        0
+CopyGepTime         0
+LoadStoreTime       0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+SCCDetectTime       0
+SCCMergeTime        0
+TotalTime           0.506
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AddrProcessed       679
+CopyProcessed       7861
+DummyFieldPtrs      0
+FieldObjs           26
+GepProcessed        7218
+IndCallSites        20
+IndEdgeSolved       20
+LoadProcessed       6021
+LocalVarInRecur     0
+MaxInAddrEdge       1
+MaxInCopyEdge       70
+MaxInLoadEdge       64
+MaxInStoreEdge      2
+MaxNodesInSCC       3
+MaxOutAddrEdge      163
+MaxOutCopyEdge      1528
+MaxOutLoadEdge      934
+MaxOutStoreEdge     63
+MaxPtsSetSize       5
+MemObjects          544
+NodesInCycles       3
+NullPointer         0
+NumOfAddrs          670
+NumOfCGEdge         11806
+NumOfCGNode         8299
+NumOfCopys          4550
+NumOfFieldExpand    0
+NumOfGeps           3769
+NumOfLoads          3299
+NumOfSCCDetect      7
+NumOfSFRs           0
+NumOfStores         188
+NumOfValidNode      8270
+NumOfValidObjNode   508
+Pointers            23471
+PointsToBlkPtr      0
+PointsToConstPtr    0
+SolveIterations     7
+StoreProcessed      343
+TotalCycleNum       1
+TotalObjects        544
+TotalPWCCycleNum    0
+TotalPointers       23471
+#######################################################
+
+****Persistent Points-To Cache Statistics: Andersen's analysis bitvector****
+################ (program : bzip2.bc)###############
+UniquePointsToSets       605
+TotalUnions              16205
+PropertyUnions           8472
+UniqueUnions             13
+LookupUnions             7699
+PreemptiveUnions         21
+TotalComplements         59195
+PropertyComplements      52424
+UniqueComplements        57
+LookupComplements        6657
+PreemptiveComplements    57
+TotalIntersections       5160
+PropertyIntersections    5046
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  114
+#######################################################
+
+*********Memory SSA Statistics***************
+################ (program : bzip2.bc)###############
+----------------Time and memory stats--------------------
+AverageRegSize      1.16981
+GenMUCHITime        0.026
+GenRegionTime       0.071
+InsertPHITime       0.002
+SSARenameTime       0.025
+TotalMSSATime       0.124
+----------------Numbers stats----------------------------
+BBHasMSSAPhi        147
+CSChiNode           46
+CSHasChi            30
+CSHasMu             126
+CSMuNode            157
+FunEntryChi         138
+FunHasEntryChi      43
+FunHasRetMu         46
+FunRetMu            138
+LoadHasMu           3309
+LoadMuNode          3765
+MSSAPhi             322
+MaxRegSize          5
+MemRegions          106
+StoreChiNode        252
+StoreHasChi         199
+#######################################################
+
+*********SVFG Statistics***************
+################ (program : bzip2.bc)###############
+----------------Time and memory stats--------------------
+ATNodeTime          0.003
+AvgWeight           1.67025
+ConnDirEdgeTime     0
+ConnIndEdgeTime     0.017
+OptTime             0
+TLNodeTime          0
+TotalTime           0.02
+----------------Numbers stats----------------------------
+ActualIn            157
+ActualOut           46
+ActualParam         213
+ActualRet           8
+Addr                679
+AvgInDegree         1
+AvgIndInDeg         1
+AvgIndOutDeg        5
+AvgOutDegree        1
+Copy                1
+DirectCallEdge      180
+DirectEdge          7952
+DirectRetEdge       0
+FormalIn            138
+FormalOut           138
+FormalParam         69
+FormalRet           2
+Gep                 3847
+IndCallEdge         149
+IndRetEdge          38
+IndirectEdge        5122
+IndirectEdgeLabels  8555
+Load                3309
+MSSAPhi             322
+MaxInDegree         70
+MaxIndInDeg         70
+MaxIndOutDeg        943
+MaxOutDegree        943
+PHI                 2
+Store               199
+TotalEdge           13074
+TotalNode           9131
+#######################################################
+[psfs] refinement iteration k=1
+[psfs] k=1 time=1.517s inEntries=120018 outEntries=5083
+  [psfs-sample-precision] Collecting top-level pointers...
+  [psfs-sample-precision] Sampled 1000 pointers.
+  [psfs-sample-precision] totalAndersen=4450 totalPsfs=140 refined=863 totalReduction=4310 avgReduction=4.99421 maxReduction=5
+  [psfs-sample-alias] Collecting top-level pointers...
+  [psfs-sample-alias] checked=1000 anderMayAlias=813 refinedToNoAlias=812
+
+*********PTACallGraph Stats***************
+################ (program : bzip2.bc)###############
+----------------Numbers stats----------------------------
+CalRetPairInCycle   0
+FIObjNum            56
+FSObjNum            462
+MaxNodeInCycle      0
+NodeInCycle         0
+TotalCycle          0
+TotalEdge           185
+TotalNode           51
+#######################################################
+
+*********Flow-Sensitive Pointer Analysis Statistics***************
+################ (program : bzip2.bc)###############
+----------------Time and memory stats--------------------
+AddrTime            0
+AverageSCCSize      123.6
+AvgAddrTakenVarPts  0
+AvgINPtsSize        0
+AvgOUTPtsSize       0
+AvgPtsSize          0.141474
+AvgTopLvlPtsSize    0.141474
+CopyTime            0
+DirectPropaTime     0
+GepTime             0
+IndirectPropaTime   0
+LoadTime            0
+MemoryUsageVmrss    0
+MemoryUsageVmsize   0
+PhiTime             0
+ProcessTime         0
+PropagationTime     0
+SCCTime             0
+SolveTime           1.517
+StoreTime           0
+Strong/WeakUpdTime  0
+TotalTime           3.675
+UpdateCGTime        0
+----------------Numbers stats----------------------------
+AI_SNodesHaveIN     0
+AI_SNodesHaveOUT    0
+AO_SNodesHaveIN     0
+AO_SNodesHaveOUT    0
+CopysNum            1
+DummyFieldPtrs      0
+FI_SNodesHaveIN     0
+FI_SNodesHaveOUT    0
+FO_SNodesHaveIN     0
+FO_SNodesHaveOUT    0
+FieldObjs           26
+IndEdgeSolved       9
+LD_SNodesHaveIN     0
+LD_SNodesHaveOUT    0
+LocalVarInRecur     0
+MaxAddrTakenVarPts  0
+MaxINPtsSize        0
+MaxOUTPtsSize       0
+MaxPtsSize          2
+MaxSCCSize          549
+MaxTopLvlPtsSize    2
+MemObjects          544
+NullPointer         2819
+NumOfAddrTakenVar   140
+NumOfNodesInSCC     618
+NumOfSCC            5
+PHI_SNodesHaveIN    0
+PHI_SNodesHaveOUT   0
+Pointers            23471
+PointsToBlkPtr      0
+PointsToConstPtr    0
+PotentialVarHaveIN  0
+PotentialVarHaveOUT 0
+ProcessedAParam     0
+ProcessedAddr       1358
+ProcessedCopy       2
+ProcessedFRet       0
+ProcessedGep        8076
+ProcessedLoad       10991
+ProcessedMSSANode   4314
+ProcessedPhi        6
+ProcessedStore      660
+SNodesHaveIN        0
+SNodesHaveOUT       0
+ST_SNodesHaveIN     0
+ST_SNodesHaveOUT    0
+SolveIterations     2
+StoresNum           199
+StrongUpdates       0
+TotalObjects        544
+TotalPointers       23471
+VarHaveEmptyIN      0
+VarHaveEmptyOUT     0
+VarHaveIN           0
+VarHaveIN_AI        0
+VarHaveIN_AO        0
+VarHaveIN_FI        0
+VarHaveIN_FO        0
+VarHaveIN_LD        0
+VarHaveIN_PHI       0
+VarHaveIN_ST        0
+VarHaveOUT          0
+VarHaveOUT_AI       0
+VarHaveOUT_AO       0
+VarHaveOUT_FI       0
+VarHaveOUT_FO       0
+VarHaveOUT_LD       0
+VarHaveOUT_PHI      0
+VarHaveOUT_ST       0
+#######################################################
+
+****Persistent Points-To Cache Statistics: bitvector****
+################ (program : bzip2.bc)###############
+UniquePointsToSets       545
+TotalUnions              2400
+PropertyUnions           2400
+UniqueUnions             0
+LookupUnions             0
+PreemptiveUnions         0
+TotalComplements         0
+PropertyComplements      0
+UniqueComplements        0
+LookupComplements        0
+PreemptiveComplements    0
+TotalIntersections       0
+PropertyIntersections    0
+UniqueIntersections      0
+LookupIntersections      0
+PreemptiveIntersections  0
+#######################################################

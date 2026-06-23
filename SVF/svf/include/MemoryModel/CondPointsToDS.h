@@ -129,14 +129,26 @@ public:
     /// Returns true if anything changed.
     inline bool unionCondInPts(LocID loc, const Key& var, const Guard& guard, const DataSet& pts)
     {
-        DataSet& dst = dfInPtsMap[loc][var][guard];
-        return dst |= pts;
+        if (pts.empty())
+            return false;
+        auto lit = dfInPtsMap.try_emplace(loc);
+        auto vit = lit.first->second.try_emplace(var);
+        auto git = vit.first->second.try_emplace(guard, pts);
+        if (!git.second)
+            return git.first->second |= pts;
+        return true;
     }
 
     inline bool unionCondOutPts(LocID loc, const Key& var, const Guard& guard, const DataSet& pts)
     {
-        DataSet& dst = dfOutPtsMap[loc][var][guard];
-        return dst |= pts;
+        if (pts.empty())
+            return false;
+        auto lit = dfOutPtsMap.try_emplace(loc);
+        auto vit = lit.first->second.try_emplace(var);
+        auto git = vit.first->second.try_emplace(guard, pts);
+        if (!git.second)
+            return git.first->second |= pts;
+        return true;
     }
 
     /// Compute the unconditional (over-approximate) points-to set for a variable at a location.

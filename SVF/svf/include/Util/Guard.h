@@ -90,13 +90,14 @@ private:
     };
 
     BDD bdd;
+    bool hasCtxAtom;
 #else
     // Fallback path: wrap the existing PathCond infrastructure.
     const class PathCond* cond;
 #endif
 
 #ifdef SVF_ENABLE_SPAS
-    explicit Guard(const BDD& b) : bdd(b) {}
+    explicit Guard(const BDD& b, bool ctx = false) : bdd(b), hasCtxAtom(ctx) {}
 #else
     explicit Guard(const PathCond* c) : cond(c) {}
 #endif
@@ -143,7 +144,7 @@ public:
     /// Existentially quantify out all context atoms.
     Guard withoutContextAtoms() const;
 
-    /// Return true if this guard does not depend on any context atom.
+    /// Return true if this guard does not depend on any context atom (cheap flag check).
     bool isContextIndependent() const;
 
     bool operator==(const Guard& other) const;
